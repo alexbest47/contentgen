@@ -90,7 +90,7 @@ serve(async (req) => {
     const userPrompt = userTemplate
       .replace(/\{\{program_title\}\}/g, program.title)
       .replace(/\{\{mini_course_title\}\}/g, course.title)
-      .replace(/\{\{audience_description\}\}/g, course.audience_description || "")
+      .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{mini_course_description\}\}/g, course.course_description || "");
 
     // Call Claude API
