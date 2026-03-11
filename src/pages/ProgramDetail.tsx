@@ -51,7 +51,6 @@ export default function ProgramDetail() {
       queryClient.invalidateQueries({ queryKey: ["mini_courses", programId] });
       setOpen(false);
       setTitle("");
-      setAudience("");
       setCourseDesc("");
       toast.success("Мини-курс создан");
     },
