@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, ChevronRight, ArrowLeft } from "lucide-react";
+import { Plus, ChevronRight, ArrowLeft, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ProgramDetail() {
