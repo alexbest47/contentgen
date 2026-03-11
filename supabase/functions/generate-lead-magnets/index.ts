@@ -31,6 +31,29 @@ serve(async (req) => {
     const course = project.mini_courses;
     const program = course.paid_programs;
 
+    // If there's a Google Doc URL, fetch the content
+    let audienceDescription = course.audience_description || "";
+    if (course.audience_doc_url) {
+      try {
+        const docMatch = course.audience_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        if (docMatch) {
+          const docId = docMatch[1];
+          const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+          const docResponse = await fetch(exportUrl);
+          if (docResponse.ok) {
+            audienceDescription = await docResponse.text();
+            // Cache the content
+            await supabase.from("mini_courses").update({ audience_description: audienceDescription }).eq("id", course.id);
+          } else {
+            console.error("Failed to fetch Google Doc:", docResponse.status);
+            await docResponse.text(); // consume body
+          }
+        }
+      } catch (docErr) {
+        console.error("Error fetching Google Doc:", docErr);
+      }
+    }
+
     // Update status
     await supabase.from("projects").update({ status: "generating_leads" }).eq("id", project_id);
 
