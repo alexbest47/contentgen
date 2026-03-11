@@ -88,21 +88,23 @@ export default function Programs() {
       ) : programs?.length === 0 ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">Нет программ. Создайте первую!</CardContent></Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="border rounded-lg divide-y">
           {programs?.map((p) => (
-            <Card key={p.id} className="cursor-pointer transition-shadow hover:shadow-md" onClick={() => navigate(`/programs/${p.id}`)}>
-              <CardHeader>
-                <CardTitle className="text-lg">{p.title}</CardTitle>
-                {p.description && <CardDescription className="line-clamp-2">{p.description}</CardDescription>}
-              </CardHeader>
-              <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <span>{new Date(p.created_at).toLocaleDateString("ru-RU")}</span>
-                  {(p as any).audience_doc_url && <span>📄 Google Doc</span>}
-                </div>
+            <div
+              key={p.id}
+              className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => navigate(`/programs/${p.id}`)}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="font-medium">{p.title}</div>
+                {p.description && <div className="text-sm text-muted-foreground line-clamp-1">{p.description}</div>}
+              </div>
+              <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
+                {(p as any).audience_doc_url && <span>📄</span>}
+                <span>{new Date(p.created_at).toLocaleDateString("ru-RU")}</span>
                 <ChevronRight className="h-4 w-4" />
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}

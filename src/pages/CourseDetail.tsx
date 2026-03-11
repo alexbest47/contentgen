@@ -113,21 +113,22 @@ export default function CourseDetail() {
       ) : projects?.length === 0 ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">Нет проектов. Создайте первый!</CardContent></Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="border rounded-lg divide-y">
           {projects?.map((p) => (
-            <Card
+            <div
               key={p.id}
-              className="cursor-pointer transition-shadow hover:shadow-md"
+              className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => navigate(`/programs/${programId}/courses/${courseId}/projects/${p.id}`)}
             >
-              <CardHeader className="flex flex-row items-start justify-between">
-                <CardTitle className="text-lg">{p.title}</CardTitle>
+              <div className="min-w-0 flex-1">
+                <div className="font-medium">{p.title}</div>
+              </div>
+              <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
                 <Badge className={statusColors[p.status] ?? ""}>{statusLabels[p.status] ?? p.status}</Badge>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                {new Date(p.created_at).toLocaleDateString("ru-RU")}
-              </CardContent>
-            </Card>
+                <span>{new Date(p.created_at).toLocaleDateString("ru-RU")}</span>
+                <ChevronRight className="h-4 w-4" />
+              </div>
+            </div>
           ))}
         </div>
       )}
