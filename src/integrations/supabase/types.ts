@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      content_pieces: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          generation_run_id: string | null
+          id: string
+          project_id: string
+        }
+        Insert: {
+          category: string
+          content?: string
+          created_at?: string
+          generation_run_id?: string | null
+          id?: string
+          project_id: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          generation_run_id?: string | null
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_pieces_generation_run_id_fkey"
+            columns: ["generation_run_id"]
+            isOneToOne: false
+            referencedRelation: "generation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_pieces_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generation_runs: {
         Row: {
           completed_at: string | null
