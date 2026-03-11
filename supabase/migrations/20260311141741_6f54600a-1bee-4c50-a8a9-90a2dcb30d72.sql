@@ -1,0 +1,1 @@
+ALTER TABLE public.mini_courses ADD COLUMN audience_doc_url TEXT;
