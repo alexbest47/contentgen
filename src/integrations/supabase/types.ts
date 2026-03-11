@@ -161,6 +161,8 @@ export type Database = {
       }
       paid_programs: {
         Row: {
+          audience_description: string | null
+          audience_doc_url: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -168,6 +170,8 @@ export type Database = {
           title: string
         }
         Insert: {
+          audience_description?: string | null
+          audience_doc_url?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -175,6 +179,8 @@ export type Database = {
           title: string
         }
         Update: {
+          audience_description?: string | null
+          audience_doc_url?: string | null
           created_at?: string
           created_by?: string
           description?: string | null

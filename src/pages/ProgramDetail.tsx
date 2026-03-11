@@ -19,7 +19,6 @@ export default function ProgramDetail() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [audience, setAudience] = useState("");
   const [courseDesc, setCourseDesc] = useState("");
 
   const { data: program } = useQuery({
@@ -43,16 +42,15 @@ export default function ProgramDetail() {
   const createMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("mini_courses").insert({
-        program_id: programId!, title, audience_doc_url: audience,
+        program_id: programId!, title,
         course_description: courseDesc, created_by: user!.id,
-      } as any);
+      });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mini_courses", programId] });
       setOpen(false);
       setTitle("");
-      setAudience("");
       setCourseDesc("");
       toast.success("Мини-курс создан");
     },
@@ -65,9 +63,12 @@ export default function ProgramDetail() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/programs")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">{program?.title ?? "..."}</h1>
           <p className="text-muted-foreground">Мини-курсы программы</p>
+          {(program as any)?.audience_doc_url && (
+            <p className="text-xs text-muted-foreground mt-1">📄 <a href={(program as any).audience_doc_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google Doc аудитории</a></p>
+          )}
         </div>
       </div>
 
@@ -84,11 +85,6 @@ export default function ProgramDetail() {
               <div className="space-y-2">
                 <Label>Название</Label>
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название мини-курса" required />
-              </div>
-              <div className="space-y-2">
-                <Label>Ссылка на описание аудитории (Google Docs)</Label>
-                <Input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="https://docs.google.com/document/d/..." required />
-                <p className="text-xs text-muted-foreground">Вставьте ссылку на Google документ (доступ по ссылке для всех)</p>
               </div>
               <div className="space-y-2">
                 <Label>Описание мини-курса</Label>
@@ -112,7 +108,7 @@ export default function ProgramDetail() {
             <Card key={c.id} className="cursor-pointer transition-shadow hover:shadow-md" onClick={() => navigate(`/programs/${programId}/courses/${c.id}`)}>
               <CardHeader>
                 <CardTitle className="text-lg">{c.title}</CardTitle>
-                {(c as any).audience_doc_url && <CardDescription className="line-clamp-1 text-xs">📄 Google Doc привязан</CardDescription>}
+                {(c as any).course_description && <CardDescription className="line-clamp-2">{(c as any).course_description}</CardDescription>}
               </CardHeader>
               <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>{new Date(c.created_at).toLocaleDateString("ru-RU")}</span>
