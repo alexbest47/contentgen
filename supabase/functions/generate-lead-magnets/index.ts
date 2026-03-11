@@ -31,9 +31,9 @@ serve(async (req) => {
     const course = project.mini_courses;
     const program = course.paid_programs;
 
-    // If there's a Google Doc URL, fetch the content
-    let audienceDescription = course.audience_description || "";
-    if (course.audience_doc_url) {
+    // If there's a Google Doc URL on the program level, fetch the content
+    let audienceDescription = program.audience_description || "";
+    if (program.audience_doc_url) {
       try {
         const docMatch = course.audience_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
         if (docMatch) {
