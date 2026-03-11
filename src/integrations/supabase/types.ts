@@ -14,16 +14,335 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      generation_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          input_data: Json | null
+          output_data: Json | null
+          project_id: string
+          prompt_id: string | null
+          status: string
+          type: Database["public"]["Enums"]["prompt_category"]
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_data?: Json | null
+          output_data?: Json | null
+          project_id: string
+          prompt_id?: string | null
+          status?: string
+          type: Database["public"]["Enums"]["prompt_category"]
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_data?: Json | null
+          output_data?: Json | null
+          project_id?: string
+          prompt_id?: string | null
+          status?: string
+          type?: Database["public"]["Enums"]["prompt_category"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generation_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generation_runs_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_magnets: {
+        Row: {
+          attention_reason: string | null
+          call_to_action: string | null
+          created_at: string
+          description: string | null
+          id: string
+          infographic_concept: string | null
+          is_selected: boolean
+          marketing_angle: string | null
+          project_id: string
+          promise: string | null
+          title: string
+        }
+        Insert: {
+          attention_reason?: string | null
+          call_to_action?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          infographic_concept?: string | null
+          is_selected?: boolean
+          marketing_angle?: string | null
+          project_id: string
+          promise?: string | null
+          title: string
+        }
+        Update: {
+          attention_reason?: string | null
+          call_to_action?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          infographic_concept?: string | null
+          is_selected?: boolean
+          marketing_angle?: string | null
+          project_id?: string
+          promise?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_magnets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mini_courses: {
+        Row: {
+          audience_description: string | null
+          course_description: string | null
+          created_at: string
+          created_by: string
+          id: string
+          program_id: string
+          title: string
+        }
+        Insert: {
+          audience_description?: string | null
+          course_description?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          program_id: string
+          title: string
+        }
+        Update: {
+          audience_description?: string | null
+          course_description?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          program_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mini_courses_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "paid_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paid_programs: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          mini_course_id: string
+          selected_lead_magnet_id: string | null
+          status: Database["public"]["Enums"]["project_status"]
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          mini_course_id: string
+          selected_lead_magnet_id?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          mini_course_id?: string
+          selected_lead_magnet_id?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_selected_lead_magnet"
+            columns: ["selected_lead_magnet_id"]
+            isOneToOne: false
+            referencedRelation: "lead_magnets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_mini_course_id_fkey"
+            columns: ["mini_course_id"]
+            isOneToOne: false
+            referencedRelation: "mini_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prompts: {
+        Row: {
+          category: Database["public"]["Enums"]["prompt_category"]
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          model: string
+          name: string
+          output_format_hint: string | null
+          provider: string
+          slug: string
+          system_prompt: string
+          updated_at: string
+          user_prompt_template: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["prompt_category"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          model?: string
+          name: string
+          output_format_hint?: string | null
+          provider?: string
+          slug: string
+          system_prompt?: string
+          updated_at?: string
+          user_prompt_template?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["prompt_category"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          model?: string
+          name?: string
+          output_format_hint?: string | null
+          provider?: string
+          slug?: string
+          system_prompt?: string
+          updated_at?: string
+          user_prompt_template?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      project_status:
+        | "draft"
+        | "generating_leads"
+        | "leads_ready"
+        | "lead_selected"
+        | "generating_content"
+        | "completed"
+        | "error"
+      prompt_category:
+        | "lead_magnets"
+        | "slide_structure"
+        | "text_instagram"
+        | "text_vk"
+        | "text_telegram"
+        | "text_email"
+        | "test_generation"
+        | "image_carousel"
+        | "image_post"
+        | "image_email"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +469,29 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      project_status: [
+        "draft",
+        "generating_leads",
+        "leads_ready",
+        "lead_selected",
+        "generating_content",
+        "completed",
+        "error",
+      ],
+      prompt_category: [
+        "lead_magnets",
+        "slide_structure",
+        "text_instagram",
+        "text_vk",
+        "text_telegram",
+        "text_email",
+        "test_generation",
+        "image_carousel",
+        "image_post",
+        "image_email",
+      ],
+    },
   },
 } as const
