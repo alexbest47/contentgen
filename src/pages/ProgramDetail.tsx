@@ -95,13 +95,44 @@ export default function ProgramDetail() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">{program?.title ?? "..."}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">{program?.title ?? "..."}</h1>
+            <Button variant="ghost" size="icon" onClick={openEditDialog}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </div>
           <p className="text-muted-foreground">Мини-курсы программы</p>
-          {(program as any)?.audience_doc_url && (
-            <p className="text-xs text-muted-foreground mt-1">📄 <a href={(program as any).audience_doc_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google Doc аудитории</a></p>
+          {program?.audience_doc_url && (
+            <p className="text-xs text-muted-foreground mt-1">📄 <a href={program.audience_doc_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google Doc аудитории</a></p>
           )}
         </div>
       </div>
+
+      {/* Edit program dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Редактировать программу</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Название</Label>
+              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Описание</Label>
+              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="min-h-[100px]" />
+            </div>
+            <div className="space-y-2">
+              <Label>Ссылка на Google Doc аудитории</Label>
+              <Input value={editAudienceUrl} onChange={(e) => setEditAudienceUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
+            </div>
+            <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? "Сохранение..." : "Сохранить"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={setOpen}>
