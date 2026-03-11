@@ -35,7 +35,7 @@ serve(async (req) => {
     let audienceDescription = program.audience_description || "";
     if (program.audience_doc_url) {
       try {
-        const docMatch = course.audience_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        const docMatch = program.audience_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
         if (docMatch) {
           const docId = docMatch[1];
           const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
