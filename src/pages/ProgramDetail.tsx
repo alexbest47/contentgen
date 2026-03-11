@@ -18,8 +18,12 @@ export default function ProgramDetail() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [courseDesc, setCourseDesc] = useState("");
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editAudienceUrl, setEditAudienceUrl] = useState("");
 
   const { data: program } = useQuery({
     queryKey: ["program", programId],
