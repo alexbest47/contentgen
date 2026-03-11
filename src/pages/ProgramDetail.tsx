@@ -165,18 +165,22 @@ export default function ProgramDetail() {
       ) : courses?.length === 0 ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">Нет мини-курсов. Создайте первый!</CardContent></Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="border rounded-lg divide-y">
           {courses?.map((c) => (
-            <Card key={c.id} className="cursor-pointer transition-shadow hover:shadow-md" onClick={() => navigate(`/programs/${programId}/courses/${c.id}`)}>
-              <CardHeader>
-                <CardTitle className="text-lg">{c.title}</CardTitle>
-                {(c as any).course_description && <CardDescription className="line-clamp-2">{(c as any).course_description}</CardDescription>}
-              </CardHeader>
-              <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
+            <div
+              key={c.id}
+              className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => navigate(`/programs/${programId}/courses/${c.id}`)}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="font-medium">{c.title}</div>
+                {(c as any).course_description && <div className="text-sm text-muted-foreground line-clamp-1">{(c as any).course_description}</div>}
+              </div>
+              <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
                 <span>{new Date(c.created_at).toLocaleDateString("ru-RU")}</span>
                 <ChevronRight className="h-4 w-4" />
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}
