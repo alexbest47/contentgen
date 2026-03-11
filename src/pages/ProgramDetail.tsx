@@ -19,7 +19,6 @@ export default function ProgramDetail() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [audience, setAudience] = useState("");
   const [courseDesc, setCourseDesc] = useState("");
 
   const { data: program } = useQuery({
