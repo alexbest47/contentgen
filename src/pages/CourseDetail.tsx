@@ -6,8 +6,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ChevronRight, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronRight, Sparkles, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const statusLabels: Record<string, string> = {
   draft: "Черновик",
@@ -35,6 +45,27 @@ export default function CourseDetail() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [progressText, setProgressText] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (projectId: string) => {
+      const { error: lmErr } = await supabase.from("lead_magnets").delete().eq("project_id", projectId);
+      if (lmErr) throw lmErr;
+      const { error: grErr } = await supabase.from("generation_runs").delete().eq("project_id", projectId);
+      if (grErr) throw grErr;
+      const { error } = await supabase.from("projects").delete().eq("id", projectId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", courseId] });
+      toast.success("Проект удалён");
+      setDeleteId(null);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setDeleteId(null);
+    },
+  });
 
   const { data: course } = useQuery({
     queryKey: ["course", courseId],
@@ -142,12 +173,42 @@ export default function CourseDetail() {
               <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
                 <Badge className={statusColors[p.status] ?? ""}>{statusLabels[p.status] ?? p.status}</Badge>
                 <span>{new Date(p.created_at).toLocaleDateString("ru-RU")}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={(e) => { e.stopPropagation(); setDeleteId(p.id); }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
                 <ChevronRight className="h-4 w-4" />
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить проект?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Проект и все связанные лид-магниты будут удалены безвозвратно.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,0 +1,1 @@
+CREATE POLICY "Can delete runs for own projects" ON public.generation_runs FOR DELETE TO authenticated USING ((EXISTS ( SELECT 1 FROM projects WHERE projects.id = generation_runs.project_id AND projects.created_by = auth.uid())) OR has_role(auth.uid(), 'admin'::app_role));
