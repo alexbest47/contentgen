@@ -4,12 +4,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronRight, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const statusLabels: Record<string, string> = {
@@ -37,13 +34,12 @@ export default function CourseDetail() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("");
+  const [progressText, setProgressText] = useState("");
 
   const { data: course } = useQuery({
     queryKey: ["course", courseId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("mini_courses").select("*").eq("id", courseId!).single();
+      const { data, error } = await supabase.from("mini_courses").select("*, paid_programs(title)").eq("id", courseId!).single();
       if (error) throw error;
       return data;
     },
@@ -58,20 +54,46 @@ export default function CourseDetail() {
     },
   });
 
-  const createMutation = useMutation({
+  const generateMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("projects").insert({
-        mini_course_id: courseId!, title, created_by: user!.id,
+      // Step 1: Generate project name
+      setProgressText("Генерация названия...");
+      const programTitle = (course as any)?.paid_programs?.title || "";
+      const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
+        body: { course_title: course!.title, program_title: programTitle },
       });
-      if (error) throw error;
+      if (nameError) throw new Error(nameError.message || "Ошибка генерации названия");
+      if (nameData?.error) throw new Error(nameData.error);
+
+      // Step 2: Create project
+      setProgressText("Создание проекта...");
+      const { data: project, error: projError } = await supabase
+        .from("projects")
+        .insert({ mini_course_id: courseId!, title: nameData.name, created_by: user!.id })
+        .select("id")
+        .single();
+      if (projError) throw projError;
+
+      // Step 3: Generate lead magnets
+      setProgressText("Генерация лид-магнитов...");
+      const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
+        body: { project_id: project.id },
+      });
+      if (genError) throw new Error(genError.message || "Ошибка генерации");
+      if (genData?.error) throw new Error(genData.error);
+
+      return project.id;
     },
-    onSuccess: () => {
+    onSuccess: (projectId) => {
       queryClient.invalidateQueries({ queryKey: ["projects", courseId] });
-      setOpen(false);
-      setTitle("");
-      toast.success("Проект создан");
+      toast.success("Лид-магниты сгенерированы!");
+      setProgressText("");
+      navigate(`/programs/${programId}/courses/${courseId}/projects/${projectId}`);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setProgressText("");
+    },
   });
 
   return (
@@ -87,31 +109,25 @@ export default function CourseDetail() {
       </div>
 
       <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />Создать проект</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Новый проект</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Название проекта</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название проекта" required />
-              </div>
-              <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Создание..." : "Создать"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending || !course}>
+          {generateMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {progressText}
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Сгенерировать лид-магниты
+            </>
+          )}
+        </Button>
       </div>
 
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
       ) : projects?.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">Нет проектов. Создайте первый!</CardContent></Card>
+        <Card><CardContent className="py-8 text-center text-muted-foreground">Нет проектов. Нажмите «Сгенерировать лид-магниты» для начала!</CardContent></Card>
       ) : (
         <div className="border rounded-lg divide-y">
           {projects?.map((p) => (

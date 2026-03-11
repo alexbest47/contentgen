@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.fetch-google-doc]
 verify_jwt = false
+
+[functions.generate-project-name]
+verify_jwt = false
