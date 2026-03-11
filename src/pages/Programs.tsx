@@ -19,6 +19,7 @@ export default function Programs() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [audienceDocUrl, setAudienceDocUrl] = useState("");
 
   const { data: programs, isLoading } = useQuery({
     queryKey: ["paid_programs"],
