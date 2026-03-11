@@ -32,7 +32,7 @@ export default function Programs() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("paid_programs").insert({ title, description, created_by: user!.id });
+      const { error } = await supabase.from("paid_programs").insert({ title, description, audience_doc_url: audienceDocUrl || null, created_by: user!.id } as any);
       if (error) throw error;
     },
     onSuccess: () => {
