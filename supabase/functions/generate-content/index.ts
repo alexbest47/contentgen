@@ -23,7 +23,7 @@ serve(async (req) => {
     // Get project with course, program, and selected lead magnet
     const { data: project, error: projErr } = await supabase
       .from("projects")
-      .select("*, mini_courses(*, paid_programs(*)), lead_magnets(*)")
+      .select("*, mini_courses(*, paid_programs(*)), lead_magnets!lead_magnets_project_id_fkey(*)")
       .eq("id", project_id)
       .single();
     if (projErr) throw projErr;
