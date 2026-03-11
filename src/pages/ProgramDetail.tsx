@@ -63,9 +63,12 @@ export default function ProgramDetail() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/programs")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">{program?.title ?? "..."}</h1>
           <p className="text-muted-foreground">Мини-курсы программы</p>
+          {(program as any)?.audience_doc_url && (
+            <p className="text-xs text-muted-foreground mt-1">📄 <a href={(program as any).audience_doc_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google Doc аудитории</a></p>
+          )}
         </div>
       </div>
 
