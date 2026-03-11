@@ -87,11 +87,6 @@ export default function ProgramDetail() {
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название мини-курса" required />
               </div>
               <div className="space-y-2">
-                <Label>Ссылка на описание аудитории (Google Docs)</Label>
-                <Input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="https://docs.google.com/document/d/..." required />
-                <p className="text-xs text-muted-foreground">Вставьте ссылку на Google документ (доступ по ссылке для всех)</p>
-              </div>
-              <div className="space-y-2">
                 <Label>Описание мини-курса</Label>
                 <Textarea value={courseDesc} onChange={(e) => setCourseDesc(e.target.value)} placeholder="Подробное описание мини-курса..." className="min-h-[120px]" />
               </div>
