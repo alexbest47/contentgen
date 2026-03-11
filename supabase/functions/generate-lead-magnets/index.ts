@@ -42,8 +42,8 @@ serve(async (req) => {
           const docResponse = await fetch(exportUrl);
           if (docResponse.ok) {
             audienceDescription = await docResponse.text();
-            // Cache the content
-            await supabase.from("mini_courses").update({ audience_description: audienceDescription }).eq("id", course.id);
+            // Cache the content at program level
+            await supabase.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
           } else {
             console.error("Failed to fetch Google Doc:", docResponse.status);
             await docResponse.text(); // consume body

@@ -91,7 +91,10 @@ export default function Programs() {
                 {p.description && <CardDescription className="line-clamp-2">{p.description}</CardDescription>}
               </CardHeader>
               <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>{new Date(p.created_at).toLocaleDateString("ru-RU")}</span>
+                <div className="flex items-center gap-2">
+                  <span>{new Date(p.created_at).toLocaleDateString("ru-RU")}</span>
+                  {(p as any).audience_doc_url && <span>📄 Google Doc</span>}
+                </div>
                 <ChevronRight className="h-4 w-4" />
               </CardContent>
             </Card>
