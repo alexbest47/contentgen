@@ -43,9 +43,9 @@ export default function ProgramDetail() {
   const createMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("mini_courses").insert({
-        program_id: programId!, title, audience_description: audience,
+        program_id: programId!, title, audience_doc_url: audience,
         course_description: courseDesc, created_by: user!.id,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
