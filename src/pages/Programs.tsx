@@ -40,6 +40,7 @@ export default function Programs() {
       setOpen(false);
       setTitle("");
       setDescription("");
+      setAudienceDocUrl("");
       toast.success("Программа создана");
     },
     onError: (e: Error) => toast.error(e.message),
