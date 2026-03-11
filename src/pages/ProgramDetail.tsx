@@ -43,9 +43,9 @@ export default function ProgramDetail() {
   const createMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("mini_courses").insert({
-        program_id: programId!, title, audience_description: audience,
+        program_id: programId!, title, audience_doc_url: audience,
         course_description: courseDesc, created_by: user!.id,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -86,8 +86,9 @@ export default function ProgramDetail() {
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название мини-курса" required />
               </div>
               <div className="space-y-2">
-                <Label>Описание аудитории</Label>
-                <Textarea value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Подробное описание целевой аудитории..." className="min-h-[120px]" />
+                <Label>Ссылка на описание аудитории (Google Docs)</Label>
+                <Input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="https://docs.google.com/document/d/..." required />
+                <p className="text-xs text-muted-foreground">Вставьте ссылку на Google документ (доступ по ссылке для всех)</p>
               </div>
               <div className="space-y-2">
                 <Label>Описание мини-курса</Label>
@@ -111,7 +112,7 @@ export default function ProgramDetail() {
             <Card key={c.id} className="cursor-pointer transition-shadow hover:shadow-md" onClick={() => navigate(`/programs/${programId}/courses/${c.id}`)}>
               <CardHeader>
                 <CardTitle className="text-lg">{c.title}</CardTitle>
-                {c.audience_description && <CardDescription className="line-clamp-2">{c.audience_description}</CardDescription>}
+                {(c as any).audience_doc_url && <CardDescription className="line-clamp-1 text-xs">📄 Google Doc привязан</CardDescription>}
               </CardHeader>
               <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>{new Date(c.created_at).toLocaleDateString("ru-RU")}</span>

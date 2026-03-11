@@ -121,6 +121,7 @@ export type Database = {
       mini_courses: {
         Row: {
           audience_description: string | null
+          audience_doc_url: string | null
           course_description: string | null
           created_at: string
           created_by: string
@@ -130,6 +131,7 @@ export type Database = {
         }
         Insert: {
           audience_description?: string | null
+          audience_doc_url?: string | null
           course_description?: string | null
           created_at?: string
           created_by: string
@@ -139,6 +141,7 @@ export type Database = {
         }
         Update: {
           audience_description?: string | null
+          audience_doc_url?: string | null
           course_description?: string | null
           created_at?: string
           created_by?: string

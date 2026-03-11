@@ -2,3 +2,6 @@ project_id = "mclszzrjwhrhfqtonuiw"
 
 [functions.generate-lead-magnets]
 verify_jwt = false
+
+[functions.fetch-google-doc]
+verify_jwt = false
