@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus, ArrowLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 const statusLabels: Record<string, string> = {
