@@ -61,6 +61,33 @@ export default function ProgramDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("paid_programs").update({
+        title: editTitle,
+        description: editDescription || null,
+        audience_doc_url: editAudienceUrl || null,
+      }).eq("id", programId!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["program", programId] });
+      queryClient.invalidateQueries({ queryKey: ["programs"] });
+      setEditOpen(false);
+      toast.success("Программа обновлена");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const openEditDialog = () => {
+    if (program) {
+      setEditTitle(program.title);
+      setEditDescription(program.description || "");
+      setEditAudienceUrl(program.audience_doc_url || "");
+      setEditOpen(true);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
