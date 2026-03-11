@@ -45,6 +45,27 @@ export default function CourseDetail() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [progressText, setProgressText] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (projectId: string) => {
+      const { error: lmErr } = await supabase.from("lead_magnets").delete().eq("project_id", projectId);
+      if (lmErr) throw lmErr;
+      const { error: grErr } = await supabase.from("generation_runs").delete().eq("project_id", projectId);
+      if (grErr) throw grErr;
+      const { error } = await supabase.from("projects").delete().eq("id", projectId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", courseId] });
+      toast.success("Проект удалён");
+      setDeleteId(null);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setDeleteId(null);
+    },
+  });
 
   const { data: course } = useQuery({
     queryKey: ["course", courseId],
