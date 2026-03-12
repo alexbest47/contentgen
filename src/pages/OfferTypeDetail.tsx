@@ -339,6 +339,26 @@ export default function OfferTypeDetail() {
           ))}
         </div>
       )}
+      {/* Archive confirmation */}
+      <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Переместить в архив?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Оффер будет перемещён в архив. Вы сможете восстановить его позже.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => archivingId && archiveMutation.mutate(archivingId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              В архив
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

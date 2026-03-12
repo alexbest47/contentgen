@@ -13,6 +13,7 @@ export default function Descriptions() {
       const { data, error } = await supabase
         .from("offers")
         .select("id, title, offer_type, doc_url, paid_programs(id, title, audience_doc_url)")
+        .eq("is_archived", false)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data;

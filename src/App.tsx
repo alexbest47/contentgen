@@ -55,6 +55,7 @@ const App = () => (
               <Route path="/programs/:programId/offers/:offerType/:offerId/projects/:projectId" element={<ProjectDetail />} />
               <Route path="/tags" element={<Tags />} />
               <Route path="/descriptions" element={<Descriptions />} />
+              <Route path="/archive" element={<Archive />} />
               <Route path="/prompts" element={<ProtectedRoute adminOnly><Prompts /></ProtectedRoute>} />
               <Route path="/prompt-variables" element={<ProtectedRoute adminOnly><PromptVariables /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute adminOnly><UsersAdmin /></ProtectedRoute>} />
