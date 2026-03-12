@@ -198,6 +198,29 @@ export default function OfferTypeDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const archiveMutation = useMutation({
+    mutationFn: async (offerId: string) => {
+      const { error } = await supabase
+        .from("offers")
+        .update({ is_archived: true } as any)
+        .eq("id", offerId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["offers", programId, offerType] });
+      setArchiveOpen(false);
+      setArchivingId(null);
+      toast.success("Оффер перемещён в архив");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const openArchive = (offerId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setArchivingId(offerId);
+    setArchiveOpen(true);
+  };
+
   const toggleTag = (tagId: string) => {
     setSelectedTags((prev) =>
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
