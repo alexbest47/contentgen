@@ -100,7 +100,7 @@ serve(async (req) => {
       .replace(/\{\{offer_description\}\}/g, offerDescription)
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
       .replace(/\{\{lead_magnet_title\}\}/g, selectedLead.title)
-      .replace(/\{\{lead_magnet_description\}\}/g, selectedLead.description || "");
+      .replace(/\{\{lead_magnet_description\}\}/g, selectedLead.promise || "");
 
     console.log("Generating image with prompt:", imagePrompt.substring(0, 200));
 
