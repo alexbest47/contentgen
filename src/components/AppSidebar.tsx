@@ -6,7 +6,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
-  LayoutDashboard, GraduationCap, Tag,
+  LayoutDashboard, GraduationCap, Tag, TableProperties,
   MessageSquareText, Users, LogOut, Sparkles,
 } from "lucide-react";
 
