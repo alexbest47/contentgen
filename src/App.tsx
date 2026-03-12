@@ -15,6 +15,7 @@ import ProjectDetail from "@/pages/ProjectDetail";
 import Prompts from "@/pages/Prompts";
 import UsersAdmin from "@/pages/UsersAdmin";
 import Tags from "@/pages/Tags";
+import Descriptions from "@/pages/Descriptions";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
