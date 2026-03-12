@@ -333,6 +333,7 @@ export type Database = {
       prompts: {
         Row: {
           category: Database["public"]["Enums"]["prompt_category"]
+          content_type: string | null
           created_at: string
           description: string | null
           id: string
@@ -342,12 +343,14 @@ export type Database = {
           output_format_hint: string | null
           provider: string
           slug: string
+          step_order: number
           system_prompt: string
           updated_at: string
           user_prompt_template: string
         }
         Insert: {
           category: Database["public"]["Enums"]["prompt_category"]
+          content_type?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -357,12 +360,14 @@ export type Database = {
           output_format_hint?: string | null
           provider?: string
           slug: string
+          step_order?: number
           system_prompt?: string
           updated_at?: string
           user_prompt_template?: string
         }
         Update: {
           category?: Database["public"]["Enums"]["prompt_category"]
+          content_type?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -372,6 +377,7 @@ export type Database = {
           output_format_hint?: string | null
           provider?: string
           slug?: string
+          step_order?: number
           system_prompt?: string
           updated_at?: string
           user_prompt_template?: string
