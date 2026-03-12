@@ -17,8 +17,7 @@ serve(async (req) => {
     if (!project_id || !category) throw new Error("project_id and category are required");
     if (!IMAGE_CATEGORIES.includes(category)) throw new Error(`Invalid image category: ${category}`);
 
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
+    // API key is checked later when making the request
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -107,33 +106,33 @@ serve(async (req) => {
 
     console.log("Generating image with prompt:", imagePrompt.substring(0, 200));
 
-    const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
         model: "google/gemini-3-pro-image-preview",
-        messages: [{ role: "user", content: imagePrompt }],
-        modalities: ["image", "text"],
+        prompt: imagePrompt,
+        n: 1,
+        size: "1024x1024",
+        response_format: "b64_json",
       }),
     });
 
-    if (!openrouterResponse.ok) {
-      const errText = await openrouterResponse.text();
-      console.error("OpenRouter API error:", openrouterResponse.status, errText);
-      throw new Error(`OpenRouter API error: ${openrouterResponse.status} - ${errText}`);
+    if (!imageResponse.ok) {
+      const errText = await imageResponse.text();
+      console.error("Image generation API error:", imageResponse.status, errText);
+      throw new Error(`Image generation API error: ${imageResponse.status} - ${errText}`);
     }
 
-    const openrouterData = await openrouterResponse.json();
-    // OpenRouter returns images in choices[0].message.images array
-    const imageData = openrouterData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!imageData) throw new Error("No image data received from OpenRouter: " + JSON.stringify(openrouterData).substring(0, 500));
-    
-    // Extract base64 from data URL (format: data:image/png;base64,...)
-    const b64Match = imageData.match(/^data:image\/[^;]+;base64,(.+)$/);
-    const b64Image = b64Match ? b64Match[1] : imageData;
+    const imageData = await imageResponse.json();
+    const b64Image = imageData.data?.[0]?.b64_json;
+    if (!b64Image) throw new Error("No image data received: " + JSON.stringify(imageData).substring(0, 500));
 
     // Upload to storage
     const timestamp = Date.now();
