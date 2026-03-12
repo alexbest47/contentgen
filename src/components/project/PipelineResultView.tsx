@@ -268,6 +268,8 @@ function SocialView({
   const [postText, setPostText] = useState(data.post_text || "");
   const [postTextSingle, setPostTextSingle] = useState(data.post_text_single || "");
   const [postTextCarousel, setPostTextCarousel] = useState(data.post_text_carousel || "");
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [previewAlt, setPreviewAlt] = useState("");
 
   useEffect(() => {
     setPostText(data.post_text || "");
@@ -284,6 +286,11 @@ function SocialView({
       updated = { ...data, post_text: postText };
     }
     onSave(JSON.stringify(updated, null, 2));
+  };
+
+  const openPreview = (src: string, alt: string) => {
+    setPreviewSrc(src);
+    setPreviewAlt(alt);
   };
 
   return (
@@ -333,7 +340,10 @@ function SocialView({
                   </div>
                   <div className="w-[160px] flex-shrink-0">
                     {carouselImg ? (
-                      <div className="rounded-md overflow-hidden border">
+                      <div
+                        className="rounded-md overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => openPreview(carouselImg.url, `Слайд ${slide.slide_number}`)}
+                      >
                         <img src={carouselImg.url} alt={`Slide ${slide.slide_number}`} className="w-full object-contain bg-muted/30" />
                       </div>
                     ) : (
@@ -367,7 +377,7 @@ function SocialView({
               </div>
               <div className="w-[200px] flex-shrink-0">
                 {staticImage ? (
-                  <ImageThumbnail src={staticImage} alt="Единое изображение" filename="static.png" />
+                  <ImageThumbnail src={staticImage} alt="Единое изображение" filename="static.png" onPreview={openPreview} />
                 ) : (
                   <div className="flex items-center justify-center h-[80px] text-xs text-muted-foreground/50 border rounded-md bg-muted/10">
                     Не сгенерировано
@@ -378,6 +388,8 @@ function SocialView({
           </CardContent>
         </Card>
       )}
+
+      <ImagePreviewDialog src={previewSrc} alt={previewAlt} open={!!previewSrc} onOpenChange={(o) => !o && setPreviewSrc(null)} />
     </div>
   );
 }
