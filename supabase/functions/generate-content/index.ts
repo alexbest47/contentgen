@@ -101,10 +101,8 @@ serve(async (req) => {
       .replace(/\{\{program_title\}\}/g, program.title)
       .replace(/\{\{offer_type\}\}/g, offer.offer_type)
       .replace(/\{\{offer_title\}\}/g, offer.title)
-      .replace(/\{\{mini_course_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_description\}\}/g, offerDescription)
-      .replace(/\{\{mini_course_description\}\}/g, offerDescription)
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
       .replace(/\{\{lead_magnet_title\}\}/g, selectedLead.title)
       .replace(/\{\{lead_magnet_description\}\}/g, selectedLead.description || "");
