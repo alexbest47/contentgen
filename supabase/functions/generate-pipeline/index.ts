@@ -75,6 +75,7 @@ serve(async (req) => {
       .select("*")
       .eq("content_type", content_type)
       .eq("sub_type", sub_type)
+      .eq("offer_type", offer.offer_type)
       .eq("is_active", true)
       .order("step_order", { ascending: true });
     if (stepsErr) throw stepsErr;

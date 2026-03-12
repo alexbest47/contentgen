@@ -24,6 +24,18 @@ export default function PromptFormDialog({ form, setField, editId, saveMutation 
       <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(); }} className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
+            <Label>Тип оффера</Label>
+            <Select value={form.offer_type} onValueChange={(v) => setField("offer_type", v)}>
+              <SelectTrigger><SelectValue placeholder="Выберите тип оффера" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Без типа —</SelectItem>
+                {OFFER_TYPES.map((ot) => (
+                  <SelectItem key={ot.key} value={ot.key}>{ot.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label>Название</Label>
             <Input value={form.name} onChange={(e) => setField("name", e.target.value)} required />
           </div>
