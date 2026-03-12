@@ -106,21 +106,19 @@ serve(async (req) => {
 
     console.log("Generating image with prompt:", imagePrompt.substring(0, 200));
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
 
-    const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
+    const imageResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
       },
       body: JSON.stringify({
         model: "google/gemini-3-pro-image-preview",
-        prompt: imagePrompt,
-        n: 1,
-        size: "1024x1024",
-        response_format: "b64_json",
+        messages: [{ role: "user", content: imagePrompt }],
+        modalities: ["image", "text"],
       }),
     });
 
@@ -131,8 +129,12 @@ serve(async (req) => {
     }
 
     const imageData = await imageResponse.json();
-    const b64Image = imageData.data?.[0]?.b64_json;
-    if (!b64Image) throw new Error("No image data received: " + JSON.stringify(imageData).substring(0, 500));
+    console.log("OpenRouter response keys:", JSON.stringify(Object.keys(imageData)));
+    const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    if (!imageUrl) throw new Error("No image in OpenRouter response: " + JSON.stringify(imageData).substring(0, 500));
+
+    // Strip "data:image/...;base64," prefix to get raw base64
+    const b64Image = imageUrl.replace(/^data:image\/\w+;base64,/, "");
 
     // Upload to storage
     const timestamp = Date.now();
