@@ -5,9 +5,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { categories, categoryLabels, contentTypeLabels, type PromptForm } from "@/pages/Prompts";
+import { categories, categoryLabels, contentTypeLabels, subTypeLabels, type PromptForm } from "@/pages/Prompts";
 
 const contentTypeKeys = Object.keys(contentTypeLabels);
+const subTypeKeys = Object.keys(subTypeLabels);
 
 interface PromptFormDialogProps {
   form: PromptForm;
@@ -40,6 +41,18 @@ export default function PromptFormDialog({ form, setField, editId, saveMutation 
                 <SelectItem value="_none">— Без типа —</SelectItem>
                 {contentTypeKeys.map((ct) => (
                   <SelectItem key={ct} value={ct}>{contentTypeLabels[ct]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Подтип (стратегия)</Label>
+            <Select value={form.sub_type} onValueChange={(v) => setField("sub_type", v)}>
+              <SelectTrigger><SelectValue placeholder="Выберите подтип" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Без подтипа —</SelectItem>
+                {subTypeKeys.map((st) => (
+                  <SelectItem key={st} value={st}>{subTypeLabels[st]}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

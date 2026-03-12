@@ -2,14 +2,9 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, ArrowDown } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import PromptFormDialog from "@/components/prompts/PromptFormDialog";
@@ -40,7 +35,14 @@ export const contentTypeLabels: Record<string, string> = {
   email: "Email",
 };
 
+export const subTypeLabels: Record<string, string> = {
+  announcement: "Анонс",
+  warmup: "Прогрев",
+  conversion: "Конверсия",
+};
+
 const contentTypeKeys = Object.keys(contentTypeLabels);
+const subTypeKeys = Object.keys(subTypeLabels);
 
 export interface PromptForm {
   name: string;
@@ -54,6 +56,7 @@ export interface PromptForm {
   output_format_hint: string;
   is_active: boolean;
   content_type: string;
+  sub_type: string;
   step_order: number;
 }
 
@@ -61,7 +64,7 @@ export const emptyForm: PromptForm = {
   name: "", slug: "", category: "lead_magnets", description: "",
   provider: "anthropic", model: "claude-sonnet-4-20250514",
   system_prompt: "", user_prompt_template: "", output_format_hint: "", is_active: true,
-  content_type: "", step_order: 1,
+  content_type: "", sub_type: "", step_order: 1,
 };
 
 export default function Prompts() {
@@ -84,6 +87,7 @@ export default function Prompts() {
       const payload = {
         ...form,
         content_type: form.content_type || null,
+        sub_type: form.sub_type || null,
       };
       if (editId) {
         const { error } = await supabase.from("prompts").update(payload).eq("id", editId);
@@ -119,24 +123,28 @@ export default function Prompts() {
       model: prompt.model, system_prompt: prompt.system_prompt,
       user_prompt_template: prompt.user_prompt_template,
       output_format_hint: prompt.output_format_hint ?? "", is_active: prompt.is_active,
-      content_type: prompt.content_type ?? "", step_order: prompt.step_order ?? 1,
+      content_type: prompt.content_type ?? "", sub_type: prompt.sub_type ?? "",
+      step_order: prompt.step_order ?? 1,
     });
     setOpen(true);
   };
 
   const setField = (key: keyof PromptForm, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
-  // Group prompts by content_type
+  // Group prompts by content_type → sub_type
   const grouped = prompts?.reduce((acc, p) => {
     const ct = (p as any).content_type || "_other";
-    if (!acc[ct]) acc[ct] = [];
-    acc[ct].push(p);
+    const st = (p as any).sub_type || "_none";
+    const key = `${ct}::${st}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(p);
     return acc;
   }, {} as Record<string, typeof prompts>) ?? {};
 
-  // Sort groups: content types first, then _other
-  const pipelineGroups = contentTypeKeys.filter(k => grouped[k]);
-  const otherPrompts = grouped["_other"] || [];
+  // Collect other prompts (no content_type)
+  const otherPrompts = Object.entries(grouped)
+    .filter(([k]) => k.startsWith("_other::"))
+    .flatMap(([, v]) => v || []);
 
   return (
     <div className="space-y-6">
@@ -161,18 +169,33 @@ export default function Prompts() {
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
       ) : (
-        <div className="space-y-8">
-          {pipelineGroups.map((groupKey) => {
-            const groupPrompts = (grouped[groupKey] || []).sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+        <div className="space-y-10">
+          {contentTypeKeys.map((ctKey) => {
+            const hasAnyPrompts = subTypeKeys.some((st) => grouped[`${ctKey}::${st}`]?.length);
+            if (!hasAnyPrompts) return null;
+
             return (
-              <PipelineGroup
-                key={groupKey}
-                groupKey={groupKey}
-                label={contentTypeLabels[groupKey] || groupKey}
-                prompts={groupPrompts}
-                onEdit={openEdit}
-                onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
-              />
+              <div key={ctKey}>
+                <h2 className="text-xl font-bold mb-4">Пайплайн: {contentTypeLabels[ctKey]}</h2>
+                <div className="space-y-6">
+                  {subTypeKeys.map((stKey) => {
+                    const key = `${ctKey}::${stKey}`;
+                    const groupPrompts = (grouped[key] || []).sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                    if (groupPrompts.length === 0) return null;
+
+                    return (
+                      <PipelineGroup
+                        key={key}
+                        groupKey={key}
+                        label={subTypeLabels[stKey]}
+                        prompts={groupPrompts}
+                        onEdit={openEdit}
+                        onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
 

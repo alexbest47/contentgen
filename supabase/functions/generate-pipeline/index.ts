@@ -12,8 +12,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { project_id, content_type } = await req.json();
-    if (!project_id || !content_type) throw new Error("project_id and content_type are required");
+    const { project_id, content_type, sub_type } = await req.json();
+    if (!project_id || !content_type || !sub_type) throw new Error("project_id, content_type, and sub_type are required");
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -69,16 +69,17 @@ serve(async (req) => {
       } catch (e) { console.error("Error fetching offer doc:", e); }
     }
 
-    // Get all active prompts for this content_type, ordered by step_order
+    // Get all active prompts for this content_type + sub_type, ordered by step_order
     const { data: pipelineSteps, error: stepsErr } = await supabase
       .from("prompts")
       .select("*")
       .eq("content_type", content_type)
+      .eq("sub_type", sub_type)
       .eq("is_active", true)
       .order("step_order", { ascending: true });
     if (stepsErr) throw stepsErr;
     if (!pipelineSteps || pipelineSteps.length === 0) {
-      throw new Error(`Нет активных промптов для типа контента "${content_type}". Создайте их в разделе «Управление промптами».`);
+      throw new Error(`Нет активных промптов для "${content_type}/${sub_type}". Создайте их в разделе «Управление промптами».`);
     }
 
     const leadMagnetContext = `Выбранный лид-магнит:
@@ -115,10 +116,11 @@ serve(async (req) => {
         .replace(/\{\{lead_magnet_description\}\}/g, selectedLead.description || "")
         .replace(/\{\{previous_steps\}\}/g, previousStepsContext);
 
+      // Category key includes sub_type so results don't overwrite across sub_types
+      const categoryKey = `${prompt.category}_${sub_type}`;
       let content: string;
 
       if (isImage) {
-        // OpenRouter image generation
         const imagePrompt = prompt.system_prompt
           ? `${prompt.system_prompt}\n\n${userPrompt}`
           : userPrompt;
@@ -157,10 +159,9 @@ serve(async (req) => {
 
         if (!imageUrl) throw new Error("Изображение не было сгенерировано");
 
-        // Upload to storage
         const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
         const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-        const fileName = `${project_id}/${content_type}_${prompt.category}_${Date.now()}.png`;
+        const fileName = `${project_id}/${content_type}_${sub_type}_${prompt.category}_${Date.now()}.png`;
 
         const { error: uploadErr } = await supabase.storage
           .from("generated-images")
@@ -172,7 +173,6 @@ serve(async (req) => {
           .getPublicUrl(fileName);
         content = publicUrlData.publicUrl;
       } else {
-        // Claude text generation
         const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
@@ -206,6 +206,7 @@ serve(async (req) => {
         status: "completed",
         input_data: {
           content_type,
+          sub_type,
           step: i + 1,
           program_title: program.title,
           offer_title: offer.title,
@@ -215,17 +216,17 @@ serve(async (req) => {
         completed_at: new Date().toISOString(),
       });
 
-      // Store content piece
+      // Store content piece with sub_type-aware category
       await supabase.from("content_pieces").delete()
         .eq("project_id", project_id)
-        .eq("category", prompt.category);
+        .eq("category", categoryKey);
       await supabase.from("content_pieces").insert({
         project_id,
-        category: prompt.category,
+        category: categoryKey,
         content,
       });
 
-      results.push({ category: prompt.category, content, step: i + 1 });
+      results.push({ category: categoryKey, content, step: i + 1 });
     }
 
     return new Response(JSON.stringify({ success: true, results }), {
