@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, GraduationCap, Tag, TableProperties,
-  MessageSquareText, Users, LogOut, Sparkles, Braces,
+  MessageSquareText, Users, LogOut, Sparkles, Braces, Archive,
 } from "lucide-react";
 
 const mainNav = [
@@ -15,6 +15,7 @@ const mainNav = [
   { title: "Платные программы", url: "/programs", icon: GraduationCap },
   { title: "Теги", url: "/tags", icon: Tag },
   { title: "Таблица описаний", url: "/descriptions", icon: TableProperties },
+  { title: "Архив", url: "/archive", icon: Archive },
 ];
 
 const adminNav = [

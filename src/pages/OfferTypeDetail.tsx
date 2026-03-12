@@ -10,7 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, ChevronRight, ArrowLeft, Pencil } from "lucide-react";
+import { Plus, ChevronRight, ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
 
@@ -86,6 +87,10 @@ export default function OfferTypeDetail() {
   const [docUrl, setDocUrl] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
+  // Archive dialog state
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archivingId, setArchivingId] = useState<string | null>(null);
+
   // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -111,6 +116,7 @@ export default function OfferTypeDetail() {
         .select("*, offer_tags(tag_id, tags(id, name))")
         .eq("program_id", programId!)
         .eq("offer_type", offerType! as any)
+        .eq("is_archived", false)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -191,6 +197,29 @@ export default function OfferTypeDetail() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (offerId: string) => {
+      const { error } = await supabase
+        .from("offers")
+        .update({ is_archived: true } as any)
+        .eq("id", offerId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["offers", programId, offerType] });
+      setArchiveOpen(false);
+      setArchivingId(null);
+      toast.success("Оффер перемещён в архив");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const openArchive = (offerId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setArchivingId(offerId);
+    setArchiveOpen(true);
+  };
 
   const toggleTag = (tagId: string) => {
     setSelectedTags((prev) =>
@@ -301,12 +330,35 @@ export default function OfferTypeDetail() {
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => openEdit(o, e)}>
                   <Pencil className="h-4 w-4" />
                 </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => openArchive(o.id, e)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
                 <ChevronRight className="h-4 w-4" />
               </div>
             </div>
           ))}
         </div>
       )}
+      {/* Archive confirmation */}
+      <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Переместить в архив?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Оффер будет перемещён в архив. Вы сможете восстановить его позже.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => archivingId && archiveMutation.mutate(archivingId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              В архив
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
