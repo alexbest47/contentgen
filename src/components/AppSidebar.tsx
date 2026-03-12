@@ -6,13 +6,14 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
-  LayoutDashboard, GraduationCap, BookOpen, FolderKanban,
+  LayoutDashboard, GraduationCap, Tag,
   MessageSquareText, Users, LogOut, Sparkles,
 } from "lucide-react";
 
 const mainNav = [
   { title: "Панель управления", url: "/", icon: LayoutDashboard },
   { title: "Платные программы", url: "/programs", icon: GraduationCap },
+  { title: "Теги", url: "/tags", icon: Tag },
 ];
 
 const adminNav = [

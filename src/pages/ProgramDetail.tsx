@@ -2,25 +2,21 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, ChevronRight, ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { OFFER_TYPES } from "@/lib/offerTypes";
 
 export default function ProgramDetail() {
   const { programId } = useParams();
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [courseDesc, setCourseDesc] = useState("");
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editAudienceUrl, setEditAudienceUrl] = useState("");
@@ -34,33 +30,6 @@ export default function ProgramDetail() {
     },
   });
 
-  const { data: courses, isLoading } = useQuery({
-    queryKey: ["mini_courses", programId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("mini_courses").select("*").eq("program_id", programId!).order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("mini_courses").insert({
-        program_id: programId!, title,
-        course_description: courseDesc, created_by: user!.id,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["mini_courses", programId] });
-      setOpen(false);
-      setTitle("");
-      setCourseDesc("");
-      toast.success("Мини-курс создан");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const updateMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("paid_programs").update({
@@ -72,7 +41,6 @@ export default function ProgramDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["program", programId] });
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
       setEditOpen(false);
       toast.success("Программа обновлена");
     },
@@ -101,14 +69,15 @@ export default function ProgramDetail() {
               <Pencil className="h-4 w-4" />
             </Button>
           </div>
-          <p className="text-muted-foreground">Мини-курсы программы</p>
+          <p className="text-muted-foreground">Выберите тип оффера</p>
           {program?.audience_doc_url && (
-            <p className="text-xs text-muted-foreground mt-1">📄 <a href={program.audience_doc_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google Doc аудитории</a></p>
+            <p className="text-xs text-muted-foreground mt-1">
+              📄 <a href={program.audience_doc_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google Doc аудитории</a>
+            </p>
           )}
         </div>
       </div>
 
-      {/* Edit program dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -134,56 +103,22 @@ export default function ProgramDetail() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />Создать мини-курс</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Новый мини-курс</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Название</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название мини-курса" required />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {OFFER_TYPES.map((type) => (
+          <Card
+            key={type.key}
+            className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
+            onClick={() => navigate(`/programs/${programId}/offers/${type.key}`)}
+          >
+            <CardContent className="flex items-center gap-4 py-6">
+              <div className="rounded-lg bg-accent p-3 text-accent-foreground group-hover:bg-primary/10 transition-colors">
+                <type.icon className="h-6 w-6" />
               </div>
-              <div className="space-y-2">
-                <Label>Описание мини-курса</Label>
-                <Textarea value={courseDesc} onChange={(e) => setCourseDesc(e.target.value)} placeholder="Подробное описание мини-курса..." className="min-h-[120px]" />
-              </div>
-              <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Создание..." : "Создать"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+              <span className="font-medium text-lg">{type.label}</span>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-
-      {isLoading ? (
-        <div className="text-muted-foreground">Загрузка...</div>
-      ) : courses?.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">Нет мини-курсов. Создайте первый!</CardContent></Card>
-      ) : (
-        <div className="border rounded-lg divide-y">
-          {courses?.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => navigate(`/programs/${programId}/courses/${c.id}`)}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="font-medium">{c.title}</div>
-                {(c as any).course_description && <div className="text-sm text-muted-foreground line-clamp-1">{(c as any).course_description}</div>}
-              </div>
-              <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
-                <span>{new Date(c.created_at).toLocaleDateString("ru-RU")}</span>
-                <ChevronRight className="h-4 w-4" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

@@ -29,11 +29,13 @@ const contentCategories: { key: ContentCategory; label: string; description: str
 ];
 
 export default function ProjectDetail() {
-  const { programId, courseId, projectId } = useParams();
+  const { programId, offerType, offerId, projectId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [generatingCategory, setGeneratingCategory] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}`;
 
   const { data: project } = useQuery({
     queryKey: ["project", projectId],
@@ -101,17 +103,13 @@ export default function ProjectDetail() {
       setGeneratingCategory(null);
       setExpandedCategories((prev) => new Set(prev).add(category));
     },
-    onError: (e: Error) => {
-      toast.error(e.message);
-      setGeneratingCategory(null);
-    },
+    onError: (e: Error) => { toast.error(e.message); setGeneratingCategory(null); },
   });
 
   const toggleExpand = (key: string) => {
     setExpandedCategories((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      if (next.has(key)) next.delete(key); else next.add(key);
       return next;
     });
   };
@@ -121,9 +119,8 @@ export default function ProjectDetail() {
     toast.success("Скопировано в буфер обмена");
   };
 
-  const getContentForCategory = (category: string) => {
-    return contentPieces?.find((cp: any) => cp.category === category);
-  };
+  const getContentForCategory = (category: string) =>
+    contentPieces?.find((cp: any) => cp.category === category);
 
   const showLeadMagnets = leadMagnets && leadMagnets.length > 0;
   const showContentGeneration = project?.status === "lead_selected" || project?.status === "completed";
@@ -131,7 +128,7 @@ export default function ProjectDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate(`/programs/${programId}/courses/${courseId}`)}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(backUrl)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
@@ -140,7 +137,6 @@ export default function ProjectDetail() {
         </div>
       </div>
 
-      {/* Step 1: Show and select lead magnets */}
       {showLeadMagnets && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Варианты лид-магнитов</h2>
@@ -161,12 +157,7 @@ export default function ProjectDetail() {
                   <div><span className="font-medium">Инфографика:</span> {lm.infographic_concept}</div>
                   <div><span className="font-medium">Почему привлечёт:</span> {lm.attention_reason}</div>
                   {!lm.is_selected && (project?.status === "leads_ready" || project?.status === "lead_selected") && (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => selectMutation.mutate(lm.id)}
-                      disabled={selectMutation.isPending}
-                    >
+                    <Button variant="outline" className="w-full" onClick={() => selectMutation.mutate(lm.id)} disabled={selectMutation.isPending}>
                       Выбрать этот вариант
                     </Button>
                   )}
@@ -177,7 +168,6 @@ export default function ProjectDetail() {
         </div>
       )}
 
-      {/* Step 2: Generate content by category */}
       {showContentGeneration && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Генерация контента</h2>
@@ -186,63 +176,25 @@ export default function ProjectDetail() {
               const existing = getContentForCategory(key);
               const isGenerating = generatingCategory === key;
               const isExpanded = expandedCategories.has(key);
-
               return (
                 <Card key={key}>
                   <CardHeader className="py-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <CardTitle className="text-base">{label}</CardTitle>
-                        {existing && (
-                          <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-                            Готово
-                          </Badge>
-                        )}
+                        {existing && <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">Готово</Badge>}
                       </div>
                       <div className="flex items-center gap-2">
                         {existing && (
                           <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => copyToClipboard(existing.content)}
-                              title="Копировать"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => toggleExpand(key)}
-                            >
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(existing.content)} title="Копировать"><Copy className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleExpand(key)}>
                               {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                             </Button>
                           </>
                         )}
-                        <Button
-                          size="sm"
-                          variant={existing ? "outline" : "default"}
-                          onClick={() => generateContentMutation.mutate(key)}
-                          disabled={isGenerating || (!!generatingCategory && generatingCategory !== key)}
-                        >
-                          {isGenerating ? (
-                            <>
-                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                              Генерация...
-                            </>
-                          ) : existing ? (
-                            <>
-                              <RefreshCw className="mr-1 h-3 w-3" />
-                              Перегенерировать
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="mr-1 h-3 w-3" />
-                              Сгенерировать
-                            </>
-                          )}
+                        <Button size="sm" variant={existing ? "outline" : "default"} onClick={() => generateContentMutation.mutate(key)} disabled={isGenerating || (!!generatingCategory && generatingCategory !== key)}>
+                          {isGenerating ? (<><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>) : existing ? (<><RefreshCw className="mr-1 h-3 w-3" />Перегенерировать</>) : (<><Sparkles className="mr-1 h-3 w-3" />Сгенерировать</>)}
                         </Button>
                       </div>
                     </div>
@@ -250,9 +202,7 @@ export default function ProjectDetail() {
                   </CardHeader>
                   {existing && isExpanded && (
                     <CardContent className="pt-0">
-                      <div className="bg-muted/50 rounded-md p-4 text-sm whitespace-pre-wrap max-h-96 overflow-y-auto">
-                        {existing.content}
-                      </div>
+                      <div className="bg-muted/50 rounded-md p-4 text-sm whitespace-pre-wrap max-h-96 overflow-y-auto">{existing.content}</div>
                     </CardContent>
                   )}
                 </Card>
