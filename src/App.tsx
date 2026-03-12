@@ -15,6 +15,7 @@ import ProjectDetail from "@/pages/ProjectDetail";
 import Prompts from "@/pages/Prompts";
 import UsersAdmin from "@/pages/UsersAdmin";
 import Tags from "@/pages/Tags";
+import Descriptions from "@/pages/Descriptions";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/programs/:programId/offers/:offerType/:offerId" element={<OfferDetail />} />
               <Route path="/programs/:programId/offers/:offerType/:offerId/projects/:projectId" element={<ProjectDetail />} />
               <Route path="/tags" element={<Tags />} />
+              <Route path="/descriptions" element={<Descriptions />} />
               <Route path="/prompts" element={<ProtectedRoute adminOnly><Prompts /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute adminOnly><UsersAdmin /></ProtectedRoute>} />
             </Route>
