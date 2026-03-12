@@ -12,6 +12,7 @@ import ProgramDetail from "@/pages/ProgramDetail";
 import OfferTypeDetail from "@/pages/OfferTypeDetail";
 import OfferDetail from "@/pages/OfferDetail";
 import ProjectDetail from "@/pages/ProjectDetail";
+import ContentDetail from "@/pages/ContentDetail";
 import Prompts from "@/pages/Prompts";
 import UsersAdmin from "@/pages/UsersAdmin";
 import Tags from "@/pages/Tags";
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/programs/:programId/offers/:offerType" element={<OfferTypeDetail />} />
               <Route path="/programs/:programId/offers/:offerType/:offerId" element={<OfferDetail />} />
               <Route path="/programs/:programId/offers/:offerType/:offerId/projects/:projectId" element={<ProjectDetail />} />
+              <Route path="/programs/:programId/offers/:offerType/:offerId/projects/:projectId/content/:contentType/:subType" element={<ContentDetail />} />
               <Route path="/tags" element={<Tags />} />
               <Route path="/descriptions" element={<Descriptions />} />
               <Route path="/archive" element={<Archive />} />
