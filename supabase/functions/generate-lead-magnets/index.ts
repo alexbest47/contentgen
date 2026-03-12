@@ -143,9 +143,9 @@ serve(async (req) => {
     const inserts = leadMagnets.slice(0, 3).map((lm: any) => ({
       project_id,
       title: lm.title || "Без названия",
-      promise: lm.promise || "",
-      format: lm.format || "",
-      key_insight: lm.key_insight || "",
+      visual_format: lm.visual_format || "",
+      visual_content: lm.visual_content || "",
+      instant_value: lm.instant_value || "",
       transition_to_course: lm.transition_to_course || "",
     }));
 
