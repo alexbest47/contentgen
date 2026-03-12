@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -20,18 +20,19 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get project with course and program data
+    // Get project with offer and program data
     const { data: project, error: projErr } = await supabase
       .from("projects")
-      .select("*, mini_courses(*, paid_programs(*))")
+      .select("*, offers(*, paid_programs(*))")
       .eq("id", project_id)
       .single();
     if (projErr) throw projErr;
 
-    const course = project.mini_courses;
-    const program = course.paid_programs;
+    const offer = project.offers;
+    if (!offer) throw new Error("Project has no associated offer");
+    const program = offer.paid_programs;
 
-    // If there's a Google Doc URL on the program level, fetch the content
+    // Fetch audience description from Google Doc if needed
     let audienceDescription = program.audience_description || "";
     if (program.audience_doc_url) {
       try {
@@ -42,15 +43,34 @@ serve(async (req) => {
           const docResponse = await fetch(exportUrl);
           if (docResponse.ok) {
             audienceDescription = await docResponse.text();
-            // Cache the content at program level
             await supabase.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
           } else {
-            console.error("Failed to fetch Google Doc:", docResponse.status);
-            await docResponse.text(); // consume body
+            await docResponse.text();
           }
         }
       } catch (docErr) {
         console.error("Error fetching Google Doc:", docErr);
+      }
+    }
+
+    // Also fetch offer-level doc if present
+    let offerDescription = offer.description || "";
+    if (offer.doc_url) {
+      try {
+        const docMatch = offer.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        if (docMatch) {
+          const docId = docMatch[1];
+          const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+          const docResponse = await fetch(exportUrl);
+          if (docResponse.ok) {
+            const docText = await docResponse.text();
+            offerDescription = docText;
+          } else {
+            await docResponse.text();
+          }
+        }
+      } catch (docErr) {
+        console.error("Error fetching offer Google Doc:", docErr);
       }
     }
 
@@ -68,12 +88,13 @@ serve(async (req) => {
 
     const systemPrompt = prompt?.system_prompt || `Ты — эксперт по маркетингу онлайн-образования. Генерируй лид-магниты на русском языке.`;
 
-    const defaultUserTemplate = `Создай 3 варианта лид-магнитов для мини-курса.
+    const defaultUserTemplate = `Создай 3 варианта лид-магнитов для оффера.
 
 Платная программа: {{program_title}}
-Мини-курс: {{mini_course_title}}
+Тип оффера: {{offer_type}}
+Название оффера: {{offer_title}}
 Описание аудитории: {{audience_description}}
-Описание мини-курса: {{mini_course_description}}
+Описание оффера: {{offer_description}}
 
 Для каждого лид-магнита верни JSON-объект с полями:
 - title (название)
@@ -89,9 +110,12 @@ serve(async (req) => {
     const userTemplate = prompt?.user_prompt_template || defaultUserTemplate;
     const userPrompt = userTemplate
       .replace(/\{\{program_title\}\}/g, program.title)
-      .replace(/\{\{mini_course_title\}\}/g, course.title)
+      .replace(/\{\{offer_type\}\}/g, offer.offer_type)
+      .replace(/\{\{offer_title\}\}/g, offer.title)
+      .replace(/\{\{mini_course_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
-      .replace(/\{\{mini_course_description\}\}/g, course.course_description || "");
+      .replace(/\{\{offer_description\}\}/g, offerDescription)
+      .replace(/\{\{mini_course_description\}\}/g, offerDescription);
 
     // Call Claude API
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
@@ -119,10 +143,8 @@ serve(async (req) => {
     const claudeData = await claudeResponse.json();
     const content = claudeData.content?.[0]?.text || "";
 
-    // Parse JSON from response
     let leadMagnets;
     try {
-      // Try to extract JSON array from response
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         leadMagnets = JSON.parse(jsonMatch[0]);
@@ -135,10 +157,8 @@ serve(async (req) => {
       throw new Error("Failed to parse AI response");
     }
 
-    // Delete existing lead magnets for this project
     await supabase.from("lead_magnets").delete().eq("project_id", project_id);
 
-    // Insert new lead magnets
     const inserts = leadMagnets.slice(0, 3).map((lm: any) => ({
       project_id,
       title: lm.title || "Без названия",
@@ -153,18 +173,16 @@ serve(async (req) => {
     const { error: insertErr } = await supabase.from("lead_magnets").insert(inserts);
     if (insertErr) throw insertErr;
 
-    // Log generation run
     await supabase.from("generation_runs").insert({
       project_id,
       prompt_id: prompt?.id || null,
       type: "lead_magnets",
       status: "completed",
-      input_data: { program_title: program.title, course_title: course.title },
+      input_data: { program_title: program.title, offer_title: offer.title },
       output_data: leadMagnets,
       completed_at: new Date().toISOString(),
     });
 
-    // Update status
     await supabase.from("projects").update({ status: "leads_ready" }).eq("id", project_id);
 
     return new Response(JSON.stringify({ success: true }), {
