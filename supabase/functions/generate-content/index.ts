@@ -20,20 +20,21 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get project with course, program, and selected lead magnet
+    // Get project with offer, program, and lead magnets
     const { data: project, error: projErr } = await supabase
       .from("projects")
-      .select("*, mini_courses(*, paid_programs(*)), lead_magnets!lead_magnets_project_id_fkey(*)")
+      .select("*, offers(*, paid_programs(*)), lead_magnets!lead_magnets_project_id_fkey(*)")
       .eq("id", project_id)
       .single();
     if (projErr) throw projErr;
 
-    const course = project.mini_courses;
-    const program = course.paid_programs;
+    const offer = project.offers;
+    if (!offer) throw new Error("Project has no associated offer");
+    const program = offer.paid_programs;
     const selectedLead = project.lead_magnets?.find((lm: any) => lm.is_selected);
     if (!selectedLead) throw new Error("Не выбран лид-магнит");
 
-    // Get audience description (use cached or fetch from Google Doc)
+    // Get audience description
     let audienceDescription = program.audience_description || "";
     if (program.audience_doc_url && !audienceDescription) {
       try {
@@ -54,6 +55,26 @@ serve(async (req) => {
       }
     }
 
+    // Get offer description from doc
+    let offerDescription = offer.description || "";
+    if (offer.doc_url && !offerDescription) {
+      try {
+        const docMatch = offer.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        if (docMatch) {
+          const docId = docMatch[1];
+          const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+          const docResponse = await fetch(exportUrl);
+          if (docResponse.ok) {
+            offerDescription = await docResponse.text();
+          } else {
+            await docResponse.text();
+          }
+        }
+      } catch (docErr) {
+        console.error("Error fetching offer Google Doc:", docErr);
+      }
+    }
+
     // Get active prompt for this category
     const { data: prompt } = await supabase
       .from("prompts")
@@ -67,7 +88,6 @@ serve(async (req) => {
       throw new Error(`Нет активного промпта для категории "${category}". Создайте его в разделе «Управление промптами».`);
     }
 
-    // Build lead magnet context string
     const leadMagnetContext = `Выбранный лид-магнит:
 - Название: ${selectedLead.title}
 - Обещание: ${selectedLead.promise || ""}
@@ -77,17 +97,18 @@ serve(async (req) => {
 - Инфографика: ${selectedLead.infographic_concept || ""}
 - Почему привлечёт: ${selectedLead.attention_reason || ""}`;
 
-    // Replace template variables
     const userPrompt = prompt.user_prompt_template
       .replace(/\{\{program_title\}\}/g, program.title)
-      .replace(/\{\{mini_course_title\}\}/g, course.title)
+      .replace(/\{\{offer_type\}\}/g, offer.offer_type)
+      .replace(/\{\{offer_title\}\}/g, offer.title)
+      .replace(/\{\{mini_course_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
-      .replace(/\{\{mini_course_description\}\}/g, course.course_description || "")
+      .replace(/\{\{offer_description\}\}/g, offerDescription)
+      .replace(/\{\{mini_course_description\}\}/g, offerDescription)
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
       .replace(/\{\{lead_magnet_title\}\}/g, selectedLead.title)
       .replace(/\{\{lead_magnet_description\}\}/g, selectedLead.description || "");
 
-    // Call Claude API
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -112,7 +133,6 @@ serve(async (req) => {
     const claudeData = await claudeResponse.json();
     const content = claudeData.content?.[0]?.text || "";
 
-    // Log generation run
     const { data: run } = await supabase.from("generation_runs").insert({
       project_id,
       prompt_id: prompt.id,
@@ -120,14 +140,13 @@ serve(async (req) => {
       status: "completed",
       input_data: {
         program_title: program.title,
-        course_title: course.title,
+        offer_title: offer.title,
         lead_magnet_title: selectedLead.title,
       },
       output_data: { content },
       completed_at: new Date().toISOString(),
     }).select("id").single();
 
-    // Delete old content for this category and project, then insert new
     await supabase.from("content_pieces").delete().eq("project_id", project_id).eq("category", category);
     await supabase.from("content_pieces").insert({
       project_id,

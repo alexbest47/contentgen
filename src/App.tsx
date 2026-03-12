@@ -9,10 +9,12 @@ import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import Programs from "@/pages/Programs";
 import ProgramDetail from "@/pages/ProgramDetail";
-import CourseDetail from "@/pages/CourseDetail";
+import OfferTypeDetail from "@/pages/OfferTypeDetail";
+import OfferDetail from "@/pages/OfferDetail";
 import ProjectDetail from "@/pages/ProjectDetail";
 import Prompts from "@/pages/Prompts";
 import UsersAdmin from "@/pages/UsersAdmin";
+import Tags from "@/pages/Tags";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,8 +47,10 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/programs" element={<Programs />} />
               <Route path="/programs/:programId" element={<ProgramDetail />} />
-              <Route path="/programs/:programId/courses/:courseId" element={<CourseDetail />} />
-              <Route path="/programs/:programId/courses/:courseId/projects/:projectId" element={<ProjectDetail />} />
+              <Route path="/programs/:programId/offers/:offerType" element={<OfferTypeDetail />} />
+              <Route path="/programs/:programId/offers/:offerType/:offerId" element={<OfferDetail />} />
+              <Route path="/programs/:programId/offers/:offerType/:offerId/projects/:projectId" element={<ProjectDetail />} />
+              <Route path="/tags" element={<Tags />} />
               <Route path="/prompts" element={<ProtectedRoute adminOnly><Prompts /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute adminOnly><UsersAdmin /></ProtectedRoute>} />
             </Route>
