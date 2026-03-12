@@ -143,8 +143,12 @@ export default function ProjectDetail() {
   const getPipelineJson = (subType: string) =>
     contentPieces?.find((cp) => cp.category === `pipeline_json_${subType}`);
 
-  const showLeadMagnets = leadMagnets && leadMagnets.length > 0;
-  const showContentGeneration = project?.status === "lead_selected" || project?.status === "completed";
+  const isLeadSelected = project?.status === "lead_selected" || project?.status === "completed";
+  const visibleLeadMagnets = isLeadSelected
+    ? leadMagnets?.filter(lm => lm.is_selected)
+    : leadMagnets;
+  const showLeadMagnets = visibleLeadMagnets && visibleLeadMagnets.length > 0;
+  const showContentGeneration = isLeadSelected;
 
   return (
     <div className="space-y-6">
