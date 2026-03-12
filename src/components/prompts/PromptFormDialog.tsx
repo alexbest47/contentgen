@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { categories, categoryLabels, contentTypeLabels, subTypeLabels, contentTypeKeys, subTypeKeys, type PromptForm } from "@/lib/promptConstants";
+import { OFFER_TYPES } from "@/lib/offerTypes";
 
 interface PromptFormDialogProps {
   form: PromptForm;
