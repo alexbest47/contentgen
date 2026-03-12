@@ -111,10 +111,12 @@ function ImageThumbnail({
   src,
   alt,
   filename,
+  onPreview,
 }: {
   src: string;
   alt: string;
   filename: string;
+  onPreview?: (src: string, alt: string) => void;
 }) {
   return (
     <div className="space-y-1">
@@ -124,10 +126,39 @@ function ImageThumbnail({
           <Download className="h-3 w-3" />
         </Button>
       </div>
-      <div className="rounded-md overflow-hidden border max-w-[200px]">
+      <div
+        className="rounded-md overflow-hidden border max-w-[200px] cursor-pointer hover:opacity-80 transition-opacity"
+        onClick={() => onPreview?.(src, alt)}
+      >
         <img src={src} alt={alt} className="w-full object-contain bg-muted/30" />
       </div>
     </div>
+  );
+}
+
+function ImagePreviewDialog({
+  src,
+  alt,
+  open,
+  onOpenChange,
+}: {
+  src: string | null;
+  alt: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!src) return null;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl p-2">
+        <div className="flex flex-col items-center gap-2">
+          <img src={src} alt={alt} className="max-h-[80vh] w-auto object-contain rounded-md" />
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => downloadImage(src, alt + ".png")}>
+            <Download className="h-3.5 w-3.5" /> Скачать
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
