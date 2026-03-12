@@ -1,0 +1,1 @@
+ALTER TABLE public.lead_magnets ADD COLUMN cta_text text DEFAULT '';

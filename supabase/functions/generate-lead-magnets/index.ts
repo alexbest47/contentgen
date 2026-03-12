@@ -147,6 +147,7 @@ serve(async (req) => {
       visual_content: lm.visual_content || "",
       instant_value: lm.instant_value || "",
       transition_to_course: lm.transition_to_course || "",
+      cta_text: lm.cta_text || "",
     }));
 
     const { error: insertErr } = await supabase.from("lead_magnets").insert(inserts);
