@@ -344,6 +344,7 @@ export type Database = {
           provider: string
           slug: string
           step_order: number
+          sub_type: string | null
           system_prompt: string
           updated_at: string
           user_prompt_template: string
@@ -361,6 +362,7 @@ export type Database = {
           provider?: string
           slug: string
           step_order?: number
+          sub_type?: string | null
           system_prompt?: string
           updated_at?: string
           user_prompt_template?: string
@@ -378,6 +380,7 @@ export type Database = {
           provider?: string
           slug?: string
           step_order?: number
+          sub_type?: string | null
           system_prompt?: string
           updated_at?: string
           user_prompt_template?: string
