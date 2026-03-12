@@ -111,8 +111,6 @@ serve(async (req) => {
         .replace(/\{\{audience_description\}\}/g, audienceDescription)
         .replace(/\{\{offer_description\}\}/g, offerDescription)
         .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
-        .replace(/\{\{lead_magnet_title\}\}/g, selectedLead.title)
-        .replace(/\{\{lead_magnet_description\}\}/g, selectedLead.visual_content || "")
         .replace(/\{\{previous_steps\}\}/g, previousStepsContext);
 
       // Category key includes sub_type so results don't overwrite across sub_types

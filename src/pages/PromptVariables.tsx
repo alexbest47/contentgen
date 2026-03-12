@@ -9,8 +9,6 @@ const variables = [
   { name: "{{offer_title}}", description: "Название оффера", source: "offers.title" },
   { name: "{{offer_description}}", description: "Описание оффера (загружается из Google Docs)", source: "Google Docs → offers.doc_url" },
   { name: "{{lead_magnet}}", description: "Полный контекст выбранного лид-магнита (визуальный формат, контент, ценность, переход)", source: "Сгенерированные данные (lead_magnets)" },
-  { name: "{{lead_magnet_title}}", description: "Название лид-магнита", source: "lead_magnets.title" },
-  { name: "{{lead_magnet_description}}", description: "Визуальный контент лид-магнита", source: "lead_magnets.visual_content" },
 ];
 
 export default function PromptVariables() {

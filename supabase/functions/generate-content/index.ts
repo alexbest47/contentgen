@@ -101,9 +101,7 @@ serve(async (req) => {
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_description\}\}/g, offerDescription)
-      .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
-      .replace(/\{\{lead_magnet_title\}\}/g, selectedLead.title)
-      .replace(/\{\{lead_magnet_description\}\}/g, selectedLead.visual_content || "");
+      .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext);
 
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
