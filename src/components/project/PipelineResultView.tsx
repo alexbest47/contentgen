@@ -7,7 +7,9 @@ import { Copy, Download, Image, Layers, Mail, Save, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface SocialJson {
-  post_text: string;
+  post_text?: string;
+  post_text_single?: string;
+  post_text_carousel?: string;
   static_image_prompt: string;
   carousel_prompts: { slide_number: number; type: string; prompt: string }[];
 }
