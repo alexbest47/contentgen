@@ -19,7 +19,7 @@ export default function Dashboard() {
       ]);
       return {
         programs: programs.count ?? 0,
-        courses: courses.count ?? 0,
+        offers: offers.count ?? 0,
         projects: projects.count ?? 0,
       };
     },
