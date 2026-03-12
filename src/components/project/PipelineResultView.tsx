@@ -54,7 +54,7 @@ export default function PipelineResultView({ jsonContent, isEmail, carouselImage
     parsed = JSON.parse(jsonContent);
   } catch {
     return (
-      <div className="bg-muted/50 rounded-md p-2 text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">
+      <div className="bg-muted/50 rounded-md p-2 text-xs whitespace-pre-wrap">
         {jsonContent}
       </div>
     );
@@ -85,33 +85,39 @@ export default function PipelineResultView({ jsonContent, isEmail, carouselImage
               <Copy className="h-3 w-3" />
             </Button>
           </div>
-          <div className="bg-muted/50 rounded-md p-2 text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">
+          <div className="bg-muted/50 rounded-md p-2 text-xs whitespace-pre-wrap">
             {data.email_body}
           </div>
         </div>
 
-        {/* Banner prompt */}
-        <div>
-          <span className="text-xs font-medium text-muted-foreground">Промпт баннера</span>
-          <div className="bg-muted/30 rounded-md p-2 text-[11px] italic text-muted-foreground max-h-20 overflow-y-auto mt-1">
-            {data.banner_prompt}
+        {/* Banner prompt + image side by side */}
+        <div className="grid grid-cols-2 gap-3 border rounded-md p-3">
+          <div>
+            <span className="text-xs font-medium text-muted-foreground">Промпт баннера</span>
+            <div className="bg-muted/30 rounded-md p-2 text-[11px] italic text-muted-foreground mt-1">
+              {data.banner_prompt}
+            </div>
+          </div>
+          <div>
+            {bannerImage ? (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-muted-foreground">Баннер</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => downloadImage(bannerImage, "banner.png")}>
+                    <Download className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="rounded-md overflow-hidden border">
+                  <img src={bannerImage} alt="Banner" className="w-full object-contain bg-muted/30" />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-xs text-muted-foreground/50">
+                Изображение не сгенерировано
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Generated banner */}
-        {bannerImage && (
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium text-muted-foreground">Баннер</span>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => downloadImage(bannerImage, "banner.png")}>
-                <Download className="h-3 w-3" />
-              </Button>
-            </div>
-            <div className="rounded-md overflow-hidden border">
-              <img src={bannerImage} alt="Banner" className="w-full max-h-[200px] object-contain bg-muted/30" />
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -128,12 +134,12 @@ export default function PipelineResultView({ jsonContent, isEmail, carouselImage
             <Copy className="h-3 w-3" />
           </Button>
         </div>
-        <div className="bg-muted/50 rounded-md p-2 text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">
+        <div className="bg-muted/50 rounded-md p-2 text-xs whitespace-pre-wrap">
           {data.post_text}
         </div>
       </div>
 
-      {/* Carousel prompts */}
+      {/* Carousel prompts — side by side */}
       {data.carousel_prompts?.length > 0 && (
         <div>
           <span className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-1.5">
@@ -143,18 +149,24 @@ export default function PipelineResultView({ jsonContent, isEmail, carouselImage
             {data.carousel_prompts.map((slide) => {
               const carouselImg = carouselImages?.find(ci => ci.slideNumber === slide.slide_number);
               return (
-                <div key={slide.slide_number} className="border rounded-md p-2 space-y-1.5">
-                  <div className="flex items-center gap-2">
+                <div key={slide.slide_number} className="border rounded-md p-2 grid grid-cols-2 gap-3 items-start">
+                  <div className="space-y-1.5">
                     <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${slideTypeBadgeClass[slide.type] || ""}`}>
                       {slide.slide_number}. {slideTypeLabels[slide.type] || slide.type}
                     </Badge>
+                    <p className="text-[11px] italic text-muted-foreground/70">{slide.prompt}</p>
                   </div>
-                  <p className="text-[11px] italic text-muted-foreground/70 line-clamp-2">{slide.prompt}</p>
-                  {carouselImg && (
-                    <div className="rounded-md overflow-hidden border">
-                      <img src={carouselImg.url} alt={`Slide ${slide.slide_number}`} className="w-full max-h-[150px] object-contain bg-muted/30" />
-                    </div>
-                  )}
+                  <div>
+                    {carouselImg ? (
+                      <div className="rounded-md overflow-hidden border">
+                        <img src={carouselImg.url} alt={`Slide ${slide.slide_number}`} className="w-full object-contain bg-muted/30" />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-full min-h-[60px] text-[10px] text-muted-foreground/40">
+                        —
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -162,29 +174,35 @@ export default function PipelineResultView({ jsonContent, isEmail, carouselImage
         </div>
       )}
 
-      {/* Static image prompt */}
+      {/* Static image prompt + image side by side */}
       {data.static_image_prompt && (
-        <div>
-          <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-            <Image className="h-3 w-3" /> Промпт единого изображения
-          </span>
-          <div className="bg-muted/30 rounded-md p-2 text-[11px] italic text-muted-foreground max-h-20 overflow-y-auto mt-1">
-            {data.static_image_prompt}
+        <div className="grid grid-cols-2 gap-3 border rounded-md p-3 items-start">
+          <div>
+            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Image className="h-3 w-3" /> Промпт единого изображения
+            </span>
+            <div className="bg-muted/30 rounded-md p-2 text-[11px] italic text-muted-foreground mt-1">
+              {data.static_image_prompt}
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Generated static image */}
-      {staticImage && (
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-muted-foreground">Единое изображение</span>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => downloadImage(staticImage, "static.png")}>
-              <Download className="h-3 w-3" />
-            </Button>
-          </div>
-          <div className="rounded-md overflow-hidden border">
-            <img src={staticImage} alt="Static" className="w-full max-h-[200px] object-contain bg-muted/30" />
+          <div>
+            {staticImage ? (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-muted-foreground">Единое изображение</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => downloadImage(staticImage, "static.png")}>
+                    <Download className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="rounded-md overflow-hidden border">
+                  <img src={staticImage} alt="Static" className="w-full object-contain bg-muted/30" />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full min-h-[60px] text-xs text-muted-foreground/50">
+                Изображение не сгенерировано
+              </div>
+            )}
           </div>
         </div>
       )}
