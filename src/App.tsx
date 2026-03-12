@@ -16,6 +16,7 @@ import Prompts from "@/pages/Prompts";
 import UsersAdmin from "@/pages/UsersAdmin";
 import Tags from "@/pages/Tags";
 import Descriptions from "@/pages/Descriptions";
+import PromptVariables from "@/pages/PromptVariables";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="/tags" element={<Tags />} />
               <Route path="/descriptions" element={<Descriptions />} />
               <Route path="/prompts" element={<ProtectedRoute adminOnly><Prompts /></ProtectedRoute>} />
+              <Route path="/prompt-variables" element={<ProtectedRoute adminOnly><PromptVariables /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute adminOnly><UsersAdmin /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />

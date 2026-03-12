@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, GraduationCap, Tag, TableProperties,
-  MessageSquareText, Users, LogOut, Sparkles,
+  MessageSquareText, Users, LogOut, Sparkles, Braces,
 } from "lucide-react";
 
 const mainNav = [
@@ -19,6 +19,7 @@ const mainNav = [
 
 const adminNav = [
   { title: "Управление промптами", url: "/prompts", icon: MessageSquareText },
+  { title: "Переменные промптов", url: "/prompt-variables", icon: Braces },
   { title: "Пользователи", url: "/users", icon: Users },
 ];
 
