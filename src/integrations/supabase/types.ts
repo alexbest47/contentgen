@@ -340,6 +340,7 @@ export type Database = {
           is_active: boolean
           model: string
           name: string
+          offer_type: string | null
           output_format_hint: string | null
           provider: string
           slug: string
@@ -358,6 +359,7 @@ export type Database = {
           is_active?: boolean
           model?: string
           name: string
+          offer_type?: string | null
           output_format_hint?: string | null
           provider?: string
           slug: string
@@ -376,6 +378,7 @@ export type Database = {
           is_active?: boolean
           model?: string
           name?: string
+          offer_type?: string | null
           output_format_hint?: string | null
           provider?: string
           slug?: string
