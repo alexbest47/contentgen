@@ -47,11 +47,12 @@ export interface PromptForm {
   content_type: string;
   sub_type: string;
   step_order: number;
+  offer_type: string;
 }
 
 export const emptyForm: PromptForm = {
   name: "", slug: "", category: "lead_magnets", description: "",
   provider: "anthropic", model: "claude-sonnet-4-20250514",
   system_prompt: "", user_prompt_template: "", output_format_hint: "", is_active: true,
-  content_type: "", sub_type: "", step_order: 1,
+  content_type: "", sub_type: "", step_order: 1, offer_type: "mini_course",
 };
