@@ -113,6 +113,7 @@ export type Database = {
       lead_magnets: {
         Row: {
           created_at: string
+          cta_text: string | null
           id: string
           instant_value: string | null
           is_selected: boolean
@@ -124,6 +125,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          cta_text?: string | null
           id?: string
           instant_value?: string | null
           is_selected?: boolean
@@ -135,6 +137,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          cta_text?: string | null
           id?: string
           instant_value?: string | null
           is_selected?: boolean
