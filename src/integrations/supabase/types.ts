@@ -113,36 +113,36 @@ export type Database = {
       lead_magnets: {
         Row: {
           created_at: string
-          format: string | null
           id: string
+          instant_value: string | null
           is_selected: boolean
-          key_insight: string | null
           project_id: string
-          promise: string | null
           title: string
           transition_to_course: string | null
+          visual_content: string | null
+          visual_format: string | null
         }
         Insert: {
           created_at?: string
-          format?: string | null
           id?: string
+          instant_value?: string | null
           is_selected?: boolean
-          key_insight?: string | null
           project_id: string
-          promise?: string | null
           title: string
           transition_to_course?: string | null
+          visual_content?: string | null
+          visual_format?: string | null
         }
         Update: {
           created_at?: string
-          format?: string | null
           id?: string
+          instant_value?: string | null
           is_selected?: boolean
-          key_insight?: string | null
           project_id?: string
-          promise?: string | null
           title?: string
           transition_to_course?: string | null
+          visual_content?: string | null
+          visual_format?: string | null
         }
         Relationships: [
           {

@@ -85,9 +85,9 @@ serve(async (req) => {
 
     const leadMagnetContext = `Выбранный лид-магнит:
 - Название: ${selectedLead.title}
-- Формат: ${selectedLead.format || ""}
-- Обещание: ${selectedLead.promise || ""}
-- Ключевой инсайт: ${selectedLead.key_insight || ""}
+- Визуальный формат: ${selectedLead.visual_format || ""}
+- Визуальный контент: ${selectedLead.visual_content || ""}
+- Мгновенная ценность: ${selectedLead.instant_value || ""}
 - Переход к курсу: ${selectedLead.transition_to_course || ""}`;
 
     const results: { category: string; content: string; step: number }[] = [];
@@ -112,7 +112,7 @@ serve(async (req) => {
         .replace(/\{\{offer_description\}\}/g, offerDescription)
         .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
         .replace(/\{\{lead_magnet_title\}\}/g, selectedLead.title)
-        .replace(/\{\{lead_magnet_description\}\}/g, selectedLead.promise || "")
+        .replace(/\{\{lead_magnet_description\}\}/g, selectedLead.visual_content || "")
         .replace(/\{\{previous_steps\}\}/g, previousStepsContext);
 
       // Category key includes sub_type so results don't overwrite across sub_types

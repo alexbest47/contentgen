@@ -90,9 +90,9 @@ serve(async (req) => {
 
     const leadMagnetContext = `Выбранный лид-магнит:
 - Название: ${selectedLead.title}
-- Формат: ${selectedLead.format || ""}
-- Обещание: ${selectedLead.promise || ""}
-- Ключевой инсайт: ${selectedLead.key_insight || ""}
+- Визуальный формат: ${selectedLead.visual_format || ""}
+- Визуальный контент: ${selectedLead.visual_content || ""}
+- Мгновенная ценность: ${selectedLead.instant_value || ""}
 - Переход к курсу: ${selectedLead.transition_to_course || ""}`;
 
     const userPrompt = prompt.user_prompt_template
@@ -103,7 +103,7 @@ serve(async (req) => {
       .replace(/\{\{offer_description\}\}/g, offerDescription)
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
       .replace(/\{\{lead_magnet_title\}\}/g, selectedLead.title)
-      .replace(/\{\{lead_magnet_description\}\}/g, selectedLead.promise || "");
+      .replace(/\{\{lead_magnet_description\}\}/g, selectedLead.visual_content || "");
 
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
