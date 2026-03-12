@@ -292,31 +292,36 @@ export default function ProjectDetail() {
                               ) : null;
                             })()}
                             {ct.steps.imageCategories.map((ic) => {
-                              const imgContent = getContent(ic, st.key);
-                              if (!imgContent) return null;
-                              const isUrl = imgContent.content.startsWith("http");
-                              return (
-                                <div key={ic}>
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="text-xs font-medium text-muted-foreground">{ic}</span>
-                                    {isUrl && (
-                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => downloadImage(imgContent.content, `${ct.key}_${st.key}_${ic}.png`)}>
-                                        <Download className="h-3 w-3" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                  {isUrl ? (
-                                    <div className="rounded-md overflow-hidden border">
-                                      <img src={imgContent.content} alt={ic} className="w-full max-h-[200px] object-contain bg-muted/30" />
-                                    </div>
-                                  ) : (
-                                    <div className="bg-muted/50 rounded-md p-2 text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">
-                                      {imgContent.content}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
+                               const imgContent = getContent(ic, st.key);
+                               if (!imgContent) return null;
+
+                               if (ic === "slide_structure") {
+                                 return <SlideStructureView key={ic} content={imgContent.content} />;
+                               }
+
+                               const isUrl = imgContent.content.startsWith("http");
+                               return (
+                                 <div key={ic}>
+                                   <div className="flex items-center justify-between mb-1">
+                                     <span className="text-xs font-medium text-muted-foreground">{ic}</span>
+                                     {isUrl && (
+                                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => downloadImage(imgContent.content, `${ct.key}_${st.key}_${ic}.png`)}>
+                                         <Download className="h-3 w-3" />
+                                       </Button>
+                                     )}
+                                   </div>
+                                   {isUrl ? (
+                                     <div className="rounded-md overflow-hidden border">
+                                       <img src={imgContent.content} alt={ic} className="w-full max-h-[200px] object-contain bg-muted/30" />
+                                     </div>
+                                   ) : (
+                                     <div className="bg-muted/50 rounded-md p-2 text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">
+                                       {imgContent.content}
+                                     </div>
+                                   )}
+                                 </div>
+                               );
+                             })}
                           </div>
                         )}
 
