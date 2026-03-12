@@ -200,6 +200,7 @@ export type Database = {
           description: string | null
           doc_url: string | null
           id: string
+          is_archived: boolean
           offer_type: Database["public"]["Enums"]["offer_type"]
           program_id: string
           title: string
@@ -210,6 +211,7 @@ export type Database = {
           description?: string | null
           doc_url?: string | null
           id?: string
+          is_archived?: boolean
           offer_type: Database["public"]["Enums"]["offer_type"]
           program_id: string
           title: string
@@ -220,6 +222,7 @@ export type Database = {
           description?: string | null
           doc_url?: string | null
           id?: string
+          is_archived?: boolean
           offer_type?: Database["public"]["Enums"]["offer_type"]
           program_id?: string
           title?: string
