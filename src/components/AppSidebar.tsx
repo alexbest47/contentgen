@@ -14,6 +14,7 @@ const mainNav = [
   { title: "Панель управления", url: "/", icon: LayoutDashboard },
   { title: "Платные программы", url: "/programs", icon: GraduationCap },
   { title: "Теги", url: "/tags", icon: Tag },
+  { title: "Таблица описаний", url: "/descriptions", icon: TableProperties },
 ];
 
 const adminNav = [
