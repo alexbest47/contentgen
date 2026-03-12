@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array> {
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -22,15 +22,15 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error("OpenRouter error:", response.status, errText);
-    throw new Error(`OpenRouter API error: ${response.status}`);
+    console.error("AI Gateway error:", response.status, errText);
+    throw new Error(`AI Gateway error: ${response.status}`);
   }
 
   const data = await response.json();
   const message = data.choices?.[0]?.message;
   let imageUrl = "";
 
-  // OpenRouter returns images in message.images array
+  // Lovable AI gateway returns images in message.images array
   if (Array.isArray(message?.images)) {
     for (const img of message.images) {
       if (img.image_url?.url) {
@@ -51,7 +51,8 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
   }
 
   if (!imageUrl) {
-    console.error("No image in response:", JSON.stringify(data).substring(0, 500));
+    console.error("No image in response. Keys:", JSON.stringify(Object.keys(message || {})));
+    console.error("Response preview:", JSON.stringify(data).substring(0, 1000));
     throw new Error("Изображение не было сгенерировано");
   }
 
