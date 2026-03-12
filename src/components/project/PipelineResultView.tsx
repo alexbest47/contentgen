@@ -223,27 +223,53 @@ function SocialView({
   staticImage?: string;
   onSave?: (json: string) => void;
 }) {
-  const [postText, setPostText] = useState(data.post_text);
+  const hasSplitTexts = !!(data.post_text_single || data.post_text_carousel);
+  const [postText, setPostText] = useState(data.post_text || "");
+  const [postTextSingle, setPostTextSingle] = useState(data.post_text_single || "");
+  const [postTextCarousel, setPostTextCarousel] = useState(data.post_text_carousel || "");
 
   useEffect(() => {
-    setPostText(data.post_text);
-  }, [data.post_text]);
+    setPostText(data.post_text || "");
+    setPostTextSingle(data.post_text_single || "");
+    setPostTextCarousel(data.post_text_carousel || "");
+  }, [data.post_text, data.post_text_single, data.post_text_carousel]);
 
   const savePostText = () => {
     if (!onSave) return;
-    const updated = { ...data, post_text: postText };
+    let updated: any;
+    if (hasSplitTexts) {
+      updated = { ...data, post_text_single: postTextSingle, post_text_carousel: postTextCarousel };
+    } else {
+      updated = { ...data, post_text: postText };
+    }
     onSave(JSON.stringify(updated, null, 2));
   };
 
   return (
     <div className="space-y-4">
-      {/* Post text — editable */}
-      <EditableField
-        label="Текст поста"
-        value={postText}
-        onChange={setPostText}
-        onSave={savePostText}
-      />
+      {hasSplitTexts ? (
+        <>
+          <EditableField
+            label="Текст для поста (одно изображение)"
+            value={postTextSingle}
+            onChange={setPostTextSingle}
+            onSave={savePostText}
+          />
+          <EditableField
+            label="Текст для карусели"
+            value={postTextCarousel}
+            onChange={setPostTextCarousel}
+            onSave={savePostText}
+          />
+        </>
+      ) : (
+        <EditableField
+          label="Текст поста"
+          value={postText}
+          onChange={setPostText}
+          onSave={savePostText}
+        />
+      )}
 
       {/* Carousel slides */}
       {data.carousel_prompts?.length > 0 && (
