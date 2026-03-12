@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array> {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -72,8 +72,8 @@ serve(async (req) => {
       throw new Error("mode must be 'carousel', 'static', or 'banner'");
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -98,7 +98,7 @@ serve(async (req) => {
       }
 
       for (const slide of prompts) {
-        const imageData = await generateImage(slide.prompt, LOVABLE_API_KEY);
+        const imageData = await generateImage(slide.prompt, OPENROUTER_API_KEY);
         const fileName = `${project_id}/${content_type}_${sub_type}_carousel_${slide.slide_number}_${Date.now()}.png`;
 
         const { error: uploadErr } = await supabase.storage
@@ -127,7 +127,7 @@ serve(async (req) => {
       const prompt = pipelineJson.static_image_prompt;
       if (!prompt) throw new Error("В JSON нет static_image_prompt");
 
-      const imageData = await generateImage(prompt, LOVABLE_API_KEY);
+      const imageData = await generateImage(prompt, OPENROUTER_API_KEY);
       const fileName = `${project_id}/${content_type}_${sub_type}_static_${Date.now()}.png`;
 
       const { error: uploadErr } = await supabase.storage
@@ -155,7 +155,7 @@ serve(async (req) => {
       const prompt = pipelineJson.banner_prompt;
       if (!prompt) throw new Error("В JSON нет banner_prompt");
 
-      const imageData = await generateImage(prompt, LOVABLE_API_KEY);
+      const imageData = await generateImage(prompt, OPENROUTER_API_KEY);
       const fileName = `${project_id}/${content_type}_${sub_type}_banner_${Date.now()}.png`;
 
       const { error: uploadErr } = await supabase.storage
