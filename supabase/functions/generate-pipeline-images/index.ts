@@ -27,11 +27,22 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
   }
 
   const data = await response.json();
-  const parts = data.choices?.[0]?.message?.content;
+  const message = data.choices?.[0]?.message;
   let imageUrl = "";
 
-  if (Array.isArray(parts)) {
-    for (const part of parts) {
+  // OpenRouter returns images in message.images array
+  if (Array.isArray(message?.images)) {
+    for (const img of message.images) {
+      if (img.image_url?.url) {
+        imageUrl = img.image_url.url;
+        break;
+      }
+    }
+  }
+
+  // Fallback: check content array
+  if (!imageUrl && Array.isArray(message?.content)) {
+    for (const part of message.content) {
       if (part.type === "image_url" && part.image_url?.url) {
         imageUrl = part.image_url.url;
         break;
@@ -39,7 +50,10 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
     }
   }
 
-  if (!imageUrl) throw new Error("Изображение не было сгенерировано");
+  if (!imageUrl) {
+    console.error("No image in response:", JSON.stringify(data).substring(0, 500));
+    throw new Error("Изображение не было сгенерировано");
+  }
 
   const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
   return Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
