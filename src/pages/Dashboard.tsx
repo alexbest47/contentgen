@@ -12,9 +12,9 @@ export default function Dashboard() {
   const { data: stats } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
-      const [programs, courses, projects] = await Promise.all([
+      const [programs, offers, projects] = await Promise.all([
         supabase.from("paid_programs").select("id", { count: "exact", head: true }),
-        supabase.from("mini_courses").select("id", { count: "exact", head: true }),
+        supabase.from("offers").select("id", { count: "exact", head: true }),
         supabase.from("projects").select("id", { count: "exact", head: true }),
       ]);
       return {
