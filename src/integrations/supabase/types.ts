@@ -112,43 +112,37 @@ export type Database = {
       }
       lead_magnets: {
         Row: {
-          attention_reason: string | null
-          call_to_action: string | null
           created_at: string
-          description: string | null
+          format: string | null
           id: string
-          infographic_concept: string | null
           is_selected: boolean
-          marketing_angle: string | null
+          key_insight: string | null
           project_id: string
           promise: string | null
           title: string
+          transition_to_course: string | null
         }
         Insert: {
-          attention_reason?: string | null
-          call_to_action?: string | null
           created_at?: string
-          description?: string | null
+          format?: string | null
           id?: string
-          infographic_concept?: string | null
           is_selected?: boolean
-          marketing_angle?: string | null
+          key_insight?: string | null
           project_id: string
           promise?: string | null
           title: string
+          transition_to_course?: string | null
         }
         Update: {
-          attention_reason?: string | null
-          call_to_action?: string | null
           created_at?: string
-          description?: string | null
+          format?: string | null
           id?: string
-          infographic_concept?: string | null
           is_selected?: boolean
-          marketing_angle?: string | null
+          key_insight?: string | null
           project_id?: string
           promise?: string | null
           title?: string
+          transition_to_course?: string | null
         }
         Relationships: [
           {
