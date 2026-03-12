@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Copy, Download, Image, Layers, Mail, Save, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -110,10 +111,12 @@ function ImageThumbnail({
   src,
   alt,
   filename,
+  onPreview,
 }: {
   src: string;
   alt: string;
   filename: string;
+  onPreview?: (src: string, alt: string) => void;
 }) {
   return (
     <div className="space-y-1">
@@ -123,10 +126,39 @@ function ImageThumbnail({
           <Download className="h-3 w-3" />
         </Button>
       </div>
-      <div className="rounded-md overflow-hidden border max-w-[200px]">
+      <div
+        className="rounded-md overflow-hidden border max-w-[200px] cursor-pointer hover:opacity-80 transition-opacity"
+        onClick={() => onPreview?.(src, alt)}
+      >
         <img src={src} alt={alt} className="w-full object-contain bg-muted/30" />
       </div>
     </div>
+  );
+}
+
+function ImagePreviewDialog({
+  src,
+  alt,
+  open,
+  onOpenChange,
+}: {
+  src: string | null;
+  alt: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!src) return null;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl p-2">
+        <div className="flex flex-col items-center gap-2">
+          <img src={src} alt={alt} className="max-h-[80vh] w-auto object-contain rounded-md" />
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => downloadImage(src, alt + ".png")}>
+            <Download className="h-3.5 w-3.5" /> Скачать
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -154,6 +186,8 @@ export default function PipelineResultView({ jsonContent, isEmail, carouselImage
 function EmailView({ data, bannerImage, onSave }: { data: EmailJson; bannerImage?: string; onSave?: (json: string) => void }) {
   const [subject, setSubject] = useState(data.email_subject);
   const [body, setBody] = useState(data.email_body);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [previewAlt, setPreviewAlt] = useState("");
 
   useEffect(() => {
     setSubject(data.email_subject);
@@ -164,6 +198,11 @@ function EmailView({ data, bannerImage, onSave }: { data: EmailJson; bannerImage
     if (!onSave) return;
     const updated = { ...data, email_subject: subject, email_body: body };
     onSave(JSON.stringify(updated, null, 2));
+  };
+
+  const openPreview = (src: string, alt: string) => {
+    setPreviewSrc(src);
+    setPreviewAlt(alt);
   };
 
   return (
@@ -198,7 +237,7 @@ function EmailView({ data, bannerImage, onSave }: { data: EmailJson; bannerImage
             </div>
             <div>
               {bannerImage ? (
-                <ImageThumbnail src={bannerImage} alt="Баннер" filename="banner.png" />
+                <ImageThumbnail src={bannerImage} alt="Баннер" filename="banner.png" onPreview={openPreview} />
               ) : (
                 <div className="flex items-center justify-center h-full text-xs text-muted-foreground/50">
                   Изображение не сгенерировано
@@ -208,6 +247,8 @@ function EmailView({ data, bannerImage, onSave }: { data: EmailJson; bannerImage
           </div>
         </CardContent>
       </Card>
+
+      <ImagePreviewDialog src={previewSrc} alt={previewAlt} open={!!previewSrc} onOpenChange={(o) => !o && setPreviewSrc(null)} />
     </div>
   );
 }
@@ -227,6 +268,8 @@ function SocialView({
   const [postText, setPostText] = useState(data.post_text || "");
   const [postTextSingle, setPostTextSingle] = useState(data.post_text_single || "");
   const [postTextCarousel, setPostTextCarousel] = useState(data.post_text_carousel || "");
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [previewAlt, setPreviewAlt] = useState("");
 
   useEffect(() => {
     setPostText(data.post_text || "");
@@ -243,6 +286,11 @@ function SocialView({
       updated = { ...data, post_text: postText };
     }
     onSave(JSON.stringify(updated, null, 2));
+  };
+
+  const openPreview = (src: string, alt: string) => {
+    setPreviewSrc(src);
+    setPreviewAlt(alt);
   };
 
   return (
@@ -292,7 +340,10 @@ function SocialView({
                   </div>
                   <div className="w-[160px] flex-shrink-0">
                     {carouselImg ? (
-                      <div className="rounded-md overflow-hidden border">
+                      <div
+                        className="rounded-md overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => openPreview(carouselImg.url, `Слайд ${slide.slide_number}`)}
+                      >
                         <img src={carouselImg.url} alt={`Slide ${slide.slide_number}`} className="w-full object-contain bg-muted/30" />
                       </div>
                     ) : (
@@ -326,7 +377,7 @@ function SocialView({
               </div>
               <div className="w-[200px] flex-shrink-0">
                 {staticImage ? (
-                  <ImageThumbnail src={staticImage} alt="Единое изображение" filename="static.png" />
+                  <ImageThumbnail src={staticImage} alt="Единое изображение" filename="static.png" onPreview={openPreview} />
                 ) : (
                   <div className="flex items-center justify-center h-[80px] text-xs text-muted-foreground/50 border rounded-md bg-muted/10">
                     Не сгенерировано
@@ -337,6 +388,8 @@ function SocialView({
           </CardContent>
         </Card>
       )}
+
+      <ImagePreviewDialog src={previewSrc} alt={previewAlt} open={!!previewSrc} onOpenChange={(o) => !o && setPreviewSrc(null)} />
     </div>
   );
 }
