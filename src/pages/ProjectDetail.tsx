@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Copy, ChevronDown, ChevronUp, Download, Image, Send, Mail } from "lucide-react";
-import SlideStructureView from "@/components/project/SlideStructureView";
+import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, ChevronDown, ChevronUp, Image, Send, Mail, Layers } from "lucide-react";
+import PipelineResultView from "@/components/project/PipelineResultView";
 import { toast } from "sonner";
 
 const statusLabels: Record<string, string> = {
@@ -24,38 +24,14 @@ interface ContentType {
   label: string;
   description: string;
   icon: React.ReactNode;
-  steps: { textCategory: string; imageCategories: string[] };
+  isEmail: boolean;
 }
 
 const contentTypes: ContentType[] = [
-  {
-    key: "instagram",
-    label: "Пост в Instagram",
-    description: "Текст, карусель и изображения для Instagram",
-    icon: <Image className="h-5 w-5" />,
-    steps: { textCategory: "text_instagram", imageCategories: ["slide_structure", "image_post", "image_carousel"] },
-  },
-  {
-    key: "telegram",
-    label: "Пост в Telegram",
-    description: "Текст, карусель и изображения для Telegram",
-    icon: <Send className="h-5 w-5" />,
-    steps: { textCategory: "text_telegram", imageCategories: ["slide_structure", "image_post", "image_carousel"] },
-  },
-  {
-    key: "vk",
-    label: "Пост в ВКонтакте",
-    description: "Текст, карусель и изображения для VK",
-    icon: <Send className="h-5 w-5" />,
-    steps: { textCategory: "text_vk", imageCategories: ["slide_structure", "image_post", "image_carousel"] },
-  },
-  {
-    key: "email",
-    label: "Email-рассылка",
-    description: "Текст и баннер для email",
-    icon: <Mail className="h-5 w-5" />,
-    steps: { textCategory: "text_email", imageCategories: ["image_email"] },
-  },
+  { key: "instagram", label: "Пост в Instagram", description: "Текст, карусель и изображения", icon: <Image className="h-5 w-5" />, isEmail: false },
+  { key: "telegram", label: "Пост в Telegram", description: "Текст, карусель и изображения", icon: <Send className="h-5 w-5" />, isEmail: false },
+  { key: "vk", label: "Пост в ВКонтакте", description: "Текст, карусель и изображения", icon: <Send className="h-5 w-5" />, isEmail: false },
+  { key: "email", label: "Email-рассылка", description: "Тема, текст и баннер", icon: <Mail className="h-5 w-5" />, isEmail: true },
 ];
 
 const subTypes = [
@@ -69,6 +45,7 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
+  const [generatingImagesKey, setGeneratingImagesKey] = useState<string | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}`;
@@ -141,11 +118,11 @@ export default function ProjectDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Step 1: Generate pipeline JSON
   const generatePipelineMutation = useMutation({
     mutationFn: async ({ contentType, subType }: { contentType: string; subType: string }) => {
       const key = `${contentType}::${subType}`;
       setGeneratingKey(key);
-
       const { data, error } = await supabase.functions.invoke("generate-pipeline", {
         body: { project_id: projectId, content_type: contentType, sub_type: subType },
       });
@@ -165,6 +142,29 @@ export default function ProjectDetail() {
     },
   });
 
+  // Step 2: Generate images from JSON prompts
+  const generateImagesMutation = useMutation({
+    mutationFn: async ({ contentType, subType, mode }: { contentType: string; subType: string; mode: "carousel" | "static" | "banner" }) => {
+      const key = `${contentType}::${subType}::${mode}`;
+      setGeneratingImagesKey(key);
+      const { data, error } = await supabase.functions.invoke("generate-pipeline-images", {
+        body: { project_id: projectId, content_type: contentType, sub_type: subType, mode },
+      });
+      if (error) throw new Error(error.message || "Ошибка генерации изображений");
+      if (data?.error) throw new Error(data.error);
+      return { data, key };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
+      toast.success("Изображения сгенерированы!");
+      setGeneratingImagesKey(null);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setGeneratingImagesKey(null);
+    },
+  });
+
   const toggleExpand = (key: string) => {
     setExpandedKeys((prev) => {
       const next = new Set(prev);
@@ -173,28 +173,29 @@ export default function ProjectDetail() {
     });
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Скопировано в буфер обмена");
+  // Helpers to read content pieces
+  const getContentByCategory = (category: string) =>
+    contentPieces?.find((cp) => cp.category === category);
+
+  const getPipelineJson = (subType: string) =>
+    getContentByCategory(`pipeline_json_${subType}`);
+
+  const getCarouselImages = (subType: string) => {
+    if (!contentPieces) return [];
+    return contentPieces
+      .filter((cp) => cp.category.startsWith(`carousel_${subType}_`))
+      .map((cp) => {
+        const match = cp.category.match(/carousel_\w+_(\d+)$/);
+        return { slideNumber: match ? parseInt(match[1]) : 0, url: cp.content };
+      })
+      .sort((a, b) => a.slideNumber - b.slideNumber);
   };
 
-  const downloadImage = (url: string, filename: string) => {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.target = "_blank";
-    a.click();
-  };
+  const getStaticImage = (subType: string) =>
+    getContentByCategory(`static_image_${subType}`)?.content;
 
-  // Get content for a category_subtype key, e.g. "text_instagram_announcement"
-  const getContent = (category: string, subType: string) =>
-    contentPieces?.find((cp) => cp.category === `${category}_${subType}`);
-
-  const hasContentForKey = (ct: ContentType, subType: string) => {
-    const textContent = getContent(ct.steps.textCategory, subType);
-    const imageContent = ct.steps.imageCategories.some((ic) => getContent(ic, subType));
-    return !!textContent || imageContent;
-  };
+  const getBannerImage = (subType: string) =>
+    getContentByCategory(`banner_${subType}`)?.content;
 
   const showLeadMagnets = leadMagnets && leadMagnets.length > 0;
   const showContentGeneration = project?.status === "lead_selected" || project?.status === "completed";
@@ -260,8 +261,18 @@ export default function ProjectDetail() {
                     const pipelineKey = `${ct.key}::${st.key}`;
                     const stepCount = pipelineCounts?.[pipelineKey] || 0;
                     const isGenerating = generatingKey === pipelineKey;
-                    const hasContent = hasContentForKey(ct, st.key);
+                    const pipelineJson = getPipelineJson(st.key);
+                    const hasContent = !!pipelineJson;
                     const isExpanded = expandedKeys.has(pipelineKey);
+
+                    const carouselImages = getCarouselImages(st.key);
+                    const staticImage = getStaticImage(st.key);
+                    const bannerImage = getBannerImage(st.key);
+
+                    const isGeneratingCarousel = generatingImagesKey === `${ct.key}::${st.key}::carousel`;
+                    const isGeneratingStatic = generatingImagesKey === `${ct.key}::${st.key}::static`;
+                    const isGeneratingBanner = generatingImagesKey === `${ct.key}::${st.key}::banner`;
+                    const isAnyImageGenerating = !!generatingImagesKey;
 
                     return (
                       <div key={st.key} className="border rounded-lg p-3 space-y-3">
@@ -273,58 +284,7 @@ export default function ProjectDetail() {
                           {hasContent && <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">Готово</Badge>}
                         </div>
 
-                        {hasContent && isExpanded && (
-                          <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {(() => {
-                              const textContent = getContent(ct.steps.textCategory, st.key);
-                              return textContent ? (
-                                <div>
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="text-xs font-medium text-muted-foreground">Текст</span>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(textContent.content)}>
-                                      <Copy className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                  <div className="bg-muted/50 rounded-md p-2 text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">
-                                    {textContent.content}
-                                  </div>
-                                </div>
-                              ) : null;
-                            })()}
-                            {ct.steps.imageCategories.map((ic) => {
-                               const imgContent = getContent(ic, st.key);
-                               if (!imgContent) return null;
-
-                               if (ic === "slide_structure") {
-                                 return <SlideStructureView key={ic} content={imgContent.content} />;
-                               }
-
-                               const isUrl = imgContent.content.startsWith("http");
-                               return (
-                                 <div key={ic}>
-                                   <div className="flex items-center justify-between mb-1">
-                                     <span className="text-xs font-medium text-muted-foreground">{ic}</span>
-                                     {isUrl && (
-                                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => downloadImage(imgContent.content, `${ct.key}_${st.key}_${ic}.png`)}>
-                                         <Download className="h-3 w-3" />
-                                       </Button>
-                                     )}
-                                   </div>
-                                   {isUrl ? (
-                                     <div className="rounded-md overflow-hidden border">
-                                       <img src={imgContent.content} alt={ic} className="w-full max-h-[200px] object-contain bg-muted/30" />
-                                     </div>
-                                   ) : (
-                                     <div className="bg-muted/50 rounded-md p-2 text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">
-                                       {imgContent.content}
-                                     </div>
-                                   )}
-                                 </div>
-                               );
-                             })}
-                          </div>
-                        )}
-
+                        {/* Step 1: Generate / Refresh pipeline JSON */}
                         <div className="flex items-center gap-2">
                           {hasContent && (
                             <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => toggleExpand(pipelineKey)}>
@@ -348,6 +308,68 @@ export default function ProjectDetail() {
                             )}
                           </Button>
                         </div>
+
+                        {/* Expanded: show content + image generation buttons */}
+                        {hasContent && isExpanded && (
+                          <div className="space-y-3">
+                            <PipelineResultView
+                              jsonContent={pipelineJson.content}
+                              isEmail={ct.isEmail}
+                              carouselImages={carouselImages}
+                              staticImage={staticImage}
+                              bannerImage={bannerImage}
+                            />
+
+                            {/* Step 2: Image generation buttons */}
+                            <div className="flex flex-wrap gap-2 pt-1 border-t">
+                              {ct.isEmail ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-7"
+                                  onClick={() => generateImagesMutation.mutate({ contentType: ct.key, subType: st.key, mode: "banner" })}
+                                  disabled={isGeneratingBanner || isAnyImageGenerating}
+                                >
+                                  {isGeneratingBanner ? (
+                                    <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
+                                  ) : (
+                                    <><Image className="mr-1 h-3 w-3" />Сгенерировать баннер</>
+                                  )}
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs h-7"
+                                    onClick={() => generateImagesMutation.mutate({ contentType: ct.key, subType: st.key, mode: "carousel" })}
+                                    disabled={isGeneratingCarousel || isAnyImageGenerating}
+                                  >
+                                    {isGeneratingCarousel ? (
+                                      <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
+                                    ) : (
+                                      <><Layers className="mr-1 h-3 w-3" />Сгенерировать карусель</>
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs h-7"
+                                    onClick={() => generateImagesMutation.mutate({ contentType: ct.key, subType: st.key, mode: "static" })}
+                                    disabled={isGeneratingStatic || isAnyImageGenerating}
+                                  >
+                                    {isGeneratingStatic ? (
+                                      <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
+                                    ) : (
+                                      <><Image className="mr-1 h-3 w-3" />Сгенерировать изображение</>
+                                    )}
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         {stepCount === 0 && <p className="text-xs text-destructive">Нет промптов</p>}
                       </div>
                     );
