@@ -201,6 +201,80 @@ export type Database = {
           },
         ]
       }
+      offer_tags: {
+        Row: {
+          id: string
+          offer_id: string
+          tag_id: string
+        }
+        Insert: {
+          id?: string
+          offer_id: string
+          tag_id: string
+        }
+        Update: {
+          id?: string
+          offer_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_tags_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          doc_url: string | null
+          id: string
+          offer_type: Database["public"]["Enums"]["offer_type"]
+          program_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          doc_url?: string | null
+          id?: string
+          offer_type: Database["public"]["Enums"]["offer_type"]
+          program_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          doc_url?: string | null
+          id?: string
+          offer_type?: Database["public"]["Enums"]["offer_type"]
+          program_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "paid_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       paid_programs: {
         Row: {
           audience_description: string | null
@@ -254,7 +328,8 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
-          mini_course_id: string
+          mini_course_id: string | null
+          offer_id: string | null
           selected_lead_magnet_id: string | null
           status: Database["public"]["Enums"]["project_status"]
           title: string
@@ -263,7 +338,8 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
-          mini_course_id: string
+          mini_course_id?: string | null
+          offer_id?: string | null
           selected_lead_magnet_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           title: string
@@ -272,7 +348,8 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
-          mini_course_id?: string
+          mini_course_id?: string | null
+          offer_id?: string | null
           selected_lead_magnet_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           title?: string
@@ -290,6 +367,13 @@ export type Database = {
             columns: ["mini_course_id"]
             isOneToOne: false
             referencedRelation: "mini_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
             referencedColumns: ["id"]
           },
         ]
@@ -342,6 +426,27 @@ export type Database = {
         }
         Relationships: []
       }
+      tags: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -375,6 +480,16 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      offer_type:
+        | "mini_course"
+        | "diagnostic"
+        | "webinar"
+        | "pre_list"
+        | "new_stream"
+        | "spot_available"
+        | "sale"
+        | "discount"
+        | "download_pdf"
       project_status:
         | "draft"
         | "generating_leads"
@@ -522,6 +637,17 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      offer_type: [
+        "mini_course",
+        "diagnostic",
+        "webinar",
+        "pre_list",
+        "new_stream",
+        "spot_available",
+        "sale",
+        "discount",
+        "download_pdf",
+      ],
       project_status: [
         "draft",
         "generating_leads",
