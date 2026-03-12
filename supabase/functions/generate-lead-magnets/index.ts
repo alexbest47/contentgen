@@ -112,10 +112,8 @@ serve(async (req) => {
       .replace(/\{\{program_title\}\}/g, program.title)
       .replace(/\{\{offer_type\}\}/g, offer.offer_type)
       .replace(/\{\{offer_title\}\}/g, offer.title)
-      .replace(/\{\{mini_course_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
-      .replace(/\{\{offer_description\}\}/g, offerDescription)
-      .replace(/\{\{mini_course_description\}\}/g, offerDescription);
+      .replace(/\{\{offer_description\}\}/g, offerDescription);
 
     // Call Claude API
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
