@@ -107,15 +107,21 @@ serve(async (req) => {
 
     console.log("Generating image with prompt:", imagePrompt.substring(0, 200));
 
-    // Call OpenRouter API via chat completions endpoint (supports image generation)
-    const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    // Call Lovable AI Gateway (supports image generation natively)
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const apiKey = LOVABLE_API_KEY || OPENROUTER_API_KEY;
+    const apiUrl = LOVABLE_API_KEY 
+      ? "https://ai.gateway.lovable.dev/v1/chat/completions"
+      : "https://openrouter.ai/api/v1/chat/completions";
+
+    const openrouterResponse = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-3.1-flash-image-preview",
         messages: [{ role: "user", content: imagePrompt }],
         modalities: ["image", "text"],
       }),
