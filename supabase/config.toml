@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.generate-pipeline]
 verify_jwt = false
+
+[functions.generate-pipeline-images]
+verify_jwt = false
