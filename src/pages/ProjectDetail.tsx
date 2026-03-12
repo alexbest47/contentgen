@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, ChevronDown, ChevronUp, Image, Send, Mail, Layers } from "lucide-react";
-import PipelineResultView from "@/components/project/PipelineResultView";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Image, Send, Mail, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 const statusLabels: Record<string, string> = {
@@ -45,8 +45,6 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
-  const [generatingImagesKey, setGeneratingImagesKey] = useState<string | null>(null);
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}`;
 
@@ -118,7 +116,6 @@ export default function ProjectDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Step 1: Generate pipeline JSON
   const generatePipelineMutation = useMutation({
     mutationFn: async ({ contentType, subType }: { contentType: string; subType: string }) => {
       const key = `${contentType}::${subType}`;
@@ -130,11 +127,10 @@ export default function ProjectDetail() {
       if (data?.error) throw new Error(data.error);
       return { data, key };
     },
-    onSuccess: ({ key }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
       toast.success("Контент сгенерирован!");
       setGeneratingKey(null);
-      setExpandedKeys((prev) => new Set(prev).add(key));
     },
     onError: (e: Error) => {
       toast.error(e.message);
@@ -142,60 +138,8 @@ export default function ProjectDetail() {
     },
   });
 
-  // Step 2: Generate images from JSON prompts
-  const generateImagesMutation = useMutation({
-    mutationFn: async ({ contentType, subType, mode }: { contentType: string; subType: string; mode: "carousel" | "static" | "banner" }) => {
-      const key = `${contentType}::${subType}::${mode}`;
-      setGeneratingImagesKey(key);
-      const { data, error } = await supabase.functions.invoke("generate-pipeline-images", {
-        body: { project_id: projectId, content_type: contentType, sub_type: subType, mode },
-      });
-      if (error) throw new Error(error.message || "Ошибка генерации изображений");
-      if (data?.error) throw new Error(data.error);
-      return { data, key };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
-      toast.success("Изображения сгенерированы!");
-      setGeneratingImagesKey(null);
-    },
-    onError: (e: Error) => {
-      toast.error(e.message);
-      setGeneratingImagesKey(null);
-    },
-  });
-
-  const toggleExpand = (key: string) => {
-    setExpandedKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-  };
-
-  // Helpers to read content pieces
-  const getContentByCategory = (category: string) =>
-    contentPieces?.find((cp) => cp.category === category);
-
   const getPipelineJson = (subType: string) =>
-    getContentByCategory(`pipeline_json_${subType}`);
-
-  const getCarouselImages = (subType: string) => {
-    if (!contentPieces) return [];
-    return contentPieces
-      .filter((cp) => cp.category.startsWith(`carousel_${subType}_`))
-      .map((cp) => {
-        const match = cp.category.match(/carousel_\w+_(\d+)$/);
-        return { slideNumber: match ? parseInt(match[1]) : 0, url: cp.content };
-      })
-      .sort((a, b) => a.slideNumber - b.slideNumber);
-  };
-
-  const getStaticImage = (subType: string) =>
-    getContentByCategory(`static_image_${subType}`)?.content;
-
-  const getBannerImage = (subType: string) =>
-    getContentByCategory(`banner_${subType}`)?.content;
+    contentPieces?.find((cp) => cp.category === `pipeline_json_${subType}`);
 
   const showLeadMagnets = leadMagnets && leadMagnets.length > 0;
   const showContentGeneration = project?.status === "lead_selected" || project?.status === "completed";
@@ -255,126 +199,72 @@ export default function ProjectDetail() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {subTypes.map((st) => {
-                    const pipelineKey = `${ct.key}::${st.key}`;
-                    const stepCount = pipelineCounts?.[pipelineKey] || 0;
-                    const isGenerating = generatingKey === pipelineKey;
-                    const pipelineJson = getPipelineJson(st.key);
-                    const hasContent = !!pipelineJson;
-                    const isExpanded = expandedKeys.has(pipelineKey);
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Тип</TableHead>
+                      <TableHead className="w-[100px] text-center">Статус</TableHead>
+                      <TableHead className="w-[180px] text-right">Действие</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {subTypes.map((st) => {
+                      const pipelineKey = `${ct.key}::${st.key}`;
+                      const stepCount = pipelineCounts?.[pipelineKey] || 0;
+                      const isGenerating = generatingKey === pipelineKey;
+                      const hasContent = !!getPipelineJson(st.key);
 
-                    const carouselImages = getCarouselImages(st.key);
-                    const staticImage = getStaticImage(st.key);
-                    const bannerImage = getBannerImage(st.key);
+                      const contentUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}/content/${ct.key}/${st.key}`;
 
-                    const isGeneratingCarousel = generatingImagesKey === `${ct.key}::${st.key}::carousel`;
-                    const isGeneratingStatic = generatingImagesKey === `${ct.key}::${st.key}::static`;
-                    const isGeneratingBanner = generatingImagesKey === `${ct.key}::${st.key}::banner`;
-                    const isAnyImageGenerating = !!generatingImagesKey;
-
-                    return (
-                      <div key={st.key} className="border rounded-lg p-3 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-sm">{st.label}</p>
-                            <p className="text-xs text-muted-foreground">{st.description}</p>
-                          </div>
-                          {hasContent && <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">Готово</Badge>}
-                        </div>
-
-                        {/* Step 1: Generate / Refresh pipeline JSON */}
-                        <div className="flex items-center gap-2">
-                          {hasContent && (
-                            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => toggleExpand(pipelineKey)}>
-                              {isExpanded ? <ChevronUp className="mr-1 h-3 w-3" /> : <ChevronDown className="mr-1 h-3 w-3" />}
-                              {isExpanded ? "Свернуть" : "Показать"}
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant={hasContent ? "outline" : "default"}
-                            className="ml-auto text-xs h-7"
-                            onClick={() => generatePipelineMutation.mutate({ contentType: ct.key, subType: st.key })}
-                            disabled={isGenerating || (!!generatingKey && generatingKey !== pipelineKey) || stepCount === 0}
-                          >
-                            {isGenerating ? (
-                              <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
-                            ) : hasContent ? (
-                              <><RefreshCw className="mr-1 h-3 w-3" />Обновить</>
-                            ) : (
-                              <><Sparkles className="mr-1 h-3 w-3" />Создать</>
-                            )}
-                          </Button>
-                        </div>
-
-                        {/* Expanded: show content + image generation buttons */}
-                        {hasContent && isExpanded && (
-                          <div className="space-y-3">
-                            <PipelineResultView
-                              jsonContent={pipelineJson.content}
-                              isEmail={ct.isEmail}
-                              carouselImages={carouselImages}
-                              staticImage={staticImage}
-                              bannerImage={bannerImage}
-                            />
-
-                            {/* Step 2: Image generation buttons */}
-                            <div className="flex flex-wrap gap-2 pt-1 border-t">
-                              {ct.isEmail ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-xs h-7"
-                                  onClick={() => generateImagesMutation.mutate({ contentType: ct.key, subType: st.key, mode: "banner" })}
-                                  disabled={isGeneratingBanner || isAnyImageGenerating}
-                                >
-                                  {isGeneratingBanner ? (
-                                    <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
-                                  ) : (
-                                    <><Image className="mr-1 h-3 w-3" />Сгенерировать баннер</>
-                                  )}
-                                </Button>
-                              ) : (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-xs h-7"
-                                    onClick={() => generateImagesMutation.mutate({ contentType: ct.key, subType: st.key, mode: "carousel" })}
-                                    disabled={isGeneratingCarousel || isAnyImageGenerating}
-                                  >
-                                    {isGeneratingCarousel ? (
-                                      <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
-                                    ) : (
-                                      <><Layers className="mr-1 h-3 w-3" />Сгенерировать карусель</>
-                                    )}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-xs h-7"
-                                    onClick={() => generateImagesMutation.mutate({ contentType: ct.key, subType: st.key, mode: "static" })}
-                                    disabled={isGeneratingStatic || isAnyImageGenerating}
-                                  >
-                                    {isGeneratingStatic ? (
-                                      <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
-                                    ) : (
-                                      <><Image className="mr-1 h-3 w-3" />Сгенерировать изображение</>
-                                    )}
-                                  </Button>
-                                </>
-                              )}
+                      return (
+                        <TableRow
+                          key={st.key}
+                          className={hasContent ? "cursor-pointer" : ""}
+                          onClick={() => hasContent && navigate(contentUrl)}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div>
+                                <p className="font-medium text-sm">{st.label}</p>
+                                <p className="text-xs text-muted-foreground">{st.description}</p>
+                              </div>
+                              {hasContent && <ExternalLink className="h-3 w-3 text-muted-foreground" />}
                             </div>
-                          </div>
-                        )}
-
-                        {stepCount === 0 && <p className="text-xs text-destructive">Нет промптов</p>}
-                      </div>
-                    );
-                  })}
-                </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {hasContent && (
+                              <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                                Готово
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant={hasContent ? "outline" : "default"}
+                              className="text-xs h-7"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                generatePipelineMutation.mutate({ contentType: ct.key, subType: st.key });
+                              }}
+                              disabled={isGenerating || (!!generatingKey && generatingKey !== pipelineKey) || stepCount === 0}
+                            >
+                              {isGenerating ? (
+                                <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
+                              ) : hasContent ? (
+                                <><RefreshCw className="mr-1 h-3 w-3" />Обновить</>
+                              ) : (
+                                <><Sparkles className="mr-1 h-3 w-3" />Создать</>
+                              )}
+                            </Button>
+                            {stepCount === 0 && <p className="text-xs text-destructive mt-1">Нет промптов</p>}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           ))}

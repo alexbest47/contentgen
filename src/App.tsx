@@ -12,6 +12,7 @@ import ProgramDetail from "@/pages/ProgramDetail";
 import OfferTypeDetail from "@/pages/OfferTypeDetail";
 import OfferDetail from "@/pages/OfferDetail";
 import ProjectDetail from "@/pages/ProjectDetail";
+import ContentDetail from "@/pages/ContentDetail";
 import Prompts from "@/pages/Prompts";
 import UsersAdmin from "@/pages/UsersAdmin";
 import Tags from "@/pages/Tags";
