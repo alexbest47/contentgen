@@ -6,8 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const IMAGE_CATEGORIES = ["image_carousel", "image_post", "image_email"];
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -17,8 +15,6 @@ serve(async (req) => {
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -69,7 +65,7 @@ serve(async (req) => {
       } catch (e) { console.error("Error fetching offer doc:", e); }
     }
 
-    // Get all active prompts for this content_type + sub_type, ordered by step_order
+    // Get active prompt for this pipeline (single step)
     const { data: pipelineSteps, error: stepsErr } = await supabase
       .from("prompts")
       .select("*")
@@ -77,11 +73,14 @@ serve(async (req) => {
       .eq("sub_type", sub_type)
       .eq("offer_type", offer.offer_type)
       .eq("is_active", true)
-      .order("step_order", { ascending: true });
+      .order("step_order", { ascending: true })
+      .limit(1);
     if (stepsErr) throw stepsErr;
     if (!pipelineSteps || pipelineSteps.length === 0) {
       throw new Error(`Нет активных промптов для "${content_type}/${sub_type}". Создайте их в разделе «Управление промптами».`);
     }
+
+    const prompt = pipelineSteps[0];
 
     const leadMagnetContext = `Выбранный лид-магнит:
 - Название: ${selectedLead.title}
@@ -90,143 +89,84 @@ serve(async (req) => {
 - Мгновенная ценность: ${selectedLead.instant_value || ""}
 - Переход к курсу: ${selectedLead.transition_to_course || ""}`;
 
-    const results: { category: string; content: string; step: number }[] = [];
+    let userPrompt = prompt.user_prompt_template
+      .replace(/\{\{program_title\}\}/g, program.title)
+      .replace(/\{\{offer_type\}\}/g, offer.offer_type)
+      .replace(/\{\{offer_title\}\}/g, offer.title)
+      .replace(/\{\{audience_description\}\}/g, audienceDescription)
+      .replace(/\{\{offer_description\}\}/g, offerDescription)
+      .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext);
 
-    // Execute each step sequentially
-    for (let i = 0; i < pipelineSteps.length; i++) {
-      const prompt = pipelineSteps[i];
-      const isImage = IMAGE_CATEGORIES.includes(prompt.category);
+    // Call Claude
+    const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: prompt.model || "claude-sonnet-4-20250514",
+        max_tokens: 8192,
+        system: prompt.system_prompt,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
 
-      // Build user prompt with template variables + previous step results
-      let previousStepsContext = "";
-      if (results.length > 0) {
-        previousStepsContext = "\n\nРезультаты предыдущих шагов:\n" +
-          results.map(r => `--- ${r.category} ---\n${r.content}`).join("\n\n");
-      }
-
-      let userPrompt = prompt.user_prompt_template
-        .replace(/\{\{program_title\}\}/g, program.title)
-        .replace(/\{\{offer_type\}\}/g, offer.offer_type)
-        .replace(/\{\{offer_title\}\}/g, offer.title)
-        .replace(/\{\{audience_description\}\}/g, audienceDescription)
-        .replace(/\{\{offer_description\}\}/g, offerDescription)
-        .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
-        .replace(/\{\{previous_steps\}\}/g, previousStepsContext);
-
-      // Category key includes sub_type so results don't overwrite across sub_types
-      const categoryKey = `${prompt.category}_${sub_type}`;
-      let content: string;
-
-      if (isImage) {
-        const imagePrompt = prompt.system_prompt
-          ? `${prompt.system_prompt}\n\n${userPrompt}`
-          : userPrompt;
-
-        const orResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: prompt.model || "google/gemini-3-pro-image-preview",
-            modalities: ["image", "text"],
-            messages: [{ role: "user", content: imagePrompt }],
-          }),
-        });
-
-        if (!orResponse.ok) {
-          const errText = await orResponse.text();
-          console.error("OpenRouter error:", orResponse.status, errText);
-          throw new Error(`OpenRouter API error: ${orResponse.status}`);
-        }
-
-        const orData = await orResponse.json();
-        const parts = orData.choices?.[0]?.message?.content;
-        let imageUrl = "";
-
-        if (Array.isArray(parts)) {
-          for (const part of parts) {
-            if (part.type === "image_url" && part.image_url?.url) {
-              imageUrl = part.image_url.url;
-              break;
-            }
-          }
-        }
-
-        if (!imageUrl) throw new Error("Изображение не было сгенерировано");
-
-        const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
-        const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-        const fileName = `${project_id}/${content_type}_${sub_type}_${prompt.category}_${Date.now()}.png`;
-
-        const { error: uploadErr } = await supabase.storage
-          .from("generated-images")
-          .upload(fileName, binaryData, { contentType: "image/png", upsert: true });
-        if (uploadErr) throw uploadErr;
-
-        const { data: publicUrlData } = supabase.storage
-          .from("generated-images")
-          .getPublicUrl(fileName);
-        content = publicUrlData.publicUrl;
-      } else {
-        const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model: prompt.model || "claude-sonnet-4-20250514",
-            max_tokens: 8192,
-            system: prompt.system_prompt,
-            messages: [{ role: "user", content: userPrompt }],
-          }),
-        });
-
-        if (!claudeResponse.ok) {
-          const errText = await claudeResponse.text();
-          console.error("Claude API error:", claudeResponse.status, errText);
-          throw new Error(`Claude API error: ${claudeResponse.status}`);
-        }
-
-        const claudeData = await claudeResponse.json();
-        content = claudeData.content?.[0]?.text || "";
-      }
-
-      // Record generation run
-      await supabase.from("generation_runs").insert({
-        project_id,
-        prompt_id: prompt.id,
-        type: prompt.category,
-        status: "completed",
-        input_data: {
-          content_type,
-          sub_type,
-          step: i + 1,
-          program_title: program.title,
-          offer_title: offer.title,
-          lead_magnet_title: selectedLead.title,
-        },
-        output_data: { content },
-        completed_at: new Date().toISOString(),
-      });
-
-      // Store content piece with sub_type-aware category
-      await supabase.from("content_pieces").delete()
-        .eq("project_id", project_id)
-        .eq("category", categoryKey);
-      await supabase.from("content_pieces").insert({
-        project_id,
-        category: categoryKey,
-        content,
-      });
-
-      results.push({ category: categoryKey, content, step: i + 1 });
+    if (!claudeResponse.ok) {
+      const errText = await claudeResponse.text();
+      console.error("Claude API error:", claudeResponse.status, errText);
+      throw new Error(`Claude API error: ${claudeResponse.status}`);
     }
 
-    return new Response(JSON.stringify({ success: true, results }), {
+    const claudeData = await claudeResponse.json();
+    const rawContent = claudeData.content?.[0]?.text || "";
+
+    // Extract JSON from response (handle markdown code blocks)
+    let jsonContent = rawContent;
+    const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      jsonContent = jsonMatch[1].trim();
+    }
+
+    // Validate JSON
+    try {
+      JSON.parse(jsonContent);
+    } catch {
+      console.error("Claude returned invalid JSON:", rawContent);
+      throw new Error("Claude вернул невалидный JSON. Попробуйте ещё раз.");
+    }
+
+    // Save as pipeline_json_{sub_type}
+    const categoryKey = `pipeline_json_${sub_type}`;
+
+    await supabase.from("content_pieces").delete()
+      .eq("project_id", project_id)
+      .eq("category", categoryKey);
+    await supabase.from("content_pieces").insert({
+      project_id,
+      category: categoryKey,
+      content: jsonContent,
+    });
+
+    // Record generation run
+    await supabase.from("generation_runs").insert({
+      project_id,
+      prompt_id: prompt.id,
+      type: prompt.category,
+      status: "completed",
+      input_data: {
+        content_type,
+        sub_type,
+        program_title: program.title,
+        offer_title: offer.title,
+        lead_magnet_title: selectedLead.title,
+      },
+      output_data: { content: jsonContent },
+      completed_at: new Date().toISOString(),
+    });
+
+    return new Response(JSON.stringify({ success: true, content: jsonContent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
