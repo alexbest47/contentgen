@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, BookOpen, FolderKanban } from "lucide-react";
+import { GraduationCap, Megaphone, FolderKanban } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
@@ -12,14 +12,14 @@ export default function Dashboard() {
   const { data: stats } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
-      const [programs, courses, projects] = await Promise.all([
+      const [programs, offers, projects] = await Promise.all([
         supabase.from("paid_programs").select("id", { count: "exact", head: true }),
-        supabase.from("mini_courses").select("id", { count: "exact", head: true }),
+        supabase.from("offers").select("id", { count: "exact", head: true }),
         supabase.from("projects").select("id", { count: "exact", head: true }),
       ]);
       return {
         programs: programs.count ?? 0,
-        courses: courses.count ?? 0,
+        offers: offers.count ?? 0,
         projects: projects.count ?? 0,
       };
     },
@@ -27,7 +27,7 @@ export default function Dashboard() {
 
   const cards = [
     { title: "Платные программы", value: stats?.programs ?? 0, icon: GraduationCap, url: "/programs" },
-    { title: "Мини-курсы", value: stats?.courses ?? 0, icon: BookOpen, url: "/programs" },
+    { title: "Офферы", value: stats?.offers ?? 0, icon: Megaphone, url: "/programs" },
     { title: "Проекты", value: stats?.projects ?? 0, icon: FolderKanban, url: "/programs" },
   ];
 
