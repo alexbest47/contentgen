@@ -102,7 +102,7 @@ export default function PromptFormDialog({ form, setField, editId, saveMutation 
         <div className="space-y-2">
           <Label>Шаблон пользовательского промпта</Label>
           <Textarea value={form.user_prompt_template} onChange={(e) => setField("user_prompt_template", e.target.value)} className="min-h-[120px] font-mono text-sm" />
-          <p className="text-xs text-muted-foreground">Переменные: {"{{program_title}}, {{audience_description}}, {{offer_type}}, {{offer_title}}, {{offer_description}}, {{lead_magnet}}, {{lead_magnet_title}}, {{lead_magnet_description}}, {{previous_steps}}"}</p>
+          <p className="text-xs text-muted-foreground">Переменные: {"{{program_title}}, {{audience_description}}, {{offer_type}}, {{offer_title}}, {{offer_description}}, {{lead_magnet}}"}</p>
         </div>
         <div className="space-y-2">
           <Label>Подсказка формата вывода</Label>
