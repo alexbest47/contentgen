@@ -17,8 +17,7 @@ serve(async (req) => {
     if (!project_id || !category) throw new Error("project_id and category are required");
     if (!IMAGE_CATEGORIES.includes(category)) throw new Error(`Invalid image category: ${category}`);
 
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
+    // API key is checked later when making the request
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
