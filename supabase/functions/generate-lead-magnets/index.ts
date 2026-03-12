@@ -63,8 +63,7 @@ serve(async (req) => {
           const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
           const docResponse = await fetch(exportUrl);
           if (docResponse.ok) {
-            const docText = await docResponse.text();
-            offerDescription = docText;
+            offerDescription = await docResponse.text();
           } else {
             await docResponse.text();
           }
@@ -77,8 +76,8 @@ serve(async (req) => {
     // Update status
     await supabase.from("projects").update({ status: "generating_leads" }).eq("id", project_id);
 
-    // Get active prompt for lead_magnets
-    const { data: prompt } = await supabase
+    // Get active prompt for lead_magnets — NO hardcoded fallback
+    const { data: prompt, error: promptErr } = await supabase
       .from("prompts")
       .select("*")
       .eq("category", "lead_magnets")
@@ -86,29 +85,13 @@ serve(async (req) => {
       .limit(1)
       .single();
 
-    const systemPrompt = prompt?.system_prompt || `Ты — эксперт по маркетингу онлайн-образования. Генерируй лид-магниты на русском языке.`;
+    if (promptErr || !prompt) {
+      await supabase.from("projects").update({ status: "error" }).eq("id", project_id);
+      throw new Error("No active prompt found for category 'lead_magnets'. Please create one in the Prompts section.");
+    }
 
-    const defaultUserTemplate = `Создай 3 варианта лид-магнитов для оффера.
-
-Платная программа: {{program_title}}
-Тип оффера: {{offer_type}}
-Название оффера: {{offer_title}}
-Описание аудитории: {{audience_description}}
-Описание оффера: {{offer_description}}
-
-Для каждого лид-магнита верни JSON-объект с полями:
-- title (название)
-- promise (обещание результата)
-- description (краткое описание)
-- marketing_angle (маркетинговый угол)
-- call_to_action (призыв к действию)
-- infographic_concept (концепция инфографики)
-- attention_reason (почему это привлечёт внимание)
-
-Верни массив из 3 объектов в формате JSON. Только JSON, без markdown.`;
-
-    const userTemplate = prompt?.user_prompt_template || defaultUserTemplate;
-    const userPrompt = userTemplate
+    const systemPrompt = prompt.system_prompt;
+    const userPrompt = prompt.user_prompt_template
       .replace(/\{\{program_title\}\}/g, program.title)
       .replace(/\{\{offer_type\}\}/g, offer.offer_type)
       .replace(/\{\{offer_title\}\}/g, offer.title)
@@ -124,7 +107,7 @@ serve(async (req) => {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: prompt?.model || "claude-sonnet-4-20250514",
+        model: prompt.model || "claude-sonnet-4-20250514",
         max_tokens: 4096,
         system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],
@@ -161,11 +144,9 @@ serve(async (req) => {
       project_id,
       title: lm.title || "Без названия",
       promise: lm.promise || "",
-      description: lm.description || "",
-      marketing_angle: lm.marketing_angle || "",
-      call_to_action: lm.call_to_action || "",
-      infographic_concept: lm.infographic_concept || "",
-      attention_reason: lm.attention_reason || "",
+      format: lm.format || "",
+      key_insight: lm.key_insight || "",
+      transition_to_course: lm.transition_to_course || "",
     }));
 
     const { error: insertErr } = await supabase.from("lead_magnets").insert(inserts);
@@ -173,7 +154,7 @@ serve(async (req) => {
 
     await supabase.from("generation_runs").insert({
       project_id,
-      prompt_id: prompt?.id || null,
+      prompt_id: prompt.id,
       type: "lead_magnets",
       status: "completed",
       input_data: { program_title: program.title, offer_title: offer.title },
