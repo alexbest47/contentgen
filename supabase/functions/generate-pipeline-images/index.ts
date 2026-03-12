@@ -155,7 +155,7 @@ serve(async (req) => {
       const prompt = pipelineJson.banner_prompt;
       if (!prompt) throw new Error("В JSON нет banner_prompt");
 
-      const imageData = await generateImage(prompt, LOVABLE_API_KEY);
+      const imageData = await generateImage(prompt, OPENROUTER_API_KEY);
       const fileName = `${project_id}/${content_type}_${sub_type}_banner_${Date.now()}.png`;
 
       const { error: uploadErr } = await supabase.storage
