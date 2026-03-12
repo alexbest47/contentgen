@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, RefreshCw, Loader2, Image, Layers } from "lucide-react";
 import PipelineResultView from "@/components/project/PipelineResultView";
 import { toast } from "sonner";
@@ -29,6 +30,8 @@ export default function ContentDetail() {
   const queryClient = useQueryClient();
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [generatingImagesKey, setGeneratingImagesKey] = useState<string | null>(null);
+  const [carouselProgress, setCarouselProgress] = useState<{ current: number; total: number } | null>(null);
+  const abortRef = useRef(false);
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`;
   const isEmail = isEmailType(contentType!);
@@ -83,8 +86,74 @@ export default function ContentDetail() {
     },
   });
 
+  // Progressive carousel generation — one slide at a time
+  const generateCarouselProgressively = async () => {
+    if (!pipelineJson) {
+      toast.error("Сначала сгенерируйте контент");
+      return;
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(pipelineJson.content);
+    } catch {
+      toast.error("Не удалось прочитать JSON контента");
+      return;
+    }
+
+    const prompts = parsed.carousel_prompts;
+    if (!Array.isArray(prompts) || prompts.length === 0) {
+      toast.error("В контенте нет промптов для карусели");
+      return;
+    }
+
+    abortRef.current = false;
+    setGeneratingImagesKey("carousel");
+    setCarouselProgress({ current: 0, total: prompts.length });
+
+    let failCount = 0;
+
+    for (let i = 0; i < prompts.length; i++) {
+      if (abortRef.current) break;
+
+      setCarouselProgress({ current: i + 1, total: prompts.length });
+
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-pipeline-images", {
+          body: {
+            project_id: projectId,
+            content_type: contentType,
+            sub_type: subType,
+            mode: "carousel",
+            slide_number: prompts[i].slide_number,
+          },
+        });
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+
+        // Refresh UI so the new image appears immediately
+        await queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
+      } catch (e: any) {
+        console.error(`Slide ${prompts[i].slide_number} failed:`, e);
+        failCount++;
+        // Continue with next slide
+      }
+    }
+
+    setGeneratingImagesKey(null);
+    setCarouselProgress(null);
+
+    if (failCount === 0) {
+      toast.success("Карусель сгенерирована!");
+    } else if (failCount < prompts.length) {
+      toast.warning(`Готово, но ${failCount} из ${prompts.length} слайдов не удалось сгенерировать`);
+    } else {
+      toast.error("Не удалось сгенерировать ни одного слайда");
+    }
+  };
+
   const generateImagesMutation = useMutation({
-    mutationFn: async (mode: "carousel" | "static" | "banner") => {
+    mutationFn: async (mode: "static" | "banner") => {
       setGeneratingImagesKey(mode);
       const { data, error } = await supabase.functions.invoke("generate-pipeline-images", {
         body: { project_id: projectId, content_type: contentType, sub_type: subType, mode },
@@ -95,7 +164,7 @@ export default function ContentDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
-      toast.success("Изображения сгенерированы!");
+      toast.success("Изображение сгенерировано!");
       setGeneratingImagesKey(null);
     },
     onError: (e: Error) => {
@@ -105,6 +174,10 @@ export default function ContentDetail() {
   });
 
   const isAnyImageGenerating = !!generatingImagesKey;
+
+  const carouselButtonLabel = carouselProgress
+    ? `Генерация ${carouselProgress.current} из ${carouselProgress.total}...`
+    : "Сгенерировать карусель";
 
   return (
     <div className="space-y-6">
@@ -154,13 +227,13 @@ export default function ContentDetail() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => generateImagesMutation.mutate("carousel")}
+              onClick={generateCarouselProgressively}
               disabled={isAnyImageGenerating}
             >
               {generatingImagesKey === "carousel" ? (
-                <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
+                <><Loader2 className="mr-1 h-3 w-3 animate-spin" />{carouselButtonLabel}</>
               ) : (
-                <><Layers className="mr-1 h-3 w-3" />Сгенерировать карусель</>
+                <><Layers className="mr-1 h-3 w-3" />{carouselButtonLabel}</>
               )}
             </Button>
             <Button
@@ -178,6 +251,16 @@ export default function ContentDetail() {
           </>
         )}
       </div>
+
+      {/* Carousel progress bar */}
+      {carouselProgress && (
+        <div className="space-y-1">
+          <Progress value={(carouselProgress.current / carouselProgress.total) * 100} className="h-2" />
+          <p className="text-xs text-muted-foreground">
+            Слайд {carouselProgress.current} из {carouselProgress.total}
+          </p>
+        </div>
+      )}
 
       {/* Content */}
       {pipelineJson ? (
