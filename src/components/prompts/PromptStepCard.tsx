@@ -3,10 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
-import { categoryLabels } from "@/pages/Prompts";
-import type { Database } from "@/integrations/supabase/types";
-
-type PromptCategory = Database["public"]["Enums"]["prompt_category"];
+import { categoryLabels, type PromptCategory } from "@/lib/promptConstants";
 
 interface PromptStepCardProps {
   prompt: any;
