@@ -166,7 +166,7 @@ export default function ProjectDetail() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Варианты лид-магнитов</h2>
           <div className="grid gap-4 lg:grid-cols-3">
-            {leadMagnets.map((lm) => (
+            {visibleLeadMagnets.map((lm) => (
               <Card key={lm.id} className={`transition-all ${lm.is_selected ? "ring-2 ring-primary" : ""}`}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
