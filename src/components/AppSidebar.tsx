@@ -19,6 +19,7 @@ const mainNav = [
 
 const adminNav = [
   { title: "Управление промптами", url: "/prompts", icon: MessageSquareText },
+  { title: "Переменные промптов", url: "/prompt-variables", icon: Braces },
   { title: "Пользователи", url: "/users", icon: Users },
 ];
 
