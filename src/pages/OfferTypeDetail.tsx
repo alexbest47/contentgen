@@ -116,6 +116,7 @@ export default function OfferTypeDetail() {
         .select("*, offer_tags(tag_id, tags(id, name))")
         .eq("program_id", programId!)
         .eq("offer_type", offerType! as any)
+        .eq("is_archived", false)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
