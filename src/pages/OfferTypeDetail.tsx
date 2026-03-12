@@ -87,6 +87,10 @@ export default function OfferTypeDetail() {
   const [docUrl, setDocUrl] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
+  // Archive dialog state
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archivingId, setArchivingId] = useState<string | null>(null);
+
   // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
