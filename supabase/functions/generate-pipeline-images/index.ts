@@ -98,7 +98,7 @@ serve(async (req) => {
       }
 
       for (const slide of prompts) {
-        const imageData = await generateImage(slide.prompt, LOVABLE_API_KEY);
+        const imageData = await generateImage(slide.prompt, OPENROUTER_API_KEY);
         const fileName = `${project_id}/${content_type}_${sub_type}_carousel_${slide.slide_number}_${Date.now()}.png`;
 
         const { error: uploadErr } = await supabase.storage
