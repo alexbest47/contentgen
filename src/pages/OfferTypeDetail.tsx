@@ -41,7 +41,7 @@ export default function OfferTypeDetail() {
         .from("offers")
         .select("*, offer_tags(tag_id, tags(id, name))")
         .eq("program_id", programId!)
-        .eq("offer_type", offerType!)
+        .eq("offer_type", offerType! as any)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
