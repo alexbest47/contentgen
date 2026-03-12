@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Copy, ChevronDown, ChevronUp, Download, Image, Send, Mail } from "lucide-react";
+import SlideStructureView from "@/components/project/SlideStructureView";
 import { toast } from "sonner";
 
 const statusLabels: Record<string, string> = {
