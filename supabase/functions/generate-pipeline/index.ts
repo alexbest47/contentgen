@@ -85,9 +85,9 @@ serve(async (req) => {
 
     const leadMagnetContext = `Выбранный лид-магнит:
 - Название: ${selectedLead.title}
-- Формат: ${selectedLead.format || ""}
-- Обещание: ${selectedLead.promise || ""}
-- Ключевой инсайт: ${selectedLead.key_insight || ""}
+- Визуальный формат: ${selectedLead.visual_format || ""}
+- Визуальный контент: ${selectedLead.visual_content || ""}
+- Мгновенная ценность: ${selectedLead.instant_value || ""}
 - Переход к курсу: ${selectedLead.transition_to_course || ""}`;
 
     const results: { category: string; content: string; step: number }[] = [];
