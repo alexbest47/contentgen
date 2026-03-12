@@ -1,0 +1,1 @@
+ALTER TABLE public.prompts ADD COLUMN content_type text, ADD COLUMN step_order integer NOT NULL DEFAULT 1;
