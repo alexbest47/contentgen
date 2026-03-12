@@ -64,7 +64,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { project_id, content_type, sub_type, mode } = await req.json();
+    const { project_id, content_type, sub_type, mode, slide_number } = await req.json();
     if (!project_id || !content_type || !sub_type || !mode) {
       throw new Error("project_id, content_type, sub_type, and mode are required");
     }
@@ -97,7 +97,16 @@ serve(async (req) => {
         throw new Error("В JSON нет carousel_prompts");
       }
 
-      for (const slide of prompts) {
+      // If slide_number is provided, generate only that slide
+      const slidesToGenerate = typeof slide_number === "number"
+        ? prompts.filter((s: any) => s.slide_number === slide_number)
+        : prompts;
+
+      if (slidesToGenerate.length === 0) {
+        throw new Error(`Слайд ${slide_number} не найден в carousel_prompts`);
+      }
+
+      for (const slide of slidesToGenerate) {
         const imageData = await generateImage(slide.prompt, OPENROUTER_API_KEY);
         const fileName = `${project_id}/${content_type}_${sub_type}_carousel_${slide.slide_number}_${Date.now()}.png`;
 
