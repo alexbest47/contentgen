@@ -223,12 +223,10 @@ export default function ProjectDetail() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
+                  <div><span className="font-medium">Формат:</span> {lm.format}</div>
                   <div><span className="font-medium">Обещание:</span> {lm.promise}</div>
-                  <div><span className="font-medium">Описание:</span> {lm.description}</div>
-                  <div><span className="font-medium">Маркетинговый угол:</span> {lm.marketing_angle}</div>
-                  <div><span className="font-medium">Призыв к действию:</span> {lm.call_to_action}</div>
-                  <div><span className="font-medium">Инфографика:</span> {lm.infographic_concept}</div>
-                  <div><span className="font-medium">Почему привлечёт:</span> {lm.attention_reason}</div>
+                  <div><span className="font-medium">Ключевой инсайт:</span> {lm.key_insight}</div>
+                  <div><span className="font-medium">Переход к курсу:</span> {lm.transition_to_course}</div>
                   {!lm.is_selected && (project?.status === "leads_ready" || project?.status === "lead_selected") && (
                     <Button variant="outline" className="w-full" onClick={() => selectMutation.mutate(lm.id)} disabled={selectMutation.isPending}>
                       Выбрать этот вариант
