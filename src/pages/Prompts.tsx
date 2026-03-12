@@ -10,6 +10,8 @@ import PromptFormDialog from "@/components/prompts/PromptFormDialog";
 import PipelineGroup from "@/components/prompts/PipelineGroup";
 import PromptStepCard from "@/components/prompts/PromptStepCard";
 import { contentTypeLabels, subTypeLabels, contentTypeKeys, subTypeKeys, emptyForm, type PromptForm } from "@/lib/promptConstants";
+import { OFFER_TYPES, getOfferTypeLabel } from "@/lib/offerTypes";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Prompts() {
   const queryClient = useQueryClient();
@@ -32,6 +34,7 @@ export default function Prompts() {
         ...form,
         content_type: form.content_type || null,
         sub_type: form.sub_type || null,
+        offer_type: form.offer_type || null,
       };
       if (editId) {
         const { error } = await supabase.from("prompts").update(payload).eq("id", editId);
@@ -68,27 +71,82 @@ export default function Prompts() {
       user_prompt_template: prompt.user_prompt_template,
       output_format_hint: prompt.output_format_hint ?? "", is_active: prompt.is_active,
       content_type: prompt.content_type ?? "", sub_type: prompt.sub_type ?? "",
-      step_order: prompt.step_order ?? 1,
+      step_order: prompt.step_order ?? 1, offer_type: prompt.offer_type ?? "",
     });
     setOpen(true);
   };
 
   const setField = (key: keyof PromptForm, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
-  // Group prompts by content_type → sub_type
-  const grouped = prompts?.reduce((acc, p) => {
-    const ct = (p as any).content_type || "_other";
-    const st = (p as any).sub_type || "_none";
-    const key = `${ct}::${st}`;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(p);
-    return acc;
-  }, {} as Record<string, typeof prompts>) ?? {};
+  // Get offer types that have prompts
+  const offerTypesWithPrompts = OFFER_TYPES.filter((ot) =>
+    prompts?.some((p: any) => p.offer_type === ot.key)
+  );
 
-  // Collect other prompts (no content_type)
-  const otherPrompts = Object.entries(grouped)
-    .filter(([k]) => k.startsWith("_other::"))
-    .flatMap(([, v]) => v || []);
+  // Prompts without offer_type
+  const otherPrompts = prompts?.filter((p: any) => !p.offer_type) ?? [];
+
+  const renderPipelinesForOfferType = (offerTypeKey: string) => {
+    const offerPrompts = prompts?.filter((p: any) => p.offer_type === offerTypeKey) ?? [];
+
+    const grouped = offerPrompts.reduce((acc, p) => {
+      const ct = (p as any).content_type || "_other";
+      const st = (p as any).sub_type || "_none";
+      const key = `${ct}::${st}`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(p);
+      return acc;
+    }, {} as Record<string, typeof offerPrompts>);
+
+    const otherInGroup = Object.entries(grouped)
+      .filter(([k]) => k.startsWith("_other::"))
+      .flatMap(([, v]) => v || []);
+
+    return (
+      <div className="space-y-10">
+        {contentTypeKeys.map((ctKey) => {
+          const hasAny = subTypeKeys.some((st) => grouped[`${ctKey}::${st}`]?.length);
+          if (!hasAny) return null;
+          return (
+            <div key={ctKey}>
+              <h3 className="text-lg font-semibold mb-4">Пайплайн: {contentTypeLabels[ctKey]}</h3>
+              <div className="space-y-6">
+                {subTypeKeys.map((stKey) => {
+                  const key = `${ctKey}::${stKey}`;
+                  const groupPrompts = (grouped[key] || []).sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                  if (groupPrompts.length === 0) return null;
+                  return (
+                    <PipelineGroup
+                      key={key}
+                      groupKey={key}
+                      label={subTypeLabels[stKey]}
+                      prompts={groupPrompts}
+                      onEdit={openEdit}
+                      onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+
+        {otherInGroup.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="text-lg font-semibold text-muted-foreground">Прочие промпты</h3>
+              <Badge variant="secondary">{otherInGroup.length}</Badge>
+            </div>
+            <div className="space-y-3">
+              {otherInGroup.map((p: any) => (
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -101,72 +159,39 @@ export default function Prompts() {
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" />Создать промпт</Button>
           </DialogTrigger>
-          <PromptFormDialog
-            form={form}
-            setField={setField}
-            editId={editId}
-            saveMutation={saveMutation}
-          />
+          <PromptFormDialog form={form} setField={setField} editId={editId} saveMutation={saveMutation} />
         </Dialog>
       </div>
 
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
-      ) : (
-        <div className="space-y-10">
-          {contentTypeKeys.map((ctKey) => {
-            const hasAnyPrompts = subTypeKeys.some((st) => grouped[`${ctKey}::${st}`]?.length);
-            if (!hasAnyPrompts) return null;
+      ) : offerTypesWithPrompts.length > 0 ? (
+        <Tabs defaultValue={offerTypesWithPrompts[0]?.key}>
+          <TabsList>
+            {offerTypesWithPrompts.map((ot) => (
+              <TabsTrigger key={ot.key} value={ot.key}>{ot.label}</TabsTrigger>
+            ))}
+            {otherPrompts.length > 0 && <TabsTrigger value="_other">Прочие</TabsTrigger>}
+          </TabsList>
 
-            return (
-              <div key={ctKey}>
-                <h2 className="text-xl font-bold mb-4">Пайплайн: {contentTypeLabels[ctKey]}</h2>
-                <div className="space-y-6">
-                  {subTypeKeys.map((stKey) => {
-                    const key = `${ctKey}::${stKey}`;
-                    const groupPrompts = (grouped[key] || []).sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
-                    if (groupPrompts.length === 0) return null;
-
-                    return (
-                      <PipelineGroup
-                        key={key}
-                        groupKey={key}
-                        label={subTypeLabels[stKey]}
-                        prompts={groupPrompts}
-                        onEdit={openEdit}
-                        onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+          {offerTypesWithPrompts.map((ot) => (
+            <TabsContent key={ot.key} value={ot.key}>
+              {renderPipelinesForOfferType(ot.key)}
+            </TabsContent>
+          ))}
 
           {otherPrompts.length > 0 && (
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <h2 className="text-lg font-semibold text-muted-foreground">Прочие промпты</h2>
-                <Badge variant="secondary">{otherPrompts.length}</Badge>
-              </div>
+            <TabsContent value="_other">
               <div className="space-y-3">
                 {otherPrompts.map((p: any) => (
-                  <PromptStepCard
-                    key={p.id}
-                    prompt={p}
-                    showStepNumber={false}
-                    onEdit={openEdit}
-                    onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
-                  />
+                  <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} />
                 ))}
               </div>
-            </div>
+            </TabsContent>
           )}
-
-          {(!prompts || prompts.length === 0) && (
-            <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
-          )}
-        </div>
+        </Tabs>
+      ) : (
+        <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
       )}
     </div>
   );
