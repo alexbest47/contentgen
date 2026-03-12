@@ -1,24 +1,29 @@
 
 
-## План: Обновление данных промптов в БД
+## План: Страница справочника переменных промптов
 
-7 промптов содержат устаревшие переменные `{{mini_course_title}}` и `{{mini_course_description}}`. Нужно заменить их на `{{offer_title}}` и `{{offer_description}}`, а также обновить контекстные слова «Мини-курс» → «Оффер».
+Создать новую страницу `/prompt-variables` в разделе администрирования, отображающую все доступные шаблонные переменные с описанием и источником данных.
 
-### Промпты для обновления
+### Изменения
 
-| Промпт | Замены |
-|---|---|
-| Генерация лид-магнитов | `mini_course_title` → `offer_title`, `mini_course_description` → `offer_description`, текст «мини-курса» → «оффера» |
-| Структура карусели | `mini_course_title` → `offer_title`, текст «Мини-курс» → «Оффер» |
-| Текст Instagram | аналогично |
-| Текст VK | аналогично |
-| Текст Telegram | аналогично |
-| Текст Email | аналогично |
-| Генерация теста | аналогично |
+**1. Новый файл `src/pages/PromptVariables.tsx`**
 
-### Реализация
+Страница с таблицей переменных:
 
-7 вызовов UPDATE через insert tool — по одному на каждый промпт, заменяя переменные и контекстный текст в `user_prompt_template`.
+| Переменная | Описание | Источник |
+|---|---|---|
+| `{{program_title}}` | Название платной программы | `paid_programs.title` |
+| `{{audience_description}}` | Описание аудитории | Google Docs → `paid_programs.audience_description` |
+| `{{offer_type}}` | Тип оффера (мини-курс, вебинар и т.д.) | `offers.offer_type` |
+| `{{offer_title}}` | Название оффера | `offers.title` |
+| `{{offer_description}}` | Описание оффера | Google Docs → `offers.doc_url` |
+| `{{lead_magnet}}` | Полный контекст лид-магнита | Сгенерированные данные |
+| `{{lead_magnet_title}}` | Название лид-магнита | `lead_magnets.title` |
+| `{{lead_magnet_description}}` | Описание лид-магнита | `lead_magnets.description` |
 
-Без изменений в коде или схеме БД.
+Используем `Card` + `Table` компоненты. Статическая страница, без запросов к БД.
+
+**2. `src/App.tsx`** — добавить маршрут `/prompt-variables` с `adminOnly`.
+
+**3. `src/components/AppSidebar.tsx`** — добавить пункт «Переменные промптов» в секцию «Администрирование» (иконка `Variable` или `Braces`).
 
