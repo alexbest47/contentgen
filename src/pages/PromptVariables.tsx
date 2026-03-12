@@ -27,7 +27,8 @@ export default function PromptVariables() {
         <CardHeader>
           <CardTitle>Доступные переменные</CardTitle>
           <CardDescription>
-            Используйте эти переменные в полях «System prompt» и «User prompt template». При генерации они автоматически заменяются на актуальные данные проекта.
+          Используйте эти переменные в полях «System prompt» и «User prompt template». При генерации они автоматически заменяются на актуальные данные проекта.
+          Для категорий изображений (image_carousel, image_post, image_email) промпт используется как описание для генерации изображения через Google Imagen.
           </CardDescription>
         </CardHeader>
         <CardContent>
