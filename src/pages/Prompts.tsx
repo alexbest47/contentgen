@@ -176,7 +176,7 @@ export default function Prompts() {
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
       ) : offerTypesWithPrompts.length > 0 ? (
-        <Tabs defaultValue={offerTypesWithPrompts[0]?.key}>
+        <Tabs defaultValue={offerTypesWithPrompts[0]?.key} onValueChange={setActiveTab} value={activeTab || offerTypesWithPrompts[0]?.key}>
           <TabsList>
             {offerTypesWithPrompts.map((ot) => (
               <TabsTrigger key={ot.key} value={ot.key}>{ot.label}</TabsTrigger>
