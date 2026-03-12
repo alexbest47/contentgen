@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array> {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
