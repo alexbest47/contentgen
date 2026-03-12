@@ -270,6 +270,18 @@ export default function ContentDetail() {
           carouselImages={carouselImages}
           staticImage={staticImage}
           bannerImage={bannerImage}
+          onSave={async (updatedJson: string) => {
+            const { error } = await supabase
+              .from("content_pieces")
+              .update({ content: updatedJson })
+              .eq("id", pipelineJson.id);
+            if (error) {
+              toast.error("Ошибка сохранения");
+              return;
+            }
+            queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
+            toast.success("Контент сохранён");
+          }}
         />
       ) : (
         <p className="text-muted-foreground text-sm">Контент не найден.</p>
