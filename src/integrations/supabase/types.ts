@@ -160,47 +160,6 @@ export type Database = {
           },
         ]
       }
-      mini_courses: {
-        Row: {
-          audience_description: string | null
-          audience_doc_url: string | null
-          course_description: string | null
-          created_at: string
-          created_by: string
-          id: string
-          program_id: string
-          title: string
-        }
-        Insert: {
-          audience_description?: string | null
-          audience_doc_url?: string | null
-          course_description?: string | null
-          created_at?: string
-          created_by: string
-          id?: string
-          program_id: string
-          title: string
-        }
-        Update: {
-          audience_description?: string | null
-          audience_doc_url?: string | null
-          course_description?: string | null
-          created_at?: string
-          created_by?: string
-          id?: string
-          program_id?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mini_courses_program_id_fkey"
-            columns: ["program_id"]
-            isOneToOne: false
-            referencedRelation: "paid_programs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       offer_tags: {
         Row: {
           id: string
@@ -328,7 +287,6 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
-          mini_course_id: string | null
           offer_id: string | null
           selected_lead_magnet_id: string | null
           status: Database["public"]["Enums"]["project_status"]
@@ -338,7 +296,6 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
-          mini_course_id?: string | null
           offer_id?: string | null
           selected_lead_magnet_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
@@ -348,7 +305,6 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
-          mini_course_id?: string | null
           offer_id?: string | null
           selected_lead_magnet_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
@@ -360,13 +316,6 @@ export type Database = {
             columns: ["selected_lead_magnet_id"]
             isOneToOne: false
             referencedRelation: "lead_magnets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "projects_mini_course_id_fkey"
-            columns: ["mini_course_id"]
-            isOneToOne: false
-            referencedRelation: "mini_courses"
             referencedColumns: ["id"]
           },
           {
