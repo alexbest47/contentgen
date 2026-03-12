@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Copy, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Copy, ChevronDown, ChevronUp, Download, Image } from "lucide-react";
 import { toast } from "sonner";
 
 const statusLabels: Record<string, string> = {
@@ -18,7 +18,9 @@ const statusLabels: Record<string, string> = {
   error: "Ошибка",
 };
 
-type ContentCategory = "slide_structure" | "text_instagram" | "text_vk" | "text_telegram" | "text_email";
+type ContentCategory = "slide_structure" | "text_instagram" | "text_vk" | "text_telegram" | "text_email" | "image_carousel" | "image_post" | "image_email";
+
+const IMAGE_CATEGORIES: ContentCategory[] = ["image_carousel", "image_post", "image_email"];
 
 const contentCategories: { key: ContentCategory; label: string; description: string }[] = [
   { key: "slide_structure", label: "Структура слайдов", description: "Структура карусели / слайдов для лид-магнита" },
@@ -26,7 +28,12 @@ const contentCategories: { key: ContentCategory; label: string; description: str
   { key: "text_vk", label: "Текст VK", description: "Пост для ВКонтакте" },
   { key: "text_telegram", label: "Текст Telegram", description: "Пост для Telegram-канала" },
   { key: "text_email", label: "Текст Email", description: "Письмо для email-рассылки" },
+  { key: "image_carousel", label: "Изображение карусели", description: "Изображение для карусели / слайдов" },
+  { key: "image_post", label: "Изображение поста", description: "Изображение для поста в соцсетях" },
+  { key: "image_email", label: "Изображение Email", description: "Изображение для email-рассылки" },
 ];
+
+const isImageCategory = (key: ContentCategory) => IMAGE_CATEGORIES.includes(key);
 
 export default function ProjectDetail() {
   const { programId, offerType, offerId, projectId } = useParams();
@@ -59,12 +66,12 @@ export default function ProjectDetail() {
     queryKey: ["content_pieces", projectId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("content_pieces" as any)
+        .from("content_pieces")
         .select("*")
         .eq("project_id", projectId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as any[];
+      return data;
     },
     enabled: project?.status === "lead_selected" || project?.status === "completed",
   });
@@ -88,16 +95,17 @@ export default function ProjectDetail() {
   });
 
   const generateContentMutation = useMutation({
-    mutationFn: async (category: string) => {
+    mutationFn: async ({ category, isImage }: { category: string; isImage: boolean }) => {
       setGeneratingCategory(category);
-      const { data, error } = await supabase.functions.invoke("generate-content", {
+      const functionName = isImage ? "generate-image" : "generate-content";
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: { project_id: projectId, category },
       });
       if (error) throw new Error(error.message || "Ошибка генерации");
       if (data?.error) throw new Error(data.error);
       return data;
     },
-    onSuccess: (_, category) => {
+    onSuccess: (_, { category }) => {
       queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
       toast.success("Контент сгенерирован!");
       setGeneratingCategory(null);
@@ -119,8 +127,16 @@ export default function ProjectDetail() {
     toast.success("Скопировано в буфер обмена");
   };
 
+  const downloadImage = (url: string, filename: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.target = "_blank";
+    a.click();
+  };
+
   const getContentForCategory = (category: string) =>
-    contentPieces?.find((cp: any) => cp.category === category);
+    contentPieces?.find((cp) => cp.category === category);
 
   const showLeadMagnets = leadMagnets && leadMagnets.length > 0;
   const showContentGeneration = project?.status === "lead_selected" || project?.status === "completed";
@@ -176,25 +192,46 @@ export default function ProjectDetail() {
               const existing = getContentForCategory(key);
               const isGenerating = generatingCategory === key;
               const isExpanded = expandedCategories.has(key);
+              const isImage = isImageCategory(key);
               return (
                 <Card key={key}>
                   <CardHeader className="py-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
+                        {isImage && <Image className="h-4 w-4 text-muted-foreground" />}
                         <CardTitle className="text-base">{label}</CardTitle>
                         {existing && <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">Готово</Badge>}
                       </div>
                       <div className="flex items-center gap-2">
                         {existing && (
                           <>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(existing.content)} title="Копировать"><Copy className="h-4 w-4" /></Button>
+                            {isImage ? (
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => downloadImage(existing.content, `${key}.png`)} title="Скачать">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(existing.content)} title="Копировать">
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleExpand(key)}>
                               {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                             </Button>
                           </>
                         )}
-                        <Button size="sm" variant={existing ? "outline" : "default"} onClick={() => generateContentMutation.mutate(key)} disabled={isGenerating || (!!generatingCategory && generatingCategory !== key)}>
-                          {isGenerating ? (<><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>) : existing ? (<><RefreshCw className="mr-1 h-3 w-3" />Перегенерировать</>) : (<><Sparkles className="mr-1 h-3 w-3" />Сгенерировать</>)}
+                        <Button
+                          size="sm"
+                          variant={existing ? "outline" : "default"}
+                          onClick={() => generateContentMutation.mutate({ category: key, isImage })}
+                          disabled={isGenerating || (!!generatingCategory && generatingCategory !== key)}
+                        >
+                          {isGenerating ? (
+                            <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
+                          ) : existing ? (
+                            <><RefreshCw className="mr-1 h-3 w-3" />Перегенерировать</>
+                          ) : (
+                            <><Sparkles className="mr-1 h-3 w-3" />Сгенерировать</>
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -202,7 +239,13 @@ export default function ProjectDetail() {
                   </CardHeader>
                   {existing && isExpanded && (
                     <CardContent className="pt-0">
-                      <div className="bg-muted/50 rounded-md p-4 text-sm whitespace-pre-wrap max-h-96 overflow-y-auto">{existing.content}</div>
+                      {isImage ? (
+                        <div className="rounded-md overflow-hidden border">
+                          <img src={existing.content} alt={label} className="w-full max-h-[500px] object-contain bg-muted/30" />
+                        </div>
+                      ) : (
+                        <div className="bg-muted/50 rounded-md p-4 text-sm whitespace-pre-wrap max-h-96 overflow-y-auto">{existing.content}</div>
+                      )}
                     </CardContent>
                   )}
                 </Card>
