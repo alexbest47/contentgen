@@ -64,7 +64,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { project_id, content_type, sub_type, mode } = await req.json();
+    const { project_id, content_type, sub_type, mode, slide_number } = await req.json();
     if (!project_id || !content_type || !sub_type || !mode) {
       throw new Error("project_id, content_type, sub_type, and mode are required");
     }
