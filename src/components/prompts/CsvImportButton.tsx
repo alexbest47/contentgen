@@ -1,0 +1,237 @@
+import { useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Upload, Download } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { getOfferTypeLabel } from "@/lib/offerTypes";
+import { categories, categoryLabels } from "@/lib/promptConstants";
+import type { PromptCategory } from "@/lib/promptConstants";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+interface CsvImportButtonProps {
+  offerTypeKey: string;
+  existingCount: number;
+}
+
+const CSV_HEADERS = [
+  "name","slug","category","content_type","sub_type","step_order",
+  "provider","model","description","system_prompt","user_prompt_template",
+  "output_format_hint","is_active",
+] as const;
+
+const TEMPLATE_ROWS = [
+  [
+    "Текст поста Instagram Анонс","text-ig-announce","text_instagram","instagram","announcement","1",
+    "anthropic","claude-sonnet-4-20250514","Генерация текста поста для Instagram",
+    "Ты — опытный копирайтер для Instagram.","Напиши пост-анонс для мини-курса {{program_title}}. Целевая аудитория: {{audience}}.",
+    "Верни текст поста в формате markdown","true",
+  ],
+  [
+    "Текст поста Instagram Прогрев","text-ig-warmup","text_instagram","instagram","warmup","2",
+    "anthropic","claude-sonnet-4-20250514","Прогревающий пост для Instagram",
+    "Ты — опытный копирайтер для Instagram.","Напиши прогревающий пост для {{program_title}}.",
+    "Верни текст поста в формате markdown","true",
+  ],
+];
+
+function escapeCsvField(value: string): string {
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        result.push(current);
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+export default function CsvImportButton({ offerTypeKey, existingCount }: CsvImportButtonProps) {
+  const queryClient = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [parsedRows, setParsedRows] = useState<Record<string, any>[]>([]);
+  const [importing, setImporting] = useState(false);
+
+  const downloadTemplate = () => {
+    const lines = [
+      CSV_HEADERS.map(escapeCsvField).join(","),
+      ...TEMPLATE_ROWS.map((row) => row.map(escapeCsvField).join(",")),
+    ];
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `prompts_template_${offerTypeKey}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target?.result as string;
+        const lines = text.split(/\r?\n/).filter((l) => l.trim());
+        if (lines.length < 2) {
+          toast.error("CSV должен содержать заголовок и хотя бы одну строку данных");
+          return;
+        }
+
+        const headers = parseCsvLine(lines[0]).map((h) => h.trim());
+        const missing = CSV_HEADERS.filter((h) => !headers.includes(h));
+        if (missing.length > 0) {
+          toast.error(`Отсутствуют колонки: ${missing.join(", ")}`);
+          return;
+        }
+
+        const rows: Record<string, any>[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = parseCsvLine(lines[i]);
+          const row: Record<string, any> = {};
+          headers.forEach((h, idx) => {
+            row[h] = values[idx]?.trim() ?? "";
+          });
+
+          // Validate category
+          if (!categories.includes(row.category as PromptCategory)) {
+            toast.error(`Строка ${i + 1}: неизвестная категория "${row.category}". Допустимые: ${categories.join(", ")}`);
+            return;
+          }
+
+          row.step_order = parseInt(row.step_order, 10) || 1;
+          row.is_active = row.is_active?.toLowerCase() !== "false";
+          row.content_type = row.content_type || null;
+          row.sub_type = row.sub_type || null;
+          row.description = row.description || null;
+          row.output_format_hint = row.output_format_hint || null;
+          rows.push(row);
+        }
+
+        if (rows.length === 0) {
+          toast.error("Не найдено ни одной строки данных");
+          return;
+        }
+
+        setParsedRows(rows);
+        setConfirmOpen(true);
+      } catch (err: any) {
+        toast.error(`Ошибка парсинга CSV: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+    // Reset so the same file can be re-selected
+    e.target.value = "";
+  };
+
+  const doImport = async () => {
+    setImporting(true);
+    try {
+      // 1. Delete existing prompts for this offer_type
+      const { error: delError } = await supabase
+        .from("prompts")
+        .delete()
+        .eq("offer_type", offerTypeKey);
+      if (delError) throw delError;
+
+      // 2. Insert new prompts with offer_type forced
+      const toInsert = parsedRows.map((r) => ({
+        name: r.name,
+        slug: r.slug,
+        category: r.category,
+        content_type: r.content_type,
+        sub_type: r.sub_type,
+        step_order: r.step_order,
+        provider: r.provider,
+        model: r.model,
+        description: r.description,
+        system_prompt: r.system_prompt,
+        user_prompt_template: r.user_prompt_template,
+        output_format_hint: r.output_format_hint,
+        is_active: r.is_active,
+        offer_type: offerTypeKey,
+      }));
+
+      const { error: insError } = await supabase.from("prompts").insert(toInsert);
+      if (insError) throw insError;
+
+      queryClient.invalidateQueries({ queryKey: ["prompts"] });
+      toast.success(`Импортировано ${toInsert.length} промптов для "${getOfferTypeLabel(offerTypeKey)}"`);
+    } catch (err: any) {
+      toast.error(`Ошибка импорта: ${err.message}`);
+    } finally {
+      setImporting(false);
+      setConfirmOpen(false);
+      setParsedRows([]);
+    }
+  };
+
+  return (
+    <>
+      <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
+      <Button variant="outline" size="sm" onClick={downloadTemplate}>
+        <Download className="mr-2 h-4 w-4" />Шаблон CSV
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+        <Upload className="mr-2 h-4 w-4" />Импорт CSV
+      </Button>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Подтверждение импорта</AlertDialogTitle>
+            <AlertDialogDescription>
+              Будет удалено <strong>{existingCount}</strong> существующих промптов и создано{" "}
+              <strong>{parsedRows.length}</strong> новых для типа «{getOfferTypeLabel(offerTypeKey)}».
+              <br />
+              Это действие необратимо.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={importing}>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={doImport} disabled={importing}>
+              {importing ? "Импорт..." : "Импортировать"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}

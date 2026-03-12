@@ -12,12 +12,14 @@ import PromptStepCard from "@/components/prompts/PromptStepCard";
 import { contentTypeLabels, subTypeLabels, contentTypeKeys, subTypeKeys, emptyForm, type PromptForm } from "@/lib/promptConstants";
 import { OFFER_TYPES, getOfferTypeLabel } from "@/lib/offerTypes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CsvImportButton from "@/components/prompts/CsvImportButton";
 
 export default function Prompts() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<PromptForm>(emptyForm);
+  const [activeTab, setActiveTab] = useState<string>("");
 
   const { data: prompts, isLoading } = useQuery({
     queryKey: ["prompts"],
@@ -155,18 +157,26 @@ export default function Prompts() {
           <h1 className="text-2xl font-bold">Управление промптами</h1>
           <p className="text-muted-foreground">Настройка промптов для генерации контента</p>
         </div>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />Создать промпт</Button>
-          </DialogTrigger>
-          <PromptFormDialog form={form} setField={setField} editId={editId} saveMutation={saveMutation} />
-        </Dialog>
+        <div className="flex items-center gap-2">
+          {activeTab && activeTab !== "_other" && (
+            <CsvImportButton
+              offerTypeKey={activeTab}
+              existingCount={prompts?.filter((p: any) => p.offer_type === activeTab).length ?? 0}
+            />
+          )}
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
+            <DialogTrigger asChild>
+              <Button><Plus className="mr-2 h-4 w-4" />Создать промпт</Button>
+            </DialogTrigger>
+            <PromptFormDialog form={form} setField={setField} editId={editId} saveMutation={saveMutation} />
+          </Dialog>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
       ) : offerTypesWithPrompts.length > 0 ? (
-        <Tabs defaultValue={offerTypesWithPrompts[0]?.key}>
+        <Tabs defaultValue={offerTypesWithPrompts[0]?.key} onValueChange={setActiveTab} value={activeTab || offerTypesWithPrompts[0]?.key}>
           <TabsList>
             {offerTypesWithPrompts.map((ot) => (
               <TabsTrigger key={ot.key} value={ot.key}>{ot.label}</TabsTrigger>
