@@ -100,11 +100,13 @@ export default function ProjectDetail() {
 
   const selectMutation = useMutation({
     mutationFn: async (leadMagnetId: string) => {
+      const selectedLm = leadMagnets?.find(lm => lm.id === leadMagnetId);
       await supabase.from("lead_magnets").update({ is_selected: false }).eq("project_id", projectId!);
       await supabase.from("lead_magnets").update({ is_selected: true }).eq("id", leadMagnetId);
       const { error } = await supabase.from("projects").update({
         selected_lead_magnet_id: leadMagnetId,
         status: "lead_selected" as const,
+        title: selectedLm?.title ?? project?.title ?? "",
       }).eq("id", projectId!);
       if (error) throw error;
     },
