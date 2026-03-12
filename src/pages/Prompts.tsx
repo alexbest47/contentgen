@@ -157,12 +157,20 @@ export default function Prompts() {
           <h1 className="text-2xl font-bold">Управление промптами</h1>
           <p className="text-muted-foreground">Настройка промптов для генерации контента</p>
         </div>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />Создать промпт</Button>
-          </DialogTrigger>
-          <PromptFormDialog form={form} setField={setField} editId={editId} saveMutation={saveMutation} />
-        </Dialog>
+        <div className="flex items-center gap-2">
+          {activeTab && activeTab !== "_other" && (
+            <CsvImportButton
+              offerTypeKey={activeTab}
+              existingCount={prompts?.filter((p: any) => p.offer_type === activeTab).length ?? 0}
+            />
+          )}
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
+            <DialogTrigger asChild>
+              <Button><Plus className="mr-2 h-4 w-4" />Создать промпт</Button>
+            </DialogTrigger>
+            <PromptFormDialog form={form} setField={setField} editId={editId} saveMutation={saveMutation} />
+          </Dialog>
+        </div>
       </div>
 
       {isLoading ? (
