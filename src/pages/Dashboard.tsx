@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, BookOpen, FolderKanban } from "lucide-react";
+import { GraduationCap, Megaphone, FolderKanban } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
