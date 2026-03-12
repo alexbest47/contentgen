@@ -107,8 +107,8 @@ serve(async (req) => {
 
     console.log("Generating image with prompt:", imagePrompt.substring(0, 200));
 
-    // Call OpenRouter API for image generation
-    const openrouterResponse = await fetch("https://openrouter.ai/api/v1/images/generations", {
+    // Call OpenRouter API via chat completions endpoint (supports image generation)
+    const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -116,9 +116,9 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/imagen-4",
-        prompt: imagePrompt,
-        n: 1,
-        response_format: "b64_json",
+        messages: [{ role: "user", content: imagePrompt }],
+        modalities: ["image"],
+        response_format: { type: "b64_json" },
       }),
     });
 
@@ -129,8 +129,13 @@ serve(async (req) => {
     }
 
     const openrouterData = await openrouterResponse.json();
-    const b64Image = openrouterData.data?.[0]?.b64_json;
-    if (!b64Image) throw new Error("No image data received from OpenRouter");
+    // OpenRouter returns images in choices[0].message.images array
+    const imageData = openrouterData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    if (!imageData) throw new Error("No image data received from OpenRouter: " + JSON.stringify(openrouterData).substring(0, 500));
+    
+    // Extract base64 from data URL (format: data:image/png;base64,...)
+    const b64Match = imageData.match(/^data:image\/[^;]+;base64,(.+)$/);
+    const b64Image = b64Match ? b64Match[1] : imageData;
 
     // Upload to storage
     const timestamp = Date.now();
