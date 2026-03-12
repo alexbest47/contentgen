@@ -63,7 +63,7 @@ export default function OfferTypeDetail() {
         .from("offers")
         .insert({
           program_id: programId!,
-          offer_type: offerType!,
+          offer_type: offerType! as any,
           title,
           description: description || null,
           doc_url: docUrl || null,
