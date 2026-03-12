@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -31,6 +32,15 @@ const categoryLabels: Record<PromptCategory, string> = {
 
 const categories = Object.keys(categoryLabels) as PromptCategory[];
 
+const contentTypeLabels: Record<string, string> = {
+  instagram: "Instagram",
+  telegram: "Telegram",
+  vk: "ВКонтакте",
+  email: "Email",
+};
+
+const contentTypeKeys = Object.keys(contentTypeLabels);
+
 interface PromptForm {
   name: string;
   slug: string;
@@ -42,12 +52,15 @@ interface PromptForm {
   user_prompt_template: string;
   output_format_hint: string;
   is_active: boolean;
+  content_type: string;
+  step_order: number;
 }
 
 const emptyForm: PromptForm = {
   name: "", slug: "", category: "lead_magnets", description: "",
   provider: "anthropic", model: "claude-sonnet-4-20250514",
   system_prompt: "", user_prompt_template: "", output_format_hint: "", is_active: true,
+  content_type: "", step_order: 1,
 };
 
 export default function Prompts() {
@@ -59,7 +72,7 @@ export default function Prompts() {
   const { data: prompts, isLoading } = useQuery({
     queryKey: ["prompts"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("prompts").select("*").order("category");
+      const { data, error } = await supabase.from("prompts").select("*").order("step_order");
       if (error) throw error;
       return data;
     },
@@ -67,11 +80,15 @@ export default function Prompts() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const payload = {
+        ...form,
+        content_type: form.content_type || null,
+      };
       if (editId) {
-        const { error } = await supabase.from("prompts").update(form).eq("id", editId);
+        const { error } = await supabase.from("prompts").update(payload).eq("id", editId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("prompts").insert(form);
+        const { error } = await supabase.from("prompts").insert(payload);
         if (error) throw error;
       }
     },
@@ -101,11 +118,48 @@ export default function Prompts() {
       model: prompt.model, system_prompt: prompt.system_prompt,
       user_prompt_template: prompt.user_prompt_template,
       output_format_hint: prompt.output_format_hint ?? "", is_active: prompt.is_active,
+      content_type: prompt.content_type ?? "", step_order: prompt.step_order ?? 1,
     });
     setOpen(true);
   };
 
   const setField = (key: keyof PromptForm, value: any) => setForm((f) => ({ ...f, [key]: value }));
+
+  // Group prompts by content_type
+  const grouped = prompts?.reduce((acc, p) => {
+    const ct = (p as any).content_type || "_other";
+    if (!acc[ct]) acc[ct] = [];
+    acc[ct].push(p);
+    return acc;
+  }, {} as Record<string, typeof prompts>) ?? {};
+
+  // Sort groups: content types first, then _other
+  const groupOrder = [...contentTypeKeys.filter(k => grouped[k]), ...Object.keys(grouped).filter(k => !contentTypeKeys.includes(k) && k !== "_other"), "_other"].filter(k => grouped[k]);
+
+  const renderPromptCard = (p: any) => (
+    <Card key={p.id} className="border-l-4" style={{ borderLeftColor: p.is_active ? "hsl(var(--primary))" : "hsl(var(--muted))" }}>
+      <CardHeader className="flex flex-row items-center justify-between py-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Badge variant="secondary" className="text-xs">Шаг {(p as any).step_order ?? 1}</Badge>
+          <CardTitle className="text-base">{p.name}</CardTitle>
+          <Badge variant="outline">{categoryLabels[p.category as PromptCategory] ?? p.category}</Badge>
+          <Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Активен" : "Выключен"}</Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={p.is_active}
+            onCheckedChange={(v) => toggleMutation.mutate({ id: p.id, is_active: v })}
+          />
+          <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      {p.description && (
+        <CardContent className="pt-0 text-sm text-muted-foreground">{p.description}</CardContent>
+      )}
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
@@ -133,7 +187,23 @@ export default function Prompts() {
                   <Input value={form.slug} onChange={(e) => setField("slug", e.target.value)} required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Категория</Label>
+                  <Label>Тип контента (пайплайн)</Label>
+                  <Select value={form.content_type} onValueChange={(v) => setField("content_type", v)}>
+                    <SelectTrigger><SelectValue placeholder="Выберите тип" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">— Без типа —</SelectItem>
+                      {contentTypeKeys.map((ct) => (
+                        <SelectItem key={ct} value={ct}>{contentTypeLabels[ct]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Порядок шага</Label>
+                  <Input type="number" min={1} value={form.step_order} onChange={(e) => setField("step_order", parseInt(e.target.value) || 1)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Категория промпта</Label>
                   <Select value={form.category} onValueChange={(v) => setField("category", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -163,7 +233,7 @@ export default function Prompts() {
               <div className="space-y-2">
                 <Label>Шаблон пользовательского промпта</Label>
                 <Textarea value={form.user_prompt_template} onChange={(e) => setField("user_prompt_template", e.target.value)} className="min-h-[120px] font-mono text-sm" />
-                <p className="text-xs text-muted-foreground">Переменные: {"{{program_title}}, {{audience_description}}, {{offer_type}}, {{offer_title}}, {{offer_description}}, {{lead_magnet}}, {{lead_magnet_title}}, {{lead_magnet_description}}"}</p>
+                <p className="text-xs text-muted-foreground">Переменные: {"{{program_title}}, {{audience_description}}, {{offer_type}}, {{offer_title}}, {{offer_description}}, {{lead_magnet}}, {{lead_magnet_title}}, {{lead_magnet_description}}, {{previous_steps}}"}</p>
               </div>
               <div className="space-y-2">
                 <Label>Подсказка формата вывода</Label>
@@ -184,34 +254,30 @@ export default function Prompts() {
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
       ) : (
-        <div className="space-y-3">
-          {prompts?.map((p) => (
-            <Card key={p.id}>
-              <CardHeader className="flex flex-row items-center justify-between py-3">
-                <div className="flex items-center gap-3">
-                  <CardTitle className="text-base">{p.name}</CardTitle>
-                  <Badge variant="outline">{categoryLabels[p.category as PromptCategory] ?? p.category}</Badge>
-                  <Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Активен" : "Выключен"}</Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={p.is_active}
-                    onCheckedChange={(v) => toggleMutation.mutate({ id: p.id, is_active: v })}
-                  />
-                  <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              {p.description && (
-                <CardContent className="pt-0 text-sm text-muted-foreground">{p.description}</CardContent>
-              )}
-            </Card>
-          ))}
-          {prompts?.length === 0 && (
+        <Accordion type="multiple" defaultValue={groupOrder} className="space-y-2">
+          {groupOrder.map((groupKey) => {
+            const groupPrompts = grouped[groupKey] || [];
+            const label = groupKey === "_other" ? "Прочие" : contentTypeLabels[groupKey] || groupKey;
+            return (
+              <AccordionItem key={groupKey} value={groupKey} className="border rounded-lg px-4">
+                <AccordionTrigger className="text-base font-semibold">
+                  <span className="flex items-center gap-2">
+                    {label}
+                    <Badge variant="secondary" className="text-xs">{groupPrompts.length}</Badge>
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-3 pb-2">
+                    {groupPrompts.map(renderPromptCard)}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+          {(!prompts || prompts.length === 0) && (
             <Card><CardContent className="py-8 text-center text-muted-foreground">Нет промптов</CardContent></Card>
           )}
-        </div>
+        </Accordion>
       )}
     </div>
   );
