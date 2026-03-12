@@ -100,11 +100,13 @@ export default function ProjectDetail() {
 
   const selectMutation = useMutation({
     mutationFn: async (leadMagnetId: string) => {
+      const selectedLm = leadMagnets?.find(lm => lm.id === leadMagnetId);
       await supabase.from("lead_magnets").update({ is_selected: false }).eq("project_id", projectId!);
       await supabase.from("lead_magnets").update({ is_selected: true }).eq("id", leadMagnetId);
       const { error } = await supabase.from("projects").update({
         selected_lead_magnet_id: leadMagnetId,
         status: "lead_selected" as const,
+        title: selectedLm?.title ?? project?.title ?? "",
       }).eq("id", projectId!);
       if (error) throw error;
     },
@@ -141,8 +143,12 @@ export default function ProjectDetail() {
   const getPipelineJson = (subType: string) =>
     contentPieces?.find((cp) => cp.category === `pipeline_json_${subType}`);
 
-  const showLeadMagnets = leadMagnets && leadMagnets.length > 0;
-  const showContentGeneration = project?.status === "lead_selected" || project?.status === "completed";
+  const isLeadSelected = project?.status === "lead_selected" || project?.status === "completed";
+  const visibleLeadMagnets = isLeadSelected
+    ? leadMagnets?.filter(lm => lm.is_selected)
+    : leadMagnets;
+  const showLeadMagnets = visibleLeadMagnets && visibleLeadMagnets.length > 0;
+  const showContentGeneration = isLeadSelected;
 
   return (
     <div className="space-y-6">
@@ -160,7 +166,7 @@ export default function ProjectDetail() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Варианты лид-магнитов</h2>
           <div className="grid gap-4 lg:grid-cols-3">
-            {leadMagnets.map((lm) => (
+            {visibleLeadMagnets.map((lm) => (
               <Card key={lm.id} className={`transition-all ${lm.is_selected ? "ring-2 ring-primary" : ""}`}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
