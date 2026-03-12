@@ -17,6 +17,7 @@ import UsersAdmin from "@/pages/UsersAdmin";
 import Tags from "@/pages/Tags";
 import Descriptions from "@/pages/Descriptions";
 import PromptVariables from "@/pages/PromptVariables";
+import Archive from "@/pages/Archive";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
