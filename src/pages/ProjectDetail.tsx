@@ -23,52 +23,52 @@ interface ContentType {
   label: string;
   description: string;
   icon: React.ReactNode;
-  textCategory: string;
-  imageCategory?: string;
+  steps: { textCategory: string; imageCategories: string[] };
 }
 
 const contentTypes: ContentType[] = [
   {
     key: "instagram",
     label: "Пост в Instagram",
-    description: "Текст и изображение для поста в Instagram",
+    description: "Текст, карусель и изображения для Instagram",
     icon: <Image className="h-5 w-5" />,
-    textCategory: "text_instagram",
-    imageCategory: "image_post",
+    steps: { textCategory: "text_instagram", imageCategories: ["slide_structure", "image_post", "image_carousel"] },
   },
   {
     key: "telegram",
     label: "Пост в Telegram",
-    description: "Текст и изображение для поста в Telegram",
+    description: "Текст, карусель и изображения для Telegram",
     icon: <Send className="h-5 w-5" />,
-    textCategory: "text_telegram",
-    imageCategory: "image_carousel",
+    steps: { textCategory: "text_telegram", imageCategories: ["slide_structure", "image_post", "image_carousel"] },
   },
   {
     key: "vk",
     label: "Пост в ВКонтакте",
-    description: "Текст и изображение для поста в ВК",
+    description: "Текст, карусель и изображения для VK",
     icon: <Send className="h-5 w-5" />,
-    textCategory: "text_vk",
-    imageCategory: "image_carousel",
+    steps: { textCategory: "text_vk", imageCategories: ["slide_structure", "image_post", "image_carousel"] },
   },
   {
     key: "email",
     label: "Email-рассылка",
-    description: "Текст и изображение для email-рассылки",
+    description: "Текст и баннер для email",
     icon: <Mail className="h-5 w-5" />,
-    textCategory: "text_email",
-    imageCategory: "image_email",
+    steps: { textCategory: "text_email", imageCategories: ["image_email"] },
   },
+];
+
+const subTypes = [
+  { key: "announcement", label: "Анонс", description: "Привлечь внимание" },
+  { key: "warmup", label: "Прогрев", description: "Усилить интерес" },
+  { key: "conversion", label: "Конверсия", description: "Побудить к действию" },
 ];
 
 export default function ProjectDetail() {
   const { programId, offerType, offerId, projectId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [generatingType, setGeneratingType] = useState<string | null>(null);
-  const [generatingStep, setGeneratingStep] = useState<{ current: number; total: number } | null>(null);
-  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set());
+  const [generatingKey, setGeneratingKey] = useState<string | null>(null);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}`;
 
@@ -104,19 +104,19 @@ export default function ProjectDetail() {
     enabled: project?.status === "lead_selected" || project?.status === "completed",
   });
 
-  // Count pipeline steps for a content type
   const { data: pipelineCounts } = useQuery({
     queryKey: ["pipeline_counts"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prompts")
-        .select("content_type, id")
+        .select("content_type, sub_type, id")
         .eq("is_active", true)
         .not("content_type", "is", null);
       if (error) throw error;
       const counts: Record<string, number> = {};
       data?.forEach((p: any) => {
-        counts[p.content_type] = (counts[p.content_type] || 0) + 1;
+        const key = `${p.content_type}::${p.sub_type}`;
+        counts[key] = (counts[key] || 0) + 1;
       });
       return counts;
     },
@@ -141,34 +141,31 @@ export default function ProjectDetail() {
   });
 
   const generatePipelineMutation = useMutation({
-    mutationFn: async (contentType: string) => {
-      setGeneratingType(contentType);
-      const stepCount = pipelineCounts?.[contentType] || 2;
-      setGeneratingStep({ current: 1, total: stepCount });
+    mutationFn: async ({ contentType, subType }: { contentType: string; subType: string }) => {
+      const key = `${contentType}::${subType}`;
+      setGeneratingKey(key);
 
       const { data, error } = await supabase.functions.invoke("generate-pipeline", {
-        body: { project_id: projectId, content_type: contentType },
+        body: { project_id: projectId, content_type: contentType, sub_type: subType },
       });
       if (error) throw new Error(error.message || "Ошибка генерации");
       if (data?.error) throw new Error(data.error);
-      return data;
+      return { data, key };
     },
-    onSuccess: (_, contentType) => {
+    onSuccess: ({ key }) => {
       queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
       toast.success("Контент сгенерирован!");
-      setGeneratingType(null);
-      setGeneratingStep(null);
-      setExpandedTypes((prev) => new Set(prev).add(contentType));
+      setGeneratingKey(null);
+      setExpandedKeys((prev) => new Set(prev).add(key));
     },
     onError: (e: Error) => {
       toast.error(e.message);
-      setGeneratingType(null);
-      setGeneratingStep(null);
+      setGeneratingKey(null);
     },
   });
 
   const toggleExpand = (key: string) => {
-    setExpandedTypes((prev) => {
+    setExpandedKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key); else next.add(key);
       return next;
@@ -188,11 +185,14 @@ export default function ProjectDetail() {
     a.click();
   };
 
-  const getContentForCategory = (category: string) =>
-    contentPieces?.find((cp) => cp.category === category);
+  // Get content for a category_subtype key, e.g. "text_instagram_announcement"
+  const getContent = (category: string, subType: string) =>
+    contentPieces?.find((cp) => cp.category === `${category}_${subType}`);
 
-  const hasContentForType = (ct: ContentType) => {
-    return getContentForCategory(ct.textCategory) || (ct.imageCategory && getContentForCategory(ct.imageCategory));
+  const hasContentForKey = (ct: ContentType, subType: string) => {
+    const textContent = getContent(ct.steps.textCategory, subType);
+    const imageContent = ct.steps.imageCategories.some((ic) => getContent(ic, subType));
+    return !!textContent || imageContent;
   };
 
   const showLeadMagnets = leadMagnets && leadMagnets.length > 0;
@@ -242,104 +242,116 @@ export default function ProjectDetail() {
       )}
 
       {showContentGeneration && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <h2 className="text-lg font-semibold">Создание контента</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {contentTypes.map((ct) => {
-              const textContent = getContentForCategory(ct.textCategory);
-              const imageContent = ct.imageCategory ? getContentForCategory(ct.imageCategory) : null;
-              const hasContent = hasContentForType(ct);
-              const isGenerating = generatingType === ct.key;
-              const isExpanded = expandedTypes.has(ct.key);
-              const stepCount = pipelineCounts?.[ct.key] || 0;
+          {contentTypes.map((ct) => (
+            <Card key={ct.key}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="text-muted-foreground">{ct.icon}</div>
+                  <div>
+                    <CardTitle className="text-base">{ct.label}</CardTitle>
+                    <p className="text-sm text-muted-foreground">{ct.description}</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {subTypes.map((st) => {
+                    const pipelineKey = `${ct.key}::${st.key}`;
+                    const stepCount = pipelineCounts?.[pipelineKey] || 0;
+                    const isGenerating = generatingKey === pipelineKey;
+                    const hasContent = hasContentForKey(ct, st.key);
+                    const isExpanded = expandedKeys.has(pipelineKey);
 
-              return (
-                <Card key={ct.key} className="flex flex-col">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="text-muted-foreground">{ct.icon}</div>
-                        <div>
-                          <CardTitle className="text-base">{ct.label}</CardTitle>
-                          {stepCount > 0 && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{stepCount} {stepCount === 1 ? "шаг" : stepCount < 5 ? "шага" : "шагов"} в пайплайне</p>
-                          )}
+                    return (
+                      <div key={st.key} className="border rounded-lg p-3 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-sm">{st.label}</p>
+                            <p className="text-xs text-muted-foreground">{st.description}</p>
+                          </div>
+                          {hasContent && <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">Готово</Badge>}
                         </div>
-                        {hasContent && <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">Готово</Badge>}
-                      </div>
-                    </div>
-                    {!hasContent && !isGenerating && (
-                      <p className="text-sm text-muted-foreground mt-1">{ct.description}</p>
-                    )}
-                    {isGenerating && generatingStep && (
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Генерация... (шаг {generatingStep.current} из {generatingStep.total})</span>
-                      </div>
-                    )}
-                  </CardHeader>
-                  <CardContent className="pt-0 flex flex-col flex-1 justify-end gap-3">
-                    {hasContent && isExpanded && (
-                      <div className="space-y-3">
-                        {textContent && (
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-medium text-muted-foreground">Текст</span>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(textContent.content)}>
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <div className="bg-muted/50 rounded-md p-3 text-sm whitespace-pre-wrap max-h-60 overflow-y-auto">
-                              {textContent.content}
-                            </div>
+
+                        {hasContent && isExpanded && (
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {(() => {
+                              const textContent = getContent(ct.steps.textCategory, st.key);
+                              return textContent ? (
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-medium text-muted-foreground">Текст</span>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(textContent.content)}>
+                                      <Copy className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  <div className="bg-muted/50 rounded-md p-2 text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">
+                                    {textContent.content}
+                                  </div>
+                                </div>
+                              ) : null;
+                            })()}
+                            {ct.steps.imageCategories.map((ic) => {
+                              const imgContent = getContent(ic, st.key);
+                              if (!imgContent) return null;
+                              const isUrl = imgContent.content.startsWith("http");
+                              return (
+                                <div key={ic}>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-medium text-muted-foreground">{ic}</span>
+                                    {isUrl && (
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => downloadImage(imgContent.content, `${ct.key}_${st.key}_${ic}.png`)}>
+                                        <Download className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  {isUrl ? (
+                                    <div className="rounded-md overflow-hidden border">
+                                      <img src={imgContent.content} alt={ic} className="w-full max-h-[200px] object-contain bg-muted/30" />
+                                    </div>
+                                  ) : (
+                                    <div className="bg-muted/50 rounded-md p-2 text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">
+                                      {imgContent.content}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
-                        {imageContent && (
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-medium text-muted-foreground">Изображение</span>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => downloadImage(imageContent.content, `${ct.key}.png`)}>
-                                <Download className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <div className="rounded-md overflow-hidden border">
-                              <img src={imageContent.content} alt={ct.label} className="w-full max-h-[300px] object-contain bg-muted/30" />
-                            </div>
-                          </div>
-                        )}
+
+                        <div className="flex items-center gap-2">
+                          {hasContent && (
+                            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => toggleExpand(pipelineKey)}>
+                              {isExpanded ? <ChevronUp className="mr-1 h-3 w-3" /> : <ChevronDown className="mr-1 h-3 w-3" />}
+                              {isExpanded ? "Свернуть" : "Показать"}
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant={hasContent ? "outline" : "default"}
+                            className="ml-auto text-xs h-7"
+                            onClick={() => generatePipelineMutation.mutate({ contentType: ct.key, subType: st.key })}
+                            disabled={isGenerating || (!!generatingKey && generatingKey !== pipelineKey) || stepCount === 0}
+                          >
+                            {isGenerating ? (
+                              <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
+                            ) : hasContent ? (
+                              <><RefreshCw className="mr-1 h-3 w-3" />Обновить</>
+                            ) : (
+                              <><Sparkles className="mr-1 h-3 w-3" />Создать</>
+                            )}
+                          </Button>
+                        </div>
+                        {stepCount === 0 && <p className="text-xs text-destructive">Нет промптов</p>}
                       </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      {hasContent && (
-                        <Button variant="ghost" size="sm" className="flex-shrink-0" onClick={() => toggleExpand(ct.key)}>
-                          {isExpanded ? <ChevronUp className="mr-1 h-3 w-3" /> : <ChevronDown className="mr-1 h-3 w-3" />}
-                          {isExpanded ? "Свернуть" : "Показать"}
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant={hasContent ? "outline" : "default"}
-                        className="ml-auto"
-                        onClick={() => generatePipelineMutation.mutate(ct.key)}
-                        disabled={isGenerating || (!!generatingType && generatingType !== ct.key) || stepCount === 0}
-                      >
-                        {isGenerating ? (
-                          <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
-                        ) : hasContent ? (
-                          <><RefreshCw className="mr-1 h-3 w-3" />Перегенерировать</>
-                        ) : (
-                          <><Sparkles className="mr-1 h-3 w-3" />Сгенерировать</>
-                        )}
-                      </Button>
-                    </div>
-                    {stepCount === 0 && !isGenerating && (
-                      <p className="text-xs text-destructive">Нет промптов для этого типа контента</p>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

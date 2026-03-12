@@ -12,10 +12,10 @@ interface PipelineGroupProps {
 
 export default function PipelineGroup({ groupKey, label, prompts, onEdit, onToggle }: PipelineGroupProps) {
   return (
-    <div>
-      <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-lg font-bold">Пайплайн: {label}</h2>
-        <Badge variant="secondary">{prompts.length} шагов</Badge>
+    <div className="ml-4 border-l-2 border-muted pl-4">
+      <div className="flex items-center gap-3 mb-3">
+        <h3 className="text-base font-semibold">{label}</h3>
+        <Badge variant="secondary">{prompts.length} {prompts.length === 1 ? "шаг" : prompts.length < 5 ? "шага" : "шагов"}</Badge>
       </div>
       <div className="relative">
         {prompts.map((p: any, idx: number) => (
@@ -28,7 +28,7 @@ export default function PipelineGroup({ groupKey, label, prompts, onEdit, onTogg
             />
             {idx < prompts.length - 1 && (
               <div className="flex items-center gap-4 py-1">
-                <div className="w-8 flex justify-center">
+                <div className="w-7 flex justify-center">
                   <ArrowDown className="h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
