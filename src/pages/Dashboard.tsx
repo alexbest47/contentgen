@@ -27,7 +27,7 @@ export default function Dashboard() {
 
   const cards = [
     { title: "Платные программы", value: stats?.programs ?? 0, icon: GraduationCap, url: "/programs" },
-    { title: "Мини-курсы", value: stats?.courses ?? 0, icon: BookOpen, url: "/programs" },
+    { title: "Офферы", value: stats?.offers ?? 0, icon: Megaphone, url: "/programs" },
     { title: "Проекты", value: stats?.projects ?? 0, icon: FolderKanban, url: "/programs" },
   ];
 
