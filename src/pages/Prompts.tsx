@@ -12,12 +12,14 @@ import PromptStepCard from "@/components/prompts/PromptStepCard";
 import { contentTypeLabels, subTypeLabels, contentTypeKeys, subTypeKeys, emptyForm, type PromptForm } from "@/lib/promptConstants";
 import { OFFER_TYPES, getOfferTypeLabel } from "@/lib/offerTypes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CsvImportButton from "@/components/prompts/CsvImportButton";
 
 export default function Prompts() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<PromptForm>(emptyForm);
+  const [activeTab, setActiveTab] = useState<string>("");
 
   const { data: prompts, isLoading } = useQuery({
     queryKey: ["prompts"],
