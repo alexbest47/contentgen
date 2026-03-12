@@ -186,6 +186,8 @@ export default function PipelineResultView({ jsonContent, isEmail, carouselImage
 function EmailView({ data, bannerImage, onSave }: { data: EmailJson; bannerImage?: string; onSave?: (json: string) => void }) {
   const [subject, setSubject] = useState(data.email_subject);
   const [body, setBody] = useState(data.email_body);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [previewAlt, setPreviewAlt] = useState("");
 
   useEffect(() => {
     setSubject(data.email_subject);
@@ -196,6 +198,11 @@ function EmailView({ data, bannerImage, onSave }: { data: EmailJson; bannerImage
     if (!onSave) return;
     const updated = { ...data, email_subject: subject, email_body: body };
     onSave(JSON.stringify(updated, null, 2));
+  };
+
+  const openPreview = (src: string, alt: string) => {
+    setPreviewSrc(src);
+    setPreviewAlt(alt);
   };
 
   return (
@@ -230,7 +237,7 @@ function EmailView({ data, bannerImage, onSave }: { data: EmailJson; bannerImage
             </div>
             <div>
               {bannerImage ? (
-                <ImageThumbnail src={bannerImage} alt="Баннер" filename="banner.png" />
+                <ImageThumbnail src={bannerImage} alt="Баннер" filename="banner.png" onPreview={openPreview} />
               ) : (
                 <div className="flex items-center justify-center h-full text-xs text-muted-foreground/50">
                   Изображение не сгенерировано
@@ -240,6 +247,8 @@ function EmailView({ data, bannerImage, onSave }: { data: EmailJson; bannerImage
           </div>
         </CardContent>
       </Card>
+
+      <ImagePreviewDialog src={previewSrc} alt={previewAlt} open={!!previewSrc} onOpenChange={(o) => !o && setPreviewSrc(null)} />
     </div>
   );
 }
