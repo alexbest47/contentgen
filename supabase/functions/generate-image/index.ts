@@ -115,10 +115,9 @@ serve(async (req) => {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "google/imagen-4",
+        model: "google/gemini-2.5-flash-image",
         messages: [{ role: "user", content: imagePrompt }],
-        modalities: ["image"],
-        response_format: { type: "b64_json" },
+        modalities: ["image", "text"],
       }),
     });
 
