@@ -22,6 +22,7 @@ import Archive from "@/pages/Archive";
 import EmailSettings from "@/pages/EmailSettings";
 import CreateDiagnostic from "@/pages/CreateDiagnostic";
 import DiagnosticDetail from "@/pages/DiagnosticDetail";
+import Diagnostics from "@/pages/Diagnostics";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="/tags" element={<Tags />} />
               <Route path="/descriptions" element={<Descriptions />} />
               <Route path="/archive" element={<Archive />} />
+              <Route path="/diagnostics" element={<ProtectedRoute adminOnly><Diagnostics /></ProtectedRoute>} />
               <Route path="/create-diagnostic" element={<ProtectedRoute adminOnly><CreateDiagnostic /></ProtectedRoute>} />
               <Route path="/diagnostics/:diagnosticId" element={<ProtectedRoute adminOnly><DiagnosticDetail /></ProtectedRoute>} />
               <Route path="/prompts" element={<ProtectedRoute adminOnly><Prompts /></ProtectedRoute>} />

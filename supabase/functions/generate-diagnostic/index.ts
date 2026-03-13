@@ -51,8 +51,8 @@ serve(async (req) => {
       .replace(/\{\{program_title\}\}/g, programTitle)
       .replace(/\{\{program_description\}\}/g, program?.description || "")
       .replace(/\{\{audience_description\}\}/g, program?.audience_description || "")
-      .replace(/\{\{quiz_name\}\}/g, name || "")
-      .replace(/\{\{quiz_description\}\}/g, description || "")
+      .replace(/\{\{test_name\}\}/g, name || "")
+      .replace(/\{\{test_description\}\}/g, description || "")
       .replace(/\{\{audience_tags\}\}/g, (audience_tags || []).join(", "));
 
     if (prompt.output_format_hint) {
