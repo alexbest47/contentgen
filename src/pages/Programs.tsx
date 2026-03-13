@@ -42,6 +42,7 @@ export default function Programs() {
       setTitle("");
       setDescription("");
       setAudienceDocUrl("");
+      setProgramDocUrl("");
       toast.success("Программа создана");
     },
     onError: (e: Error) => toast.error(e.message),
