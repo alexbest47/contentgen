@@ -42,8 +42,6 @@ export default function DiagnosticDetail() {
   const [draftInitialized, setDraftInitialized] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [stopping, setStopping] = useState(false);
-  const [generatingProject, setGeneratingProject] = useState(false);
-  const [progressText, setProgressText] = useState("");
 
   const { data: diagnostic, isLoading } = useQuery({
     queryKey: ["diagnostic", diagnosticId],
