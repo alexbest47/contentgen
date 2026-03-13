@@ -125,10 +125,6 @@ export default function CreateDiagnostic() {
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Подробное описание..." className="min-h-[100px]" />
             </div>
             <div className="space-y-2">
-              <Label>Ссылка на Google Doc</Label>
-              <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
-            </div>
-            <div className="space-y-2">
               <Label>Теги аудитории</Label>
               {allTags && allTags.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
