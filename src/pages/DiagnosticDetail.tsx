@@ -489,7 +489,6 @@ export default function DiagnosticDetail() {
   };
 
   const quizJson = diagnostic?.quiz_json;
-  const thankYouJson = (diagnostic as any)?.thank_you_json;
   const cardPrompt = (diagnostic as any)?.card_prompt;
 
   const copyToClipboard = (text: string, label: string) => {
