@@ -22,7 +22,6 @@ export default function CreateDiagnostic() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [promptId, setPromptId] = useState("");
   const [saving, setSaving] = useState(false);
 
   const { data: programs } = useQuery({
