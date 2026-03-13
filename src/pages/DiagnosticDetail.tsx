@@ -419,6 +419,54 @@ export default function DiagnosticDetail() {
     URL.revokeObjectURL(url);
   };
 
+  const generateLeadMagnetsMutation = useMutation({
+    mutationFn: async () => {
+      if (!diagnostic?.offer_id) throw new Error("Нет привязанного оффера");
+      setGeneratingProject(true);
+      setProgressText("Генерация названия...");
+
+      const { data: offerData } = await supabase
+        .from("offers")
+        .select("title, paid_programs(title)")
+        .eq("id", diagnostic.offer_id)
+        .single();
+
+      const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
+        body: { course_title: offerData?.title || diagnostic.name, program_title: (offerData as any)?.paid_programs?.title || "" },
+      });
+      if (nameError) throw new Error(nameError.message || "Ошибка генерации названия");
+      if (nameData?.error) throw new Error(nameData.error);
+
+      setProgressText("Создание проекта...");
+      const { data: project, error: projError } = await supabase
+        .from("projects")
+        .insert({ offer_id: diagnostic.offer_id, title: nameData.name, created_by: user!.id })
+        .select("id")
+        .single();
+      if (projError) throw projError;
+
+      setProgressText("Генерация лид-магнитов...");
+      const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
+        body: { project_id: project.id },
+      });
+      if (genError) throw new Error(genError.message || "Ошибка генерации");
+      if (genData?.error) throw new Error(genData.error);
+
+      return project.id;
+    },
+    onSuccess: (projectId) => {
+      toast.success("Лид-магниты сгенерированы!");
+      setGeneratingProject(false);
+      setProgressText("");
+      navigate(`/programs/${diagnostic?.program_id}/offers/diagnostic/${diagnostic?.offer_id}/projects/${projectId}`);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setGeneratingProject(false);
+      setProgressText("");
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
