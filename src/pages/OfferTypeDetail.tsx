@@ -317,7 +317,7 @@ export default function OfferTypeDetail() {
         {!isDiagnosticType && (
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Создать оффер
+            Добавить {getOfferTypeLabel(offerType ?? "").toLowerCase()}
           </Button>
         )}
       </div>
