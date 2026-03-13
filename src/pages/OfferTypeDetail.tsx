@@ -74,12 +74,28 @@ function OfferForm({ title, setTitle, description, setDescription, docUrl, setDo
   );
 }
 
+const statusLabels: Record<string, string> = {
+  draft: "Черновик",
+  generating: "Генерация...",
+  quiz_generated: "Тест сгенерирован",
+  generating_images: "Генерация изображений...",
+  ready: "Готово",
+  error: "Ошибка",
+};
+
+const statusVariant = (s: string) => {
+  if (s === "ready") return "default" as const;
+  if (s === "error") return "destructive" as const;
+  return "secondary" as const;
+};
+
 export default function OfferTypeDetail() {
   const { programId, offerType } = useParams();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  const isDiagnosticType = offerType === "diagnostic";
 
   // Archive dialog state
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -102,7 +118,23 @@ export default function OfferTypeDetail() {
     },
   });
 
-  const { data: offers, isLoading } = useQuery({
+  // Diagnostics query (used when offerType === "diagnostic")
+  const { data: diagnosticItems, isLoading: isDiagnosticsLoading } = useQuery({
+    queryKey: ["diagnostics_for_program", programId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("diagnostics")
+        .select("id, name, status, created_at, description, offer_id")
+        .eq("program_id", programId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isDiagnosticType,
+  });
+
+  // Offers query (used for all other offer types)
+  const { data: offers, isLoading: isOffersLoading } = useQuery({
     queryKey: ["offers", programId, offerType],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -115,7 +147,10 @@ export default function OfferTypeDetail() {
       if (error) throw error;
       return data;
     },
+    enabled: !isDiagnosticType,
   });
+
+  const isLoading = isDiagnosticType ? isDiagnosticsLoading : isOffersLoading;
 
   const { data: allTags } = useQuery({
     queryKey: ["tags"],
@@ -174,6 +209,24 @@ export default function OfferTypeDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Delete diagnostic mutation (also cleans up linked offer)
+  const deleteDiagnosticMutation = useMutation({
+    mutationFn: async ({ diagId, offerId }: { diagId: string; offerId: string | null }) => {
+      const { error } = await supabase.from("diagnostics").delete().eq("id", diagId);
+      if (error) throw error;
+      if (offerId) {
+        await supabase.from("offers").delete().eq("id", offerId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["diagnostics_for_program", programId] });
+      setArchiveOpen(false);
+      setArchivingId(null);
+      toast.success("Диагностика удалена");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const openArchive = (offerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setArchivingId(offerId);
@@ -198,94 +251,165 @@ export default function OfferTypeDetail() {
 
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
+  // Find diagnostic by archivingId for deletion
+  const archivingDiagnostic = isDiagnosticType
+    ? diagnosticItems?.find((d) => d.id === archivingId)
+    : null;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" onClick={() => navigate(`/programs/${programId}`)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">{typeLabel}</h1>
           <p className="text-muted-foreground">{program?.title}</p>
         </div>
+        {isDiagnosticType && (
+          <Button onClick={() => navigate(`/create-diagnostic?programId=${programId}`)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Создать диагностику
+          </Button>
+        )}
       </div>
 
-      {/* Edit dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Редактировать оффер</DialogTitle>
-          </DialogHeader>
-          <OfferForm
-            title={editTitle} setTitle={setEditTitle}
-            description={editDescription} setDescription={setEditDescription}
-            docUrl={editDocUrl} setDocUrl={setEditDocUrl}
-            selectedTags={editSelectedTags} toggleTag={toggleEditTag}
-            allTags={allTags} isPending={updateMutation.isPending}
-            onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }}
-            submitLabel="Сохранить" pendingLabel="Сохранение..."
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Edit dialog (non-diagnostic only) */}
+      {!isDiagnosticType && (
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Редактировать оффер</DialogTitle>
+            </DialogHeader>
+            <OfferForm
+              title={editTitle} setTitle={setEditTitle}
+              description={editDescription} setDescription={setEditDescription}
+              docUrl={editDocUrl} setDocUrl={setEditDocUrl}
+              selectedTags={editSelectedTags} toggleTag={toggleEditTag}
+              allTags={allTags} isPending={updateMutation.isPending}
+              onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }}
+              submitLabel="Сохранить" pendingLabel="Сохранение..."
+            />
+          </DialogContent>
+        </Dialog>
+      )}
 
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
-      ) : offers?.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            Нет офферов.
-          </CardContent>
-        </Card>
+      ) : isDiagnosticType ? (
+        /* Diagnostic items list */
+        !diagnosticItems?.length ? (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              Нет диагностик. Создайте первую!
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="border rounded-lg divide-y">
+            {diagnosticItems.map((d) => (
+              <div
+                key={d.id}
+                className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => navigate(`/diagnostics/${d.id}`)}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">{d.name}</div>
+                  {d.description && (
+                    <p className="text-sm text-muted-foreground mt-0.5 truncate">{d.description}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
+                  <Badge variant={statusVariant(d.status)}>
+                    {statusLabels[d.status] || d.status}
+                  </Badge>
+                  <span>{new Date(d.created_at).toLocaleDateString("ru-RU")}</span>
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={(e) => openArchive(d.id, e)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <ChevronRight className="h-4 w-4" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       ) : (
-        <div className="border rounded-lg divide-y">
-          {offers?.map((o: any) => (
-            <div
-              key={o.id}
-              className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => navigate(`/programs/${programId}/offers/${offerType}/${o.id}`)}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="font-medium">{o.title}</div>
-                {o.offer_tags?.length > 0 && (
-                  <div className="flex gap-1 mt-1">
-                    {o.offer_tags.map((ot: any) => (
-                      <Badge key={ot.tag_id} variant="secondary" className="text-xs">
-                        {ot.tags?.name}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+        /* Regular offers list */
+        offers?.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              Нет офферов.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="border rounded-lg divide-y">
+            {offers?.map((o: any) => (
+              <div
+                key={o.id}
+                className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => navigate(`/programs/${programId}/offers/${offerType}/${o.id}`)}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">{o.title}</div>
+                  {o.offer_tags?.length > 0 && (
+                    <div className="flex gap-1 mt-1">
+                      {o.offer_tags.map((ot: any) => (
+                        <Badge key={ot.tag_id} variant="secondary" className="text-xs">
+                          {ot.tags?.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
+                  <span>{new Date(o.created_at).toLocaleDateString("ru-RU")}</span>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => openEdit(o, e)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => openArchive(o.id, e)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <ChevronRight className="h-4 w-4" />
+                </div>
               </div>
-              <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
-                <span>{new Date(o.created_at).toLocaleDateString("ru-RU")}</span>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => openEdit(o, e)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => openArchive(o.id, e)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                <ChevronRight className="h-4 w-4" />
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )
       )}
-      {/* Archive confirmation */}
+
+      {/* Archive/Delete confirmation */}
       <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Переместить в архив?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {isDiagnosticType ? "Удалить диагностику?" : "Переместить в архив?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Оффер будет перемещён в архив. Вы сможете восстановить его позже.
+              {isDiagnosticType
+                ? "Это действие нельзя отменить. Диагностика будет удалена навсегда."
+                : "Оффер будет перемещён в архив. Вы сможете восстановить его позже."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => archivingId && archiveMutation.mutate(archivingId)}
+              onClick={() => {
+                if (!archivingId) return;
+                if (isDiagnosticType) {
+                  deleteDiagnosticMutation.mutate({
+                    diagId: archivingId,
+                    offerId: archivingDiagnostic?.offer_id ?? null,
+                  });
+                } else {
+                  archiveMutation.mutate(archivingId);
+                }
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              В архив
+              {isDiagnosticType ? "Удалить" : "В архив"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
