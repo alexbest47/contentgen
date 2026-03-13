@@ -21,6 +21,7 @@ import {
 interface CsvImportButtonProps {
   offerTypeKey: string;
   existingCount: number;
+  prompts: any[];
 }
 
 const CSV_HEADERS = [
