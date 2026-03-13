@@ -233,7 +233,7 @@ export default function OfferTypeDetail() {
       ) : offers?.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            Нет офферов. Создайте первый!
+            Нет офферов.
           </CardContent>
         </Card>
       ) : (
