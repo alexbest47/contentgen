@@ -109,7 +109,7 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
       CSV_HEADERS.map(escapeCsvField).join(","),
       ...currentPrompts.map((p) =>
         [
-          p.name, p.slug, p.category, p.content_type ?? "", String(p.step_order ?? 1),
+          p.name, p.slug, p.content_type ?? "", String(p.step_order ?? 1),
           p.provider, p.model, p.description ?? "", p.system_prompt,
           p.user_prompt_template, p.output_format_hint ?? "", String(p.is_active),
         ].map(escapeCsvField).join(",")
