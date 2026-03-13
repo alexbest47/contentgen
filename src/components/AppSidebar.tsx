@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, GraduationCap, Tag, TableProperties,
-  MessageSquareText, Users, LogOut, Sparkles, Braces, Archive,
+  MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, MailCog,
 } from "lucide-react";
 
 const mainNav = [
