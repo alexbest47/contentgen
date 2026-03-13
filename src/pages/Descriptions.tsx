@@ -61,6 +61,20 @@ export default function Descriptions() {
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
+                    <TableCell>
+                      {program?.program_doc_url ? (
+                        <a
+                          href={program.program_doc_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                        >
+                          Открыть <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell>{getOfferTypeLabel(o.offer_type)}</TableCell>
                     <TableCell>{o.title}</TableCell>
                     <TableCell>
