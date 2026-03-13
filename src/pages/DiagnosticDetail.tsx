@@ -501,6 +501,13 @@ export default function DiagnosticDetail() {
                 </p>
               </div>
             )}
+
+            {isGenerating && (
+              <Button variant="destructive" size="sm" onClick={handleStop} disabled={stopping}>
+                {stopping ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Square className="h-4 w-4 mr-2" />}
+                Остановить
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
