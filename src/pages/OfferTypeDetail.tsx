@@ -310,7 +310,13 @@ export default function OfferTypeDetail() {
               <div
                 key={d.id}
                 className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => navigate(`/diagnostics/${d.id}`)}
+                onClick={() => {
+                  if (d.offer_id) {
+                    navigate(`/programs/${programId}/offers/diagnostic/${d.offer_id}`);
+                  } else {
+                    toast.error("У этой диагностики нет привязанного оффера");
+                  }
+                }}
               >
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">{d.name}</div>
