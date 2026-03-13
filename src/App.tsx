@@ -21,6 +21,7 @@ import PromptVariables from "@/pages/PromptVariables";
 import Archive from "@/pages/Archive";
 import EmailSettings from "@/pages/EmailSettings";
 import CreateDiagnostic from "@/pages/CreateDiagnostic";
+import DiagnosticDetail from "@/pages/DiagnosticDetail";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
