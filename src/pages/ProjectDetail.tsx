@@ -42,6 +42,11 @@ export default function ProjectDetail() {
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}`;
 
+  const { data: allPromptInfo } = usePromptInfo({
+    offer_type: offerType,
+    enabled: !!offerType,
+  });
+
   const { data: project } = useQuery({
     queryKey: ["project", projectId],
     queryFn: async () => {
