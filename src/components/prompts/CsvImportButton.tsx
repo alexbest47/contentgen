@@ -5,8 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
-import { categories, categoryLabels } from "@/lib/promptConstants";
-import type { PromptCategory } from "@/lib/promptConstants";
+import { deriveCategory } from "@/lib/promptConstants";
 import {
   AlertDialog,
   AlertDialogAction,
