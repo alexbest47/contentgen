@@ -262,7 +262,7 @@ export default function DiagnosticDetail() {
     pollingRef.current = setInterval(async () => {
       const { data } = await supabase
         .from("diagnostics")
-        .select("status, generation_progress, quiz_json, thank_you_json, card_prompt")
+        .select("status, generation_progress, quiz_json, card_prompt")
         .eq("id", diagnosticId!)
         .single();
 
@@ -278,7 +278,6 @@ export default function DiagnosticDetail() {
           status: data.status,
           generation_progress: data.generation_progress,
           quiz_json: data.quiz_json,
-          thank_you_json: (data as any).thank_you_json,
           card_prompt: (data as any).card_prompt,
         } : old
       );
@@ -490,7 +489,6 @@ export default function DiagnosticDetail() {
   };
 
   const quizJson = diagnostic?.quiz_json;
-  const thankYouJson = (diagnostic as any)?.thank_you_json;
   const cardPrompt = (diagnostic as any)?.card_prompt;
 
   const copyToClipboard = (text: string, label: string) => {
@@ -525,7 +523,7 @@ export default function DiagnosticDetail() {
     );
   }
 
-  const isReady = diagnostic.status === "ready" && (quizJson || thankYouJson || cardPrompt);
+  const isReady = diagnostic.status === "ready" && (quizJson || cardPrompt);
   const isDraft = diagnostic.status === "draft";
   const isGenerating = ACTIVE_STATUSES.includes(diagnostic.status);
   const isError = diagnostic.status === "error";
@@ -757,31 +755,7 @@ export default function DiagnosticDetail() {
         </Card>
       )}
 
-      {/* Block 2: Thank You Page JSON */}
-      {thankYouJson && (
-        <Card>
-          <CardHeader>
-            <CardTitle>JSON страницы «Спасибо»</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
-              {JSON.stringify(thankYouJson, null, 2)}
-            </pre>
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => copyToClipboard(JSON.stringify(thankYouJson, null, 2), "JSON страницы «Спасибо»")} variant="outline">
-                <Copy className="h-4 w-4 mr-2" />
-                Скопировать
-              </Button>
-              <Button onClick={() => downloadFile(JSON.stringify(thankYouJson, null, 2), "thank_you.json")} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Скачать JSON
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Block 3: Diagnostic Card Prompt */}
+      {/* Block 2: Diagnostic Card Prompt */}
       {cardPrompt && (
         <Card>
           <CardHeader>
