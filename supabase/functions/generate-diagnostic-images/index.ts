@@ -17,6 +17,7 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
     },
     body: JSON.stringify({
       model: "google/gemini-3-pro-image-preview",
+      modalities: ["image", "text"],
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -29,28 +30,30 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
 
   const data = await response.json();
 
-  // Extract image from response - OpenRouter returns images in message.images array
   const images = data.choices?.[0]?.message?.images;
   if (images && images.length > 0) {
-    const imageUrl = images[0].image_url || images[0];
-    const base64Match = typeof imageUrl === "string"
-      ? imageUrl.match(/^data:image\/[^;]+;base64,(.+)/)
-      : null;
-    if (base64Match) {
-      return decode(base64Match[1]);
-    }
-    // If it's a plain base64 string
-    if (typeof imageUrl === "string" && !imageUrl.startsWith("http")) {
-      return decode(imageUrl);
+    const img = images[0];
+    const urlStr = typeof img === "string" ? img
+      : img?.image_url?.url || img?.image_url || img?.url;
+
+    if (typeof urlStr === "string") {
+      const b64Match = urlStr.match(/^data:image\/[^;]+;base64,(.+)/);
+      if (b64Match) return decode(b64Match[1]);
+      if (!urlStr.startsWith("http")) return decode(urlStr);
     }
   }
 
-  // Fallback: check content for base64 image
   const content = data.choices?.[0]?.message?.content;
   if (typeof content === "string") {
     const b64Match = content.match(/data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)/);
-    if (b64Match) {
-      return decode(b64Match[1]);
+    if (b64Match) return decode(b64Match[1]);
+  }
+
+  if (Array.isArray(content)) {
+    for (const part of content) {
+      if (part?.inline_data?.data) {
+        return decode(part.inline_data.data);
+      }
     }
   }
 
@@ -76,15 +79,12 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // image_description now contains the full ready-to-use prompt from Claude
-    const imagePrompt = image_description;
-
     console.log(`Generating image ${placeholder_index} for diagnostic ${diagnostic_id}`);
 
     let publicUrl: string | null = null;
 
     try {
-      const imageBytes = await generateImage(imagePrompt, OPENROUTER_API_KEY);
+      const imageBytes = await generateImage(image_description, OPENROUTER_API_KEY);
       const fileName = `${diagnostic_id}/image_${placeholder_index}_${Date.now()}.webp`;
 
       const { error: uploadErr } = await supabase.storage
@@ -106,7 +106,6 @@ serve(async (req) => {
       publicUrl = urlData.publicUrl;
     } catch (imgErr) {
       console.error("Image generation failed:", imgErr);
-      // Return null for this image - frontend will handle
     }
 
     return new Response(
