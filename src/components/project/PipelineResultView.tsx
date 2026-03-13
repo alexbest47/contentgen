@@ -228,7 +228,7 @@ function EmailView({
 }) {
   const [subject, setSubject] = useState(data.email_subject || "");
   const [body, setBody] = useState(data.email_body || data.email_body_html || "");
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  
   const { data: settings } = useEmailSettings();
 
   const headerHtml = settings?.email_header_html || "";
@@ -263,16 +263,14 @@ function EmailView({
     }
   }, [copyHtmlRef, fullExportHtml]);
 
-  // Write to iframe
-  useEffect(() => {
-    const iframe = iframeRef.current;
+  // Callback ref: fires every time iframe mounts (fixes tab-switch issue)
+  const iframeCallbackRef = useCallback((iframe: HTMLIFrameElement | null) => {
     if (!iframe) return;
     const doc = iframe.contentDocument;
     if (!doc) return;
     doc.open();
     doc.write(fullPreviewHtml);
     doc.close();
-    // Auto-resize iframe height
     const tryResize = () => {
       try {
         const h = doc.documentElement?.scrollHeight || doc.body?.scrollHeight || 600;
@@ -322,7 +320,7 @@ function EmailView({
           <div className="flex justify-center">
             <div className="w-[600px] max-w-full bg-white rounded-lg shadow-lg border overflow-hidden">
               <iframe
-                ref={iframeRef}
+                ref={iframeCallbackRef}
                 title="Email Preview"
                 className="w-full border-0"
                 style={{ minHeight: 400 }}
