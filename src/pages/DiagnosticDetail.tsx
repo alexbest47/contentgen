@@ -143,7 +143,7 @@ export default function DiagnosticDetail() {
       if (!data) return;
 
       const progress = data.generation_progress as any;
-      updateStepsFromStatus(data.status, progress);
+      updateStepsFromStatus(data.status, progress, (data as any).card_prompt);
 
       // Update React Query cache
       queryClient.setQueryData(["diagnostic", diagnosticId], (old: any) =>
