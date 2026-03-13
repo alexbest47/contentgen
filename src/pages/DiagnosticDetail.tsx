@@ -153,12 +153,15 @@ export default function DiagnosticDetail() {
     }, 5000);
   }, [diagnosticId, queryClient, updateStepsFromStatus]);
 
-  // Auto-start polling if status is active on page load
+  // Auto-start polling if status is active on page load; also sync steps on error
   useEffect(() => {
-    if (diagnostic && ACTIVE_STATUSES.includes(diagnostic.status)) {
-      const progress = diagnostic.generation_progress as any;
+    if (!diagnostic) return;
+    const progress = diagnostic.generation_progress as any;
+    if (ACTIVE_STATUSES.includes(diagnostic.status)) {
       updateStepsFromStatus(diagnostic.status, progress);
       startPolling();
+    } else if (diagnostic.status === "error") {
+      updateStepsFromStatus(diagnostic.status, progress);
     }
     return () => {
       if (pollingRef.current) {
