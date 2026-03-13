@@ -573,91 +573,89 @@ export default function DiagnosticDetail() {
         </Card>
       )}
 
-      {/* Result — 3 blocks */}
+      {/* Result — 3 blocks (shown as soon as data is available) */}
+      {isReady && progress?.failed_images > 0 && (
+        <Card className="border-accent/50 bg-accent/5">
+          <CardContent className="pt-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-accent-foreground shrink-0 mt-0.5" />
+            <p className="text-sm">
+              {progress.failed_images} изображени{progress.failed_images === 1 ? "е" : progress.failed_images < 5 ? "я" : "й"} не удалось сгенерировать.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Block 1: Quiz JSON */}
+      {quizJson && (
+        <Card>
+          <CardHeader>
+            <CardTitle>JSON теста</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
+              {JSON.stringify(quizJson, null, 2)}
+            </pre>
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={() => copyToClipboard(JSON.stringify(quizJson, null, 2), "JSON теста")} variant="outline">
+                <Copy className="h-4 w-4 mr-2" />
+                Скопировать
+              </Button>
+              <Button onClick={() => downloadFile(JSON.stringify(quizJson, null, 2), "quiz.json")} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Скачать JSON
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Block 2: Thank You Page JSON */}
+      {thankYouJson && (
+        <Card>
+          <CardHeader>
+            <CardTitle>JSON страницы «Спасибо»</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
+              {JSON.stringify(thankYouJson, null, 2)}
+            </pre>
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={() => copyToClipboard(JSON.stringify(thankYouJson, null, 2), "JSON страницы «Спасибо»")} variant="outline">
+                <Copy className="h-4 w-4 mr-2" />
+                Скопировать
+              </Button>
+              <Button onClick={() => downloadFile(JSON.stringify(thankYouJson, null, 2), "thank_you.json")} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Скачать JSON
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Block 3: Diagnostic Card Prompt */}
+      {cardPrompt && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Промпт диагностической карты</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
+              {cardPrompt}
+            </pre>
+            <Button onClick={() => copyToClipboard(cardPrompt, "Промпт")} variant="outline">
+              <Copy className="h-4 w-4 mr-2" />
+              Скопировать
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {isReady && (
-        <>
-          {progress?.failed_images > 0 && (
-            <Card className="border-accent/50 bg-accent/5">
-              <CardContent className="pt-4 flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-accent-foreground shrink-0 mt-0.5" />
-                <p className="text-sm">
-                  {progress.failed_images} изображени{progress.failed_images === 1 ? "е" : progress.failed_images < 5 ? "я" : "й"} не удалось сгенерировать.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Block 1: Quiz JSON */}
-          {quizJson && (
-            <Card>
-              <CardHeader>
-                <CardTitle>JSON теста</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
-                  {JSON.stringify(quizJson, null, 2)}
-                </pre>
-                <div className="flex flex-wrap gap-3">
-                  <Button onClick={() => copyToClipboard(JSON.stringify(quizJson, null, 2), "JSON теста")} variant="outline">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Скопировать
-                  </Button>
-                  <Button onClick={() => downloadFile(JSON.stringify(quizJson, null, 2), "quiz.json")} variant="outline">
-                    <Download className="h-4 w-4 mr-2" />
-                    Скачать JSON
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Block 2: Thank You Page JSON */}
-          {thankYouJson && (
-            <Card>
-              <CardHeader>
-                <CardTitle>JSON страницы «Спасибо»</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
-                  {JSON.stringify(thankYouJson, null, 2)}
-                </pre>
-                <div className="flex flex-wrap gap-3">
-                  <Button onClick={() => copyToClipboard(JSON.stringify(thankYouJson, null, 2), "JSON страницы «Спасибо»")} variant="outline">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Скопировать
-                  </Button>
-                  <Button onClick={() => downloadFile(JSON.stringify(thankYouJson, null, 2), "thank_you.json")} variant="outline">
-                    <Download className="h-4 w-4 mr-2" />
-                    Скачать JSON
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Block 3: Diagnostic Card Prompt */}
-          {cardPrompt && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Промпт диагностической карты</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
-                  {cardPrompt}
-                </pre>
-                <Button onClick={() => copyToClipboard(cardPrompt, "Промпт")} variant="outline">
-                  <Copy className="h-4 w-4 mr-2" />
-                  Скопировать
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          <Button onClick={() => navigate("/create-diagnostic")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Создать ещё
-          </Button>
-        </>
+        <Button onClick={() => navigate("/create-diagnostic")}>
+          <Plus className="h-4 w-4 mr-2" />
+          Создать ещё
+        </Button>
       )}
     </div>
   );
