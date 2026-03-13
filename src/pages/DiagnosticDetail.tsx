@@ -22,7 +22,7 @@ interface GenerationStep {
   detail?: string;
 }
 
-const ACTIVE_STATUSES = ["generating", "quiz_generated", "generating_images"];
+const ACTIVE_STATUSES = ["generating", "quiz_generated", "generating_card_prompt", "card_prompt_generated", "generating_images"];
 
 export default function DiagnosticDetail() {
   const { diagnosticId } = useParams<{ diagnosticId: string }>();
