@@ -183,7 +183,7 @@ export default function PipelineResultView({ jsonContent, isEmail, contentType, 
     return <EmailView data={parsed as EmailJson} bannerImage={bannerImage} onSave={onSave} />;
   }
 
-  return <SocialView data={parsed as SocialJson} carouselImages={carouselImages} staticImage={staticImage} onSave={onSave} />;
+  return <SocialView data={parsed as SocialJson} carouselImages={carouselImages} staticImage={staticImage} onSave={onSave} contentType={contentType} />;
 }
 
 function EmailView({ data, bannerImage, onSave }: { data: EmailJson; bannerImage?: string; onSave?: (json: string) => void }) {
