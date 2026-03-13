@@ -551,15 +551,19 @@ export default function DiagnosticDetail() {
 
       {/* Error */}
       {isError && (
-        <Card className="border-destructive/50 bg-destructive/5">
+        <Card className={progress?.error === "Остановлено пользователем" ? "border-muted-foreground/30 bg-muted/30" : "border-destructive/50 bg-destructive/5"}>
           <CardContent className="pt-4 space-y-3">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              {progress?.error === "Остановлено пользователем" ? (
+                <Square className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+              ) : (
+                <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              )}
               <p className="text-sm">{progress?.error || "Неизвестная ошибка"}</p>
             </div>
             <Button variant="outline" size="sm" onClick={handleGenerate}>
               <Play className="h-4 w-4 mr-2" />
-              Попробовать снова
+              {progress?.error === "Остановлено пользователем" ? "Перезапустить" : "Попробовать снова"}
             </Button>
           </CardContent>
         </Card>
