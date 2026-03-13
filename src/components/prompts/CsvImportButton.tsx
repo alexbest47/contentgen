@@ -219,6 +219,9 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
   return (
     <>
       <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
+      <Button variant="outline" size="sm" onClick={exportCsv} disabled={currentPrompts.length === 0}>
+        <Download className="mr-2 h-4 w-4" />Экспорт CSV
+      </Button>
       <Button variant="outline" size="sm" onClick={downloadTemplate}>
         <Download className="mr-2 h-4 w-4" />Шаблон CSV
       </Button>

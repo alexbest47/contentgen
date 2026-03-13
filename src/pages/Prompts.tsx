@@ -144,6 +144,7 @@ export default function Prompts() {
             <CsvImportButton
               offerTypeKey={activeTab}
               existingCount={prompts?.filter((p: any) => p.offer_type === activeTab).length ?? 0}
+              prompts={prompts?.filter((p: any) => p.offer_type === activeTab) ?? []}
             />
           )}
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
