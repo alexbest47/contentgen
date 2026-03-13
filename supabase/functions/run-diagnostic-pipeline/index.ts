@@ -60,6 +60,39 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
   throw new Error("No image in response");
 }
 
+function extractJsonFromResponse(content: string): unknown {
+  // 1. Direct parse
+  try { return JSON.parse(content); } catch {}
+
+  // 2. Extract from markdown code blocks
+  const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    try { return JSON.parse(codeBlockMatch[1].trim()); } catch {}
+  }
+
+  // 3. Find the outermost JSON object in mixed text
+  const firstBrace = content.indexOf("{");
+  if (firstBrace !== -1) {
+    const candidate = content.substring(firstBrace);
+    try { return JSON.parse(candidate); } catch {}
+
+    // 4. Try to repair truncated JSON (unbalanced braces/brackets)
+    let braces = 0, brackets = 0;
+    for (const ch of candidate) {
+      if (ch === "{") braces++;
+      if (ch === "}") braces--;
+      if (ch === "[") brackets++;
+      if (ch === "]") brackets--;
+    }
+    let repaired = candidate;
+    while (brackets > 0) { repaired += "]"; brackets--; }
+    while (braces > 0) { repaired += "}"; braces--; }
+    try { return JSON.parse(repaired); } catch {}
+  }
+
+  throw new Error("Could not extract valid JSON from response");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -153,18 +186,16 @@ serve(async (req) => {
 
     const claudeData = await claudeResponse.json();
     const rawContent = claudeData.content?.[0]?.text || "";
-
-    let jsonStr = rawContent;
-    const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) jsonStr = jsonMatch[1].trim();
+    console.log("[pipeline] Claude raw response length:", rawContent.length);
 
     let fullResponse: any;
     try {
-      fullResponse = JSON.parse(jsonStr);
-    } catch {
+      fullResponse = extractJsonFromResponse(rawContent);
+    } catch (parseErr) {
+      console.error("[pipeline] JSON extraction failed. First 500 chars:", rawContent.substring(0, 500));
       await supabase
         .from("diagnostics")
-        .update({ status: "error", generation_progress: { error: "Invalid JSON from Claude" } })
+        .update({ status: "error", generation_progress: { error: "Invalid JSON from Claude", raw_preview: rawContent.substring(0, 300) } })
         .eq("id", diagnostic_id);
       throw new Error("Claude returned invalid JSON");
     }
