@@ -31,8 +31,6 @@ export default function DiagnosticDetail() {
 
   const [steps, setSteps] = useState<GenerationStep[]>([]);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const imageGenRef = useRef(false); // prevent double-trigger of image generation
-  const cancelledRef = useRef(false); // track if user stopped generation
 
   // Draft editing state
   const [editName, setEditName] = useState("");
@@ -83,15 +81,7 @@ export default function DiagnosticDetail() {
     } else if (status === "generating_card_prompt") {
       s[0].status = "done";
       s[1].status = "active";
-    } else if (status === "card_prompt_generated" || status === "images_pending") {
-      s[0].status = "done";
-      s[1].status = "done";
-      s[2].status = "active";
-      if (progress?.total_images) {
-        const done = progress.completed_images || 0;
-        s[2].detail = `${done} из ${progress.total_images}`;
-      }
-    } else if (status === "generating_images") {
+    } else if (status === "card_prompt_generated" || status === "images_pending" || status === "generating_images") {
       s[0].status = "done";
       s[1].status = "done";
       s[2].status = "active";
@@ -136,153 +126,7 @@ export default function DiagnosticDetail() {
     setSteps(s);
   }, []);
 
-  // --- Frontend image generation orchestration ---
-  const startImageGeneration = useCallback(async (diagId: string, placeholders: string[], completedAlready: number) => {
-    if (imageGenRef.current) return;
-    imageGenRef.current = true;
-    cancelledRef.current = false;
-
-    try {
-      // Set status to generating_images
-      await supabase
-        .from("diagnostics")
-        .update({ status: "generating_images" } as any)
-        .eq("id", diagId);
-
-      let completedImages = completedAlready;
-      let failedImages = 0;
-
-      // Get current quiz_json string to replace placeholders
-      const { data: currentDiag } = await supabase
-        .from("diagnostics")
-        .select("quiz_json")
-        .eq("id", diagId)
-        .single();
-
-      let currentQuizString = JSON.stringify(currentDiag?.quiz_json || {});
-
-      for (let i = 0; i < placeholders.length; i++) {
-        // Check if user stopped
-        if (cancelledRef.current) {
-          console.log("[frontend] Image generation cancelled by user");
-          return;
-        }
-
-        console.log(`[frontend] Generating image ${i + 1}/${placeholders.length}`);
-        updateStepsFromStatus("generating_images", {
-          total_images: placeholders.length,
-          completed_images: completedImages + failedImages,
-        });
-
-        try {
-          const { data, error } = await supabase.functions.invoke("generate-diagnostic-images", {
-            body: {
-              diagnostic_id: diagId,
-              image_description: placeholders[i],
-              placeholder_index: i,
-            },
-          });
-
-          if (error) throw error;
-
-          if (data?.image_url) {
-            const placeholder = `{{IMAGE:PROMPT=${placeholders[i]}}}`;
-            currentQuizString = currentQuizString.split(placeholder).join(data.image_url);
-            completedImages++;
-          } else {
-            failedImages++;
-          }
-        } catch (imgErr) {
-          console.error(`Image ${i} failed:`, imgErr);
-          failedImages++;
-        }
-
-        // Update progress in DB after each image
-        // Replace remaining placeholders with null safely (they are inside JSON string values)
-        let safeQuizJson: any;
-        try {
-          safeQuizJson = JSON.parse(
-            currentQuizString.replace(/"?\{\{IMAGE:PROMPT=[^}]*\}\}"?/g, 'null')
-          );
-        } catch {
-          // Fallback: use the raw string replacement approach
-          safeQuizJson = currentDiag?.quiz_json;
-        }
-
-        await supabase
-          .from("diagnostics")
-          .update({
-            quiz_json: safeQuizJson,
-            generation_progress: {
-              total_images: placeholders.length,
-              completed_images: completedImages + failedImages,
-              failed_images: failedImages,
-              placeholders,
-            },
-          } as any)
-          .eq("id", diagId);
-
-        // Update cache
-        queryClient.setQueryData(["diagnostic", diagId], (old: any) =>
-          old ? {
-            ...old,
-            quiz_json: safeQuizJson,
-            generation_progress: {
-              total_images: placeholders.length,
-              completed_images: completedImages + failedImages,
-              failed_images: failedImages,
-              placeholders,
-            },
-          } : old
-        );
-      }
-
-      // Finalize
-      if (!cancelledRef.current) {
-        let finalQuizJson: any;
-        try {
-          finalQuizJson = JSON.parse(
-            currentQuizString.replace(/"?\{\{IMAGE:PROMPT=[^}]*\}\}"?/g, 'null')
-          );
-        } catch {
-          finalQuizJson = currentDiag?.quiz_json;
-        }
-
-        await supabase
-          .from("diagnostics")
-          .update({
-            quiz_json: finalQuizJson,
-            status: "ready",
-            generation_progress: {
-              total_images: placeholders.length,
-              completed_images: completedImages,
-              failed_images: failedImages,
-            },
-          } as any)
-          .eq("id", diagId);
-
-        queryClient.invalidateQueries({ queryKey: ["diagnostic", diagId] });
-        toast.success("Диагностика сгенерирована!");
-      }
-    } catch (err) {
-      console.error("[frontend] Image generation loop error:", err);
-      if (!cancelledRef.current) {
-        await supabase
-          .from("diagnostics")
-          .update({
-            status: "error",
-            generation_progress: { error: `Ошибка генерации изображений: ${(err as Error).message}` },
-          } as any)
-          .eq("id", diagId);
-        queryClient.invalidateQueries({ queryKey: ["diagnostic", diagId] });
-        toast.error("Ошибка при генерации изображений");
-      }
-    } finally {
-      imageGenRef.current = false;
-    }
-  }, [queryClient, updateStepsFromStatus]);
-
-  // Polling logic
+  // Polling logic — only monitors status, no frontend image generation
   const startPolling = useCallback(() => {
     if (pollingRef.current) return;
     pollingRef.current = setInterval(async () => {
@@ -308,17 +152,7 @@ export default function DiagnosticDetail() {
         } : old
       );
 
-      // When pipeline finishes and images are pending, start frontend image gen
-      if (data.status === "images_pending" && progress?.placeholders?.length > 0) {
-        // Stop polling — image gen loop takes over
-        if (pollingRef.current) {
-          clearInterval(pollingRef.current);
-          pollingRef.current = null;
-        }
-        startImageGeneration(diagnosticId!, progress.placeholders, 0);
-        return;
-      }
-
+      // Stop polling when pipeline finishes
       if (!ACTIVE_STATUSES.includes(data.status)) {
         if (pollingRef.current) {
           clearInterval(pollingRef.current);
@@ -332,17 +166,14 @@ export default function DiagnosticDetail() {
         }
       }
     }, 5000);
-  }, [diagnosticId, queryClient, updateStepsFromStatus, startImageGeneration]);
+  }, [diagnosticId, queryClient, updateStepsFromStatus]);
 
   // Auto-start polling if status is active on page load
   useEffect(() => {
     if (!diagnostic) return;
     const progress = diagnostic.generation_progress as any;
 
-    if ((diagnostic.status === "images_pending" || diagnostic.status === "generating_images") && progress?.placeholders?.length > 0) {
-      updateStepsFromStatus(diagnostic.status, progress);
-      startImageGeneration(diagnosticId!, progress.placeholders, progress.completed_images || 0);
-    } else if (ACTIVE_STATUSES.includes(diagnostic.status)) {
+    if (ACTIVE_STATUSES.includes(diagnostic.status)) {
       updateStepsFromStatus(diagnostic.status, progress);
       startPolling();
     } else if (diagnostic.status === "error") {
@@ -445,10 +276,6 @@ export default function DiagnosticDetail() {
   const handleGenerate = async () => {
     if (!diagnostic) return;
 
-    // Reset refs
-    imageGenRef.current = false;
-    cancelledRef.current = false;
-
     // Update status immediately
     await supabase
       .from("diagnostics")
@@ -457,7 +284,7 @@ export default function DiagnosticDetail() {
 
     updateStepsFromStatus("generating", null);
 
-    // Fire-and-forget call to pipeline
+    // Fire-and-forget call to pipeline (entire process runs server-side)
     supabase.functions.invoke("run-diagnostic-pipeline", {
       body: {
         diagnostic_id: diagnostic.id,
@@ -468,13 +295,12 @@ export default function DiagnosticDetail() {
       },
     }).catch((err) => console.error("Pipeline call failed:", err));
 
-    // Start polling
+    // Start polling for progress
     startPolling();
   };
 
   const handleStop = async () => {
     setStopping(true);
-    cancelledRef.current = true; // signal frontend image loop to stop
     try {
       const { data: current } = await supabase
         .from("diagnostics")
