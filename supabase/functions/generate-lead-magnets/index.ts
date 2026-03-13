@@ -32,6 +32,18 @@ serve(async (req) => {
     if (!offer) throw new Error("Project has no associated offer");
     const program = offer.paid_programs;
 
+    // Load diagnostic data if offer_type is diagnostic
+    let diagnostic: any = null;
+    if (offer.offer_type === "diagnostic") {
+      const { data: diag } = await supabase
+        .from("diagnostics")
+        .select("name, description")
+        .eq("offer_id", offer.id)
+        .limit(1)
+        .maybeSingle();
+      diagnostic = diag;
+    }
+
     // Fetch audience description from Google Doc if needed
     let audienceDescription = program.audience_description || "";
     if (program.audience_doc_url) {
