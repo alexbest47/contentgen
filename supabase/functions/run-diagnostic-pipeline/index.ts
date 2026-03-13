@@ -302,7 +302,7 @@ serve(async (req) => {
       }
     }
 
-    // ---- Step 2: Generate images server-side ----
+    // ---- Step 2: Trigger image generation chain (fire-and-forget) ----
     if (placeholders.length === 0) {
       await supabase
         .from("diagnostics")
@@ -325,94 +325,24 @@ serve(async (req) => {
 
     await supabase
       .from("diagnostics")
-      .update({ status: "generating_images", generation_progress: { total_images: placeholders.length, completed_images: 0, placeholders } })
+      .update({ status: "generating_images", generation_progress: { total_images: placeholders.length, completed_images: 0 } })
       .eq("id", diagnostic_id);
 
-    console.log(`[pipeline] Step 2: Generating ${placeholders.length} images server-side`);
+    // Fire-and-forget: trigger process-diagnostic-image for the first placeholder
+    fetch(`${SUPABASE_URL}/functions/v1/process-diagnostic-image`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({
+        diagnostic_id,
+        image_index: 0,
+        placeholders,
+      }),
+    }).catch((e) => console.error("[pipeline] Failed to trigger image chain:", e));
 
-    let currentQuizString = quizString;
-    let completedImages = 0;
-    let failedImages = 0;
-
-    for (let i = 0; i < placeholders.length; i++) {
-      if (await checkCancelled(supabase, diagnostic_id)) {
-        console.log(`[pipeline] Cancelled during image ${i + 1}.`);
-        return new Response(JSON.stringify({ success: false, cancelled: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-
-      console.log(`[pipeline] Generating image ${i + 1}/${placeholders.length}`);
-
-      try {
-        const imageBytes = await generateImage(placeholders[i], OPENROUTER_API_KEY);
-        const fileName = `${diagnostic_id}/image_${i}_${Date.now()}.webp`;
-
-        const { error: uploadErr } = await supabase.storage
-          .from("quiz-images")
-          .upload(fileName, imageBytes, { contentType: "image/webp", upsert: true });
-
-        if (uploadErr) {
-          console.error(`[pipeline] Upload error for image ${i}:`, uploadErr);
-          failedImages++;
-        } else {
-          const { data: urlData } = supabase.storage
-            .from("quiz-images")
-            .getPublicUrl(fileName);
-
-          const placeholder = `{{IMAGE:PROMPT=${placeholders[i]}}}`;
-          currentQuizString = currentQuizString.split(placeholder).join(urlData.publicUrl);
-          completedImages++;
-        }
-      } catch (imgErr) {
-        console.error(`[pipeline] Image ${i} generation failed:`, imgErr);
-        failedImages++;
-      }
-
-      // Update progress after each image
-      const progressUpdate: any = {
-        total_images: placeholders.length,
-        completed_images: completedImages + failedImages,
-        failed_images: failedImages,
-      };
-
-      // Parse current quiz string safely for progress save
-      let progressQuizJson: any;
-      try {
-        // Remove remaining placeholders for safe parsing
-        const safeString = currentQuizString.replace(/"?\{\{IMAGE:PROMPT=[^}]*\}\}"?/g, 'null');
-        progressQuizJson = JSON.parse(safeString);
-      } catch {
-        progressQuizJson = quizPart; // fallback to original
-      }
-
-      await supabase
-        .from("diagnostics")
-        .update({ quiz_json: progressQuizJson, generation_progress: progressUpdate })
-        .eq("id", diagnostic_id);
-    }
-
-    // Finalize
-    let finalQuizJson: any;
-    try {
-      const safeString = currentQuizString.replace(/"?\{\{IMAGE:PROMPT=[^}]*\}\}"?/g, 'null');
-      finalQuizJson = JSON.parse(safeString);
-    } catch {
-      finalQuizJson = quizPart;
-    }
-
-    await supabase
-      .from("diagnostics")
-      .update({
-        quiz_json: finalQuizJson,
-        status: "ready",
-        generation_progress: {
-          total_images: placeholders.length,
-          completed_images: completedImages,
-          failed_images: failedImages,
-        },
-      })
-      .eq("id", diagnostic_id);
-
-    console.log(`[pipeline] Done. ${completedImages} images OK, ${failedImages} failed. Status: ready.`);
+    console.log(`[pipeline] Step 2: Triggered image chain for ${placeholders.length} images. Returning immediately.`);
 
     return new Response(
       JSON.stringify({ success: true }),
