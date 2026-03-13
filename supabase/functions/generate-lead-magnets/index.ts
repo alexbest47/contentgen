@@ -106,18 +106,19 @@ serve(async (req) => {
     // Update status
     await supabase.from("projects").update({ status: "generating_leads" }).eq("id", project_id);
 
-    // Get active prompt for lead_magnets — NO hardcoded fallback
+    // Get active prompt for lead_magnets filtered by offer_type
     const { data: prompt, error: promptErr } = await supabase
       .from("prompts")
       .select("*")
       .eq("category", "lead_magnets")
       .eq("is_active", true)
+      .eq("offer_type", offer.offer_type)
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (promptErr || !prompt) {
       await supabase.from("projects").update({ status: "error" }).eq("id", project_id);
-      throw new Error("No active prompt found for category 'lead_magnets'. Please create one in the Prompts section.");
+      throw new Error(`No active prompt found for category 'lead_magnets' with offer_type '${offer.offer_type}'. Please create one in the Prompts section.`);
     }
 
     const systemPrompt = prompt.system_prompt;
@@ -127,7 +128,9 @@ serve(async (req) => {
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_description\}\}/g, offerDescription)
-      .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
+      .replace(/\{\{program_doc_description\}\}/g, programDocDescription)
+      .replace(/\{\{test_name\}\}/g, diagnostic?.name || "")
+      .replace(/\{\{test_description\}\}/g, diagnostic?.description || "");
 
     // Call Claude API
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
