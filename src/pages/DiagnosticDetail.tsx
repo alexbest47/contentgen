@@ -22,7 +22,7 @@ interface GenerationStep {
   detail?: string;
 }
 
-const ACTIVE_STATUSES = ["generating", "quiz_generated", "generating_card_prompt", "card_prompt_generated", "generating_images"];
+const ACTIVE_STATUSES = ["generating", "quiz_generated", "generating_card_prompt", "card_prompt_generated", "generating_images", "images_pending"];
 
 export default function DiagnosticDetail() {
   const { diagnosticId } = useParams<{ diagnosticId: string }>();
@@ -31,6 +31,8 @@ export default function DiagnosticDetail() {
 
   const [steps, setSteps] = useState<GenerationStep[]>([]);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const imageGenRef = useRef(false); // prevent double-trigger of image generation
+  const cancelledRef = useRef(false); // track if user stopped generation
 
   // Draft editing state
   const [editName, setEditName] = useState("");
@@ -81,12 +83,13 @@ export default function DiagnosticDetail() {
     } else if (status === "generating_card_prompt") {
       s[0].status = "done";
       s[1].status = "active";
-    } else if (status === "card_prompt_generated") {
+    } else if (status === "card_prompt_generated" || status === "images_pending") {
       s[0].status = "done";
       s[1].status = "done";
       s[2].status = "active";
       if (progress?.total_images) {
-        s[2].detail = `0 из ${progress.total_images}`;
+        const done = progress.completed_images || 0;
+        s[2].detail = `${done} из ${progress.total_images}`;
       }
     } else if (status === "generating_images") {
       s[0].status = "done";
@@ -133,6 +136,126 @@ export default function DiagnosticDetail() {
     setSteps(s);
   }, []);
 
+  // --- Frontend image generation orchestration ---
+  const startImageGeneration = useCallback(async (diagId: string, placeholders: string[], completedAlready: number) => {
+    if (imageGenRef.current) return;
+    imageGenRef.current = true;
+    cancelledRef.current = false;
+
+    // Set status to generating_images
+    await supabase
+      .from("diagnostics")
+      .update({ status: "generating_images" } as any)
+      .eq("id", diagId);
+
+    let completedImages = completedAlready;
+    let failedImages = 0;
+
+    // Get current quiz_json string to replace placeholders
+    const { data: currentDiag } = await supabase
+      .from("diagnostics")
+      .select("quiz_json")
+      .eq("id", diagId)
+      .single();
+
+    let currentQuizString = JSON.stringify(currentDiag?.quiz_json || {});
+
+    for (let i = 0; i < placeholders.length; i++) {
+      // Check if user stopped
+      if (cancelledRef.current) {
+        console.log("[frontend] Image generation cancelled by user");
+        imageGenRef.current = false;
+        return;
+      }
+
+      console.log(`[frontend] Generating image ${i + 1}/${placeholders.length}`);
+      updateStepsFromStatus("generating_images", {
+        total_images: placeholders.length,
+        completed_images: completedImages + failedImages,
+      });
+
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-diagnostic-images", {
+          body: {
+            diagnostic_id: diagId,
+            image_description: placeholders[i],
+            placeholder_index: i,
+          },
+        });
+
+        if (error) throw error;
+
+        if (data?.image_url) {
+          const placeholder = `{{IMAGE:PROMPT=${placeholders[i]}}}`;
+          currentQuizString = currentQuizString.split(placeholder).join(data.image_url);
+          completedImages++;
+        } else {
+          failedImages++;
+        }
+      } catch (imgErr) {
+        console.error(`Image ${i} failed:`, imgErr);
+        failedImages++;
+      }
+
+      // Update progress in DB after each image
+      const safeQuizJson = JSON.parse(
+        currentQuizString.replace(/\{\{IMAGE:PROMPT=[^}]*\}\}/g, '"null"')
+      );
+
+      await supabase
+        .from("diagnostics")
+        .update({
+          quiz_json: safeQuizJson,
+          generation_progress: {
+            total_images: placeholders.length,
+            completed_images: completedImages + failedImages,
+            failed_images: failedImages,
+            placeholders,
+          },
+        } as any)
+        .eq("id", diagId);
+
+      // Update cache
+      queryClient.setQueryData(["diagnostic", diagId], (old: any) =>
+        old ? {
+          ...old,
+          quiz_json: safeQuizJson,
+          generation_progress: {
+            total_images: placeholders.length,
+            completed_images: completedImages + failedImages,
+            failed_images: failedImages,
+            placeholders,
+          },
+        } : old
+      );
+    }
+
+    // Finalize
+    if (!cancelledRef.current) {
+      const finalQuizJson = JSON.parse(
+        currentQuizString.replace(/\{\{IMAGE:PROMPT=[^}]*\}\}/g, '"null"')
+      );
+
+      await supabase
+        .from("diagnostics")
+        .update({
+          quiz_json: finalQuizJson,
+          status: "ready",
+          generation_progress: {
+            total_images: placeholders.length,
+            completed_images: completedImages,
+            failed_images: failedImages,
+          },
+        } as any)
+        .eq("id", diagId);
+
+      queryClient.invalidateQueries({ queryKey: ["diagnostic", diagId] });
+      toast.success("Диагностика сгенерирована!");
+    }
+
+    imageGenRef.current = false;
+  }, [queryClient, updateStepsFromStatus]);
+
   // Polling logic
   const startPolling = useCallback(() => {
     if (pollingRef.current) return;
@@ -148,11 +271,30 @@ export default function DiagnosticDetail() {
       const progress = data.generation_progress as any;
       updateStepsFromStatus(data.status, progress);
 
-      // Update React Query cache with latest data so results render immediately
-      queryClient.setQueryData(["diagnostic", diagnosticId], (old: any) => old ? { ...old, status: data.status, generation_progress: data.generation_progress, quiz_json: data.quiz_json, thank_you_json: (data as any).thank_you_json, card_prompt: (data as any).card_prompt } : old);
+      // Update React Query cache
+      queryClient.setQueryData(["diagnostic", diagnosticId], (old: any) =>
+        old ? {
+          ...old,
+          status: data.status,
+          generation_progress: data.generation_progress,
+          quiz_json: data.quiz_json,
+          thank_you_json: (data as any).thank_you_json,
+          card_prompt: (data as any).card_prompt,
+        } : old
+      );
+
+      // When pipeline finishes and images are pending, start frontend image gen
+      if (data.status === "images_pending" && progress?.placeholders?.length > 0) {
+        // Stop polling — image gen loop takes over
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+        startImageGeneration(diagnosticId!, progress.placeholders, 0);
+        return;
+      }
 
       if (!ACTIVE_STATUSES.includes(data.status)) {
-        // Stop polling
         if (pollingRef.current) {
           clearInterval(pollingRef.current);
           pollingRef.current = null;
@@ -165,13 +307,17 @@ export default function DiagnosticDetail() {
         }
       }
     }, 5000);
-  }, [diagnosticId, queryClient, updateStepsFromStatus]);
+  }, [diagnosticId, queryClient, updateStepsFromStatus, startImageGeneration]);
 
-  // Auto-start polling if status is active on page load; also sync steps on error
+  // Auto-start polling if status is active on page load
   useEffect(() => {
     if (!diagnostic) return;
     const progress = diagnostic.generation_progress as any;
-    if (ACTIVE_STATUSES.includes(diagnostic.status)) {
+
+    if (diagnostic.status === "images_pending" && progress?.placeholders?.length > 0) {
+      updateStepsFromStatus(diagnostic.status, progress);
+      startImageGeneration(diagnosticId!, progress.placeholders, progress.completed_images || 0);
+    } else if (ACTIVE_STATUSES.includes(diagnostic.status)) {
       updateStepsFromStatus(diagnostic.status, progress);
       startPolling();
     } else if (diagnostic.status === "error") {
@@ -274,6 +420,10 @@ export default function DiagnosticDetail() {
   const handleGenerate = async () => {
     if (!diagnostic) return;
 
+    // Reset refs
+    imageGenRef.current = false;
+    cancelledRef.current = false;
+
     // Update status immediately
     await supabase
       .from("diagnostics")
@@ -282,7 +432,7 @@ export default function DiagnosticDetail() {
 
     updateStepsFromStatus("generating", null);
 
-    // Fire-and-forget call to pipeline (prompts are auto-discovered by category)
+    // Fire-and-forget call to pipeline
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-diagnostic-pipeline`;
     fetch(url, {
       method: "POST",
@@ -305,8 +455,8 @@ export default function DiagnosticDetail() {
 
   const handleStop = async () => {
     setStopping(true);
+    cancelledRef.current = true; // signal frontend image loop to stop
     try {
-      // Fetch current progress to preserve image counts
       const { data: current } = await supabase
         .from("diagnostics")
         .select("status, generation_progress")
@@ -318,7 +468,6 @@ export default function DiagnosticDetail() {
         error: "Остановлено пользователем",
         stopped_at: current?.status || "generating",
       };
-      // Preserve image progress if available
       if (currentProgress?.total_images) {
         newProgress.total_images = currentProgress.total_images;
         newProgress.completed_images = currentProgress.completed_images || 0;
@@ -445,7 +594,6 @@ export default function DiagnosticDetail() {
               )}
             </div>
 
-            {/* Prompts are auto-discovered by category test_generation */}
             {testPrompts && testPrompts.length > 0 ? (
               <div className="space-y-2">
                 <Label>Промпты для генерации ({testPrompts.length} шаг{testPrompts.length > 1 ? "а" : ""})</Label>
@@ -573,7 +721,7 @@ export default function DiagnosticDetail() {
         </Card>
       )}
 
-      {/* Result — 3 blocks (shown as soon as data is available) */}
+      {/* Failed images warning */}
       {isReady && progress?.failed_images > 0 && (
         <Card className="border-accent/50 bg-accent/5">
           <CardContent className="pt-4 flex items-start gap-3">
