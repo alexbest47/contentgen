@@ -261,11 +261,13 @@ function SocialView({
   carouselImages,
   staticImage,
   onSave,
+  contentType,
 }: {
   data: SocialJson;
   carouselImages?: { slideNumber: number; url: string }[];
   staticImage?: string;
   onSave?: (json: string) => void;
+  contentType?: string;
 }) {
   const hasSplitTexts = !!(data.post_text_single || data.post_text_carousel);
   const [postText, setPostText] = useState(data.post_text || "");
