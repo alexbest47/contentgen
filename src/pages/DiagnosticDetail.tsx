@@ -181,7 +181,7 @@ export default function DiagnosticDetail() {
       updateStepsFromStatus(diagnostic.status, progress, diagnostic.card_prompt);
       startPolling();
     } else if (diagnostic.status === "error") {
-      updateStepsFromStatus(diagnostic.status, progress);
+      updateStepsFromStatus(diagnostic.status, progress, diagnostic.card_prompt);
     }
     return () => {
       if (pollingRef.current) {
