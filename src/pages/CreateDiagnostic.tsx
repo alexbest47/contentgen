@@ -16,8 +16,9 @@ import { toast } from "sonner";
 export default function CreateDiagnostic() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [programId, setProgramId] = useState("");
+  const [programId, setProgramId] = useState(searchParams.get("programId") || "");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
