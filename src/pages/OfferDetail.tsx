@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ChevronRight, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
+import { usePromptInfo } from "@/hooks/usePromptInfo";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -128,6 +129,12 @@ export default function OfferDetail() {
 
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
+  const { data: promptInfo } = usePromptInfo({
+    category: "lead_magnets",
+    offer_type: offer?.offer_type,
+    enabled: !!offer?.offer_type,
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -157,6 +164,11 @@ export default function OfferDetail() {
             {progressText || "Сгенерировать лид-магниты"}
           </Button>
       </div>
+      {promptInfo?.[0] && (
+        <p className="text-xs text-muted-foreground -mt-4">
+          Промпт: «{promptInfo[0].name}»
+        </p>
+      )}
 
 
       {isLoading ? (

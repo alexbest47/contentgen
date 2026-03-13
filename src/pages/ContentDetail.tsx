@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, RefreshCw, Loader2, Image, Layers, Copy } from "lucide-react";
 import PipelineResultView from "@/components/project/PipelineResultView";
 import { toast } from "sonner";
+import { usePromptInfo } from "@/hooks/usePromptInfo";
 
 const contentTypeLabels: Record<string, string> = {
   instagram: "Пост в Instagram",
@@ -30,6 +31,12 @@ export default function ContentDetail() {
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`;
   const isEmail = isEmailType(contentType!);
+
+  const { data: promptInfo } = usePromptInfo({
+    content_type: contentType,
+    offer_type: offerType,
+    enabled: !!contentType && !!offerType,
+  });
 
   const { data: contentPieces } = useQuery({
     queryKey: ["content_pieces", projectId],
@@ -180,6 +187,11 @@ export default function ContentDetail() {
           <h1 className="text-2xl font-bold">
             {contentTypeLabels[contentType!] ?? contentType}
           </h1>
+          {promptInfo?.[0] && (
+            <p className="text-xs text-muted-foreground">
+              Промпт: «{promptInfo[0].name}»
+            </p>
+          )}
         </div>
         <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Готово</Badge>
       </div>

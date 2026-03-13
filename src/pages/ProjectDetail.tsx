@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Image, Send, Mail, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { usePromptInfo } from "@/hooks/usePromptInfo";
 
 const statusLabels: Record<string, string> = {
   draft: "Черновик",
@@ -40,6 +41,11 @@ export default function ProjectDetail() {
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}`;
+
+  const { data: allPromptInfo } = usePromptInfo({
+    offer_type: offerType,
+    enabled: !!offerType,
+  });
 
   const { data: project } = useQuery({
     queryKey: ["project", projectId],
@@ -236,6 +242,14 @@ export default function ProjectDetail() {
                       )}
                     </Button>
                     {stepCount === 0 && <p className="text-xs text-destructive mt-1 text-center">Нет промптов</p>}
+                    {stepCount > 0 && (() => {
+                      const prompt = allPromptInfo?.find(p => p.content_type === ct.key);
+                      return prompt ? (
+                        <p className="text-xs text-muted-foreground mt-1 text-center">
+                          Промпт: «{prompt.name}»
+                        </p>
+                      ) : null;
+                    })()}
                   </CardContent>
                 </Card>
               );
