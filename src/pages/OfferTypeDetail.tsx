@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ChevronRight, ArrowLeft, Pencil, Trash2, Plus } from "lucide-react";
+import { ChevronRight, ArrowLeft, Pencil, Trash2, Plus, Sparkles, Loader2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
@@ -100,6 +100,10 @@ export default function OfferTypeDetail() {
   // Archive dialog state
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archivingId, setArchivingId] = useState<string | null>(null);
+
+  // Generation state
+  const [generatingOfferId, setGeneratingOfferId] = useState<string | null>(null);
+  const [progressText, setProgressText] = useState("");
 
   // Create dialog state
   const [createOpen, setCreateOpen] = useState(false);
@@ -275,6 +279,49 @@ export default function OfferTypeDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const generateMutation = useMutation({
+    mutationFn: async (offerId: string) => {
+      setGeneratingOfferId(offerId);
+      const offer = offers?.find((o: any) => o.id === offerId);
+      if (!offer) throw new Error("Оффер не найден");
+
+      setProgressText("Генерация названия...");
+      const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
+        body: { course_title: offer.title, program_title: program?.title || "" },
+      });
+      if (nameError) throw new Error(nameError.message || "Ошибка генерации названия");
+      if (nameData?.error) throw new Error(nameData.error);
+
+      setProgressText("Создание проекта...");
+      const { data: project, error: projError } = await supabase
+        .from("projects")
+        .insert({ offer_id: offerId, title: nameData.name, created_by: user!.id })
+        .select("id")
+        .single();
+      if (projError) throw projError;
+
+      setProgressText("Генерация лид-магнитов...");
+      const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
+        body: { project_id: project.id },
+      });
+      if (genError) throw new Error(genError.message || "Ошибка генерации");
+      if (genData?.error) throw new Error(genData.error);
+
+      return { offerId, projectId: project.id };
+    },
+    onSuccess: ({ offerId: oId, projectId }) => {
+      toast.success("Лид-магниты сгенерированы!");
+      setGeneratingOfferId(null);
+      setProgressText("");
+      navigate(`/programs/${programId}/offers/${offerType}/${oId}/projects/${projectId}`);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setGeneratingOfferId(null);
+      setProgressText("");
+    },
+  });
+
   const openArchive = (offerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setArchivingId(offerId);
@@ -440,6 +487,14 @@ export default function OfferTypeDetail() {
                 </div>
                 <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
                   <span>{new Date(o.created_at).toLocaleDateString("ru-RU")}</span>
+                  <Button
+                    variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary"
+                    onClick={(e) => { e.stopPropagation(); generateMutation.mutate(o.id); }}
+                    disabled={generatingOfferId === o.id}
+                    title="Сгенерировать лид-магниты"
+                  >
+                    {generatingOfferId === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => openEdit(o, e)}>
                     <Pencil className="h-4 w-4" />
                   </Button>

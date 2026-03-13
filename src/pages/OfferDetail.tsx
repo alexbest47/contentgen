@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ChevronRight, Sparkles, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronRight, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
 import {
@@ -40,7 +40,6 @@ export default function OfferDetail() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [progressText, setProgressText] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: offer } = useQuery({
@@ -84,42 +83,6 @@ export default function OfferDetail() {
     onError: (e: Error) => { toast.error(e.message); setDeleteId(null); },
   });
 
-  const generateMutation = useMutation({
-    mutationFn: async () => {
-      setProgressText("Генерация названия...");
-      const programTitle = (offer as any)?.paid_programs?.title || "";
-      const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
-        body: { course_title: offer!.title, program_title: programTitle },
-      });
-      if (nameError) throw new Error(nameError.message || "Ошибка генерации названия");
-      if (nameData?.error) throw new Error(nameData.error);
-
-      setProgressText("Создание проекта...");
-      const { data: project, error: projError } = await supabase
-        .from("projects")
-        .insert({ offer_id: offerId!, title: nameData.name, created_by: user!.id })
-        .select("id")
-        .single();
-      if (projError) throw projError;
-
-      setProgressText("Генерация лид-магнитов...");
-      const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
-        body: { project_id: project.id },
-      });
-      if (genError) throw new Error(genError.message || "Ошибка генерации");
-      if (genData?.error) throw new Error(genData.error);
-
-      return project.id;
-    },
-    onSuccess: (projectId) => {
-      queryClient.invalidateQueries({ queryKey: ["projects_by_offer", offerId] });
-      toast.success("Лид-магниты сгенерированы!");
-      setProgressText("");
-      navigate(`/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`);
-    },
-    onError: (e: Error) => { toast.error(e.message); setProgressText(""); },
-  });
-
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
   return (
@@ -141,15 +104,6 @@ export default function OfferDetail() {
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending || !offer}>
-          {generateMutation.isPending ? (
-            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{progressText}</>
-          ) : (
-            <><Sparkles className="mr-2 h-4 w-4" />Сгенерировать лид-магниты</>
-          )}
-        </Button>
-      </div>
 
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
