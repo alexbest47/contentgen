@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, RefreshCw, Loader2, Image, Layers } from "lucide-react";
+import { ArrowLeft, RefreshCw, Loader2, Image, Layers, Copy } from "lucide-react";
 import PipelineResultView from "@/components/project/PipelineResultView";
 import { toast } from "sonner";
 
@@ -26,6 +26,7 @@ export default function ContentDetail() {
   const [generatingImagesKey, setGeneratingImagesKey] = useState<string | null>(null);
   const [carouselProgress, setCarouselProgress] = useState<{ current: number; total: number } | null>(null);
   const abortRef = useRef(false);
+  const copyHtmlRef = useRef<(() => void) | null>(null);
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`;
   const isEmail = isEmailType(contentType!);
@@ -198,18 +199,27 @@ export default function ContentDetail() {
         </Button>
 
         {isEmail ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => generateImagesMutation.mutate("banner")}
-            disabled={isAnyImageGenerating}
-          >
-            {generatingImagesKey === "banner" ? (
-              <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
-            ) : (
-              <><Image className="mr-1 h-3 w-3" />Сгенерировать баннер</>
-            )}
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => generateImagesMutation.mutate("banner")}
+              disabled={isAnyImageGenerating}
+            >
+              {generatingImagesKey === "banner" ? (
+                <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
+              ) : (
+                <><Image className="mr-1 h-3 w-3" />Сгенерировать баннер</>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => copyHtmlRef.current?.()}
+            >
+              <Copy className="mr-1 h-3 w-3" />Скопировать HTML
+            </Button>
+          </>
         ) : (
           <>
             <Button
@@ -257,6 +267,7 @@ export default function ContentDetail() {
           carouselImages={carouselImages}
           staticImage={staticImage}
           bannerImage={bannerImage}
+          copyHtmlRef={copyHtmlRef}
           onSave={async (updatedJson: string) => {
             const { error } = await supabase
               .from("content_pieces")
