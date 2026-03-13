@@ -193,7 +193,7 @@ export default function Prompts() {
             <TabsContent value="_other">
               <div className="space-y-3">
                 {otherPrompts.map((p: any) => (
-                  <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} />
+                  <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
                 ))}
               </div>
             </TabsContent>
