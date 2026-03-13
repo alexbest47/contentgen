@@ -235,6 +235,40 @@ export default function Diagnostics() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!editingDiag} onOpenChange={(open) => !open && setEditingDiag(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать диагностику</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Название</Label>
+              <Input
+                value={editingDiag?.name || ""}
+                onChange={(e) => setEditingDiag((prev) => prev ? { ...prev, name: e.target.value } : null)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Описание</Label>
+              <Textarea
+                value={editingDiag?.description || ""}
+                onChange={(e) => setEditingDiag((prev) => prev ? { ...prev, description: e.target.value } : null)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingDiag(null)}>Отмена</Button>
+            <Button
+              disabled={updateMutation.isPending || !editingDiag?.name.trim()}
+              onClick={() => editingDiag && updateMutation.mutate(editingDiag)}
+            >
+              {updateMutation.isPending ? "Сохранение..." : "Сохранить"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
