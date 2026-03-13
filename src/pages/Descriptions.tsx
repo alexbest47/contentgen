@@ -35,6 +35,7 @@ export default function Descriptions() {
               <TableRow>
                 <TableHead>Платная программа</TableHead>
                 <TableHead>Описание аудитории</TableHead>
+                <TableHead>Описание программы</TableHead>
                 <TableHead>Тип оффера</TableHead>
                 <TableHead>Оффер</TableHead>
                 <TableHead>Google Docs оффера</TableHead>
