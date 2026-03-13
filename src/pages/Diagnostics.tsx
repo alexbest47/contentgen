@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Loader2, Eye, Pencil } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Plus, Loader2, Eye, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const statusLabels: Record<string, string> = {
   draft: "Черновик",
@@ -23,6 +26,8 @@ const statusVariant = (s: string) => {
 
 export default function Diagnostics() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: diagnostics, isLoading } = useQuery({
     queryKey: ["diagnostics"],
@@ -50,6 +55,20 @@ export default function Diagnostics() {
       return data;
     },
     enabled: programIds.length > 0,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("diagnostics").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["diagnostics"] });
+      toast.success("Диагностика удалена");
+    },
+    onError: () => {
+      toast.error("Не удалось удалить диагностику");
+    },
   });
 
   const programMap = Object.fromEntries((programs || []).map((p) => [p.id, p.title]));
@@ -98,7 +117,7 @@ export default function Diagnostics() {
                         {statusLabels[d.status] || d.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right space-x-1">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -116,6 +135,14 @@ export default function Diagnostics() {
                           </>
                         )}
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setDeletingId(d.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -124,6 +151,29 @@ export default function Diagnostics() {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить диагностику?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Диагностика будет удалена навсегда.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deletingId) deleteMutation.mutate(deletingId);
+                setDeletingId(null);
+              }}
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
