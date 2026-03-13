@@ -616,10 +616,18 @@ export default function DiagnosticDetail() {
                 )}
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={handleGenerate}>
-              <Play className="h-4 w-4 mr-2" />
-              {progress?.error === "Остановлено пользователем" ? "Перезапустить" : "Попробовать снова"}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleGenerate}>
+                <Play className="h-4 w-4 mr-2" />
+                {progress?.error === "Остановлено пользователем" ? "Перезапустить" : "Попробовать снова"}
+              </Button>
+              {quizJson && (progress?.completed_images === 0 || !progress?.completed_images) && (
+                <Button variant="outline" size="sm" onClick={handleRetryImages}>
+                  <Play className="h-4 w-4 mr-2" />
+                  Только изображения
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
