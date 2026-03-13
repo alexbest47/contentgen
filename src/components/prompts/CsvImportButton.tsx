@@ -83,18 +83,41 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
   const [parsedRows, setParsedRows] = useState<Record<string, any>[]>([]);
   const [importing, setImporting] = useState(false);
 
+  const downloadFile = (content: string, filename: string) => {
+    const blob = new Blob(["\uFEFF" + content], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const downloadTemplate = () => {
     const lines = [
       CSV_HEADERS.map(escapeCsvField).join(","),
       ...TEMPLATE_ROWS.map((row) => row.map(escapeCsvField).join(",")),
     ];
-    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `prompts_template_${offerTypeKey}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadFile(lines.join("\n"), `prompts_template_${offerTypeKey}.csv`);
+  };
+
+  const exportCsv = () => {
+    if (currentPrompts.length === 0) {
+      toast.error("Нет промптов для экспорта");
+      return;
+    }
+    const lines = [
+      CSV_HEADERS.map(escapeCsvField).join(","),
+      ...currentPrompts.map((p) =>
+        [
+          p.name, p.slug, p.category, p.content_type ?? "", String(p.step_order ?? 1),
+          p.provider, p.model, p.description ?? "", p.system_prompt,
+          p.user_prompt_template, p.output_format_hint ?? "", String(p.is_active),
+        ].map(escapeCsvField).join(",")
+      ),
+    ];
+    downloadFile(lines.join("\n"), `prompts_export_${offerTypeKey}.csv`);
+    toast.success(`Экспортировано ${currentPrompts.length} промптов`);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
