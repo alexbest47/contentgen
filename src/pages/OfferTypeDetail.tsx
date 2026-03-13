@@ -126,41 +126,6 @@ export default function OfferTypeDetail() {
     },
   });
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const { data: offer, error } = await supabase
-        .from("offers")
-        .insert({
-          program_id: programId!,
-          offer_type: offerType! as any,
-          title,
-          description: description || null,
-          doc_url: docUrl || null,
-          created_by: user!.id,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      if (selectedTags.length > 0) {
-        const { error: tagErr } = await supabase.from("offer_tags").insert(
-          selectedTags.map((tag_id) => ({ offer_id: offer.id, tag_id }))
-        );
-        if (tagErr) throw tagErr;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["offers", programId, offerType] });
-      setCreateOpen(false);
-      setTitle("");
-      setDescription("");
-      setDocUrl("");
-      setSelectedTags([]);
-      toast.success("Оффер создан");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!editingId) return;
