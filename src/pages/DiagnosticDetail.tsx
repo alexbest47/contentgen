@@ -300,14 +300,33 @@ export default function DiagnosticDetail() {
   const handleStop = async () => {
     setStopping(true);
     try {
+      // Fetch current progress to preserve image counts
+      const { data: current } = await supabase
+        .from("diagnostics")
+        .select("status, generation_progress")
+        .eq("id", diagnosticId!)
+        .single();
+      const currentProgress = current?.generation_progress as any;
+      
+      const newProgress: any = {
+        error: "Остановлено пользователем",
+        stopped_at: current?.status || "generating",
+      };
+      // Preserve image progress if available
+      if (currentProgress?.total_images) {
+        newProgress.total_images = currentProgress.total_images;
+        newProgress.completed_images = currentProgress.completed_images || 0;
+      }
+
       await supabase
         .from("diagnostics")
-        .update({ status: "error", generation_progress: { error: "Остановлено пользователем" } } as any)
+        .update({ status: "error", generation_progress: newProgress } as any)
         .eq("id", diagnosticId!);
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
+      updateStepsFromStatus("error", newProgress);
       queryClient.invalidateQueries({ queryKey: ["diagnostic", diagnosticId] });
       toast.info("Генерация остановлена");
     } finally {
