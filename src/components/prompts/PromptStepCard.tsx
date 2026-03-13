@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Copy, Pencil } from "lucide-react";
+import { Copy, Pencil, Sparkles } from "lucide-react";
 import { categoryLabels, type PromptCategory } from "@/lib/promptConstants";
 
 interface PromptStepCardProps {
@@ -11,6 +11,7 @@ interface PromptStepCardProps {
   onEdit: (prompt: any) => void;
   onToggle: (id: string, is_active: boolean) => void;
   onDuplicate: (prompt: any) => void;
+  onRefine?: (prompt: any) => void;
 }
 
 export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdit, onToggle, onDuplicate }: PromptStepCardProps) {
