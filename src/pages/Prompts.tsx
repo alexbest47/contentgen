@@ -79,6 +79,20 @@ export default function Prompts() {
     setOpen(true);
   };
 
+  const openDuplicate = (prompt: any) => {
+    setEditId(null);
+    setForm({
+      name: `${prompt.name} (копия)`, slug: `${prompt.slug}-copy`,
+      description: prompt.description ?? "", provider: prompt.provider,
+      model: prompt.model, system_prompt: prompt.system_prompt,
+      user_prompt_template: prompt.user_prompt_template,
+      output_format_hint: prompt.output_format_hint ?? "", is_active: prompt.is_active,
+      content_type: prompt.content_type ?? "",
+      step_order: prompt.step_order ?? 1, offer_type: prompt.offer_type ?? "",
+    });
+    setOpen(true);
+  };
+
   const setField = (key: keyof PromptForm, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
   const offerTypesWithPrompts = OFFER_TYPES.filter((ot) =>

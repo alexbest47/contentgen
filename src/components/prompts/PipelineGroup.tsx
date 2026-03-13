@@ -7,9 +7,10 @@ interface PipelineGroupProps {
   prompts: any[];
   onEdit: (prompt: any) => void;
   onToggle: (id: string, is_active: boolean) => void;
+  onDuplicate: (prompt: any) => void;
 }
 
-export default function PipelineGroup({ groupKey, label, prompts, onEdit, onToggle }: PipelineGroupProps) {
+export default function PipelineGroup({ groupKey, label, prompts, onEdit, onToggle, onDuplicate }: PipelineGroupProps) {
   return (
     <div>
       <div className="flex items-center gap-3 mb-3">
@@ -24,6 +25,7 @@ export default function PipelineGroup({ groupKey, label, prompts, onEdit, onTogg
             showStepNumber={false}
             onEdit={onEdit}
             onToggle={onToggle}
+            onDuplicate={onDuplicate}
           />
         ))}
       </div>
