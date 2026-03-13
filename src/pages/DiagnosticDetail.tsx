@@ -341,6 +341,54 @@ export default function DiagnosticDetail() {
   const quizJson = diagnostic?.quiz_json;
   const cardPrompt = (diagnostic as any)?.card_prompt;
 
+  // Retry only image generation for stuck diagnostics
+  const handleRetryImages = async () => {
+    if (!diagnostic || !quizJson) return;
+
+    // Extract placeholders from quiz_json
+    const quizString = JSON.stringify(quizJson);
+    const placeholderRegex = /\{\{IMAGE:PROMPT=([\s\S]*?)\}\}/g;
+    const placeholders: string[] = [];
+    let m;
+    while ((m = placeholderRegex.exec(quizString)) !== null) {
+      placeholders.push(m[1]);
+    }
+
+    if (placeholders.length === 0) {
+      toast.info("Нет изображений для генерации");
+      return;
+    }
+
+    // Update status to generating_images
+    await supabase
+      .from("diagnostics")
+      .update({
+        status: "generating_images",
+        generation_progress: { total_images: placeholders.length, completed_images: 0 },
+      } as any)
+      .eq("id", diagnostic.id);
+
+    updateStepsFromStatus("generating_images", { total_images: placeholders.length, completed_images: 0 }, cardPrompt);
+
+    // Trigger image chain
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+    fetch(`https://${projectId}.supabase.co/functions/v1/process-diagnostic-image`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({
+        diagnostic_id: diagnostic.id,
+        image_index: 0,
+        placeholders,
+      }),
+    }).catch((e) => console.error("Retry image chain failed:", e));
+
+    startPolling();
+    toast.info(`Запущена генерация ${placeholders.length} изображений`);
+  };
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} скопирован`);
