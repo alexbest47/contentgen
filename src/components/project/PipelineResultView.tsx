@@ -165,7 +165,7 @@ function ImagePreviewDialog({
   );
 }
 
-export default function PipelineResultView({ jsonContent, isEmail, carouselImages, staticImage, bannerImage, onSave }: Props) {
+export default function PipelineResultView({ jsonContent, isEmail, contentType, carouselImages, staticImage, bannerImage, onSave }: Props) {
   let parsed: SocialJson | EmailJson;
   try {
     parsed = JSON.parse(jsonContent);
