@@ -16,16 +16,10 @@ const contentTypeLabels: Record<string, string> = {
   email: "Email-рассылка",
 };
 
-const subTypeLabels: Record<string, string> = {
-  announcement: "Анонс",
-  warmup: "Прогрев",
-  conversion: "Конверсия",
-};
-
 const isEmailType = (ct: string) => ct === "email";
 
 export default function ContentDetail() {
-  const { programId, offerType, offerId, projectId, contentType, subType } = useParams();
+  const { programId, offerType, offerId, projectId, contentType } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
@@ -52,24 +46,24 @@ export default function ContentDetail() {
   const getContentByCategory = (category: string) =>
     contentPieces?.find((cp) => cp.category === category);
 
-  const pipelineJson = getContentByCategory(`pipeline_json_${subType}`);
+  const pipelineJson = getContentByCategory(`pipeline_json_${contentType}`);
 
   const carouselImages = contentPieces
-    ?.filter((cp) => cp.category.startsWith(`carousel_${subType}_`))
+    ?.filter((cp) => cp.category.startsWith(`carousel_${contentType}_`))
     .map((cp) => {
       const match = cp.category.match(/carousel_\w+_(\d+)$/);
       return { slideNumber: match ? parseInt(match[1]) : 0, url: cp.content };
     })
     .sort((a, b) => a.slideNumber - b.slideNumber) ?? [];
 
-  const staticImage = getContentByCategory(`static_image_${subType}`)?.content;
-  const bannerImage = getContentByCategory(`banner_${subType}`)?.content;
+  const staticImage = getContentByCategory(`static_image_${contentType}`)?.content;
+  const bannerImage = getContentByCategory(`banner_${contentType}`)?.content;
 
   const generatePipelineMutation = useMutation({
     mutationFn: async () => {
       setGeneratingKey("pipeline");
       const { data, error } = await supabase.functions.invoke("generate-pipeline", {
-        body: { project_id: projectId, content_type: contentType, sub_type: subType },
+        body: { project_id: projectId, content_type: contentType },
       });
       if (error) throw new Error(error.message || "Ошибка генерации");
       if (data?.error) throw new Error(data.error);
@@ -86,7 +80,6 @@ export default function ContentDetail() {
     },
   });
 
-  // Progressive carousel generation — one slide at a time
   const generateCarouselProgressively = async () => {
     if (!pipelineJson) {
       toast.error("Сначала сгенерируйте контент");
@@ -123,7 +116,6 @@ export default function ContentDetail() {
           body: {
             project_id: projectId,
             content_type: contentType,
-            sub_type: subType,
             mode: "carousel",
             slide_number: prompts[i].slide_number,
           },
@@ -131,12 +123,10 @@ export default function ContentDetail() {
         if (error) throw new Error(error.message);
         if (data?.error) throw new Error(data.error);
 
-        // Refresh UI so the new image appears immediately
         await queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
       } catch (e: any) {
         console.error(`Slide ${prompts[i].slide_number} failed:`, e);
         failCount++;
-        // Continue with next slide
       }
     }
 
@@ -156,7 +146,7 @@ export default function ContentDetail() {
     mutationFn: async (mode: "static" | "banner") => {
       setGeneratingImagesKey(mode);
       const { data, error } = await supabase.functions.invoke("generate-pipeline-images", {
-        body: { project_id: projectId, content_type: contentType, sub_type: subType, mode },
+        body: { project_id: projectId, content_type: contentType, mode },
       });
       if (error) throw new Error(error.message || "Ошибка генерации изображений");
       if (data?.error) throw new Error(data.error);
@@ -181,20 +171,18 @@ export default function ContentDetail() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" onClick={() => navigate(backUrl)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">
-            {contentTypeLabels[contentType!] ?? contentType} — {subTypeLabels[subType!] ?? subType}
+            {contentTypeLabels[contentType!] ?? contentType}
           </h1>
         </div>
         <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Готово</Badge>
       </div>
 
-      {/* Actions bar */}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="outline"
@@ -252,7 +240,6 @@ export default function ContentDetail() {
         )}
       </div>
 
-      {/* Carousel progress bar */}
       {carouselProgress && (
         <div className="space-y-1">
           <Progress value={(carouselProgress.current / carouselProgress.total) * 100} className="h-2" />
@@ -262,7 +249,6 @@ export default function ContentDetail() {
         </div>
       )}
 
-      {/* Content */}
       {pipelineJson ? (
         <PipelineResultView
           jsonContent={pipelineJson.content}

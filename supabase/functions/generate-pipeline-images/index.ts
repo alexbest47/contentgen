@@ -30,7 +30,6 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
   const message = data.choices?.[0]?.message;
   let imageUrl = "";
 
-  // Lovable AI gateway returns images in message.images array
   if (Array.isArray(message?.images)) {
     for (const img of message.images) {
       if (img.image_url?.url) {
@@ -40,7 +39,6 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
     }
   }
 
-  // Fallback: check content array
   if (!imageUrl && Array.isArray(message?.content)) {
     for (const part of message.content) {
       if (part.type === "image_url" && part.image_url?.url) {
@@ -64,9 +62,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { project_id, content_type, sub_type, mode, slide_number } = await req.json();
-    if (!project_id || !content_type || !sub_type || !mode) {
-      throw new Error("project_id, content_type, sub_type, and mode are required");
+    const { project_id, content_type, mode, slide_number } = await req.json();
+    if (!project_id || !content_type || !mode) {
+      throw new Error("project_id, content_type, and mode are required");
     }
     if (!["carousel", "static", "banner"].includes(mode)) {
       throw new Error("mode must be 'carousel', 'static', or 'banner'");
@@ -84,7 +82,7 @@ serve(async (req) => {
       .from("content_pieces")
       .select("content")
       .eq("project_id", project_id)
-      .eq("category", `pipeline_json_${sub_type}`)
+      .eq("category", `pipeline_json_${content_type}`)
       .single();
     if (pieceErr || !piece) throw new Error("Сначала сгенерируйте контент (Шаг 1)");
 
@@ -97,7 +95,6 @@ serve(async (req) => {
         throw new Error("В JSON нет carousel_prompts");
       }
 
-      // If slide_number is provided, generate only that slide
       const slidesToGenerate = typeof slide_number === "number"
         ? prompts.filter((s: any) => s.slide_number === slide_number)
         : prompts;
@@ -108,7 +105,7 @@ serve(async (req) => {
 
       for (const slide of slidesToGenerate) {
         const imageData = await generateImage(slide.prompt, OPENROUTER_API_KEY);
-        const fileName = `${project_id}/${content_type}_${sub_type}_carousel_${slide.slide_number}_${Date.now()}.png`;
+        const fileName = `${project_id}/${content_type}_carousel_${slide.slide_number}_${Date.now()}.png`;
 
         const { error: uploadErr } = await supabase.storage
           .from("generated-images")
@@ -119,7 +116,7 @@ serve(async (req) => {
           .from("generated-images")
           .getPublicUrl(fileName);
 
-        const category = `carousel_${sub_type}_${slide.slide_number}`;
+        const category = `carousel_${content_type}_${slide.slide_number}`;
 
         await supabase.from("content_pieces").delete()
           .eq("project_id", project_id)
@@ -137,7 +134,7 @@ serve(async (req) => {
       if (!prompt) throw new Error("В JSON нет static_image_prompt");
 
       const imageData = await generateImage(prompt, OPENROUTER_API_KEY);
-      const fileName = `${project_id}/${content_type}_${sub_type}_static_${Date.now()}.png`;
+      const fileName = `${project_id}/${content_type}_static_${Date.now()}.png`;
 
       const { error: uploadErr } = await supabase.storage
         .from("generated-images")
@@ -148,7 +145,7 @@ serve(async (req) => {
         .from("generated-images")
         .getPublicUrl(fileName);
 
-      const category = `static_image_${sub_type}`;
+      const category = `static_image_${content_type}`;
 
       await supabase.from("content_pieces").delete()
         .eq("project_id", project_id)
@@ -165,7 +162,7 @@ serve(async (req) => {
       if (!prompt) throw new Error("В JSON нет banner_prompt");
 
       const imageData = await generateImage(prompt, OPENROUTER_API_KEY);
-      const fileName = `${project_id}/${content_type}_${sub_type}_banner_${Date.now()}.png`;
+      const fileName = `${project_id}/${content_type}_banner_${Date.now()}.png`;
 
       const { error: uploadErr } = await supabase.storage
         .from("generated-images")
@@ -176,7 +173,7 @@ serve(async (req) => {
         .from("generated-images")
         .getPublicUrl(fileName);
 
-      const category = `banner_${sub_type}`;
+      const category = `banner_${content_type}`;
 
       await supabase.from("content_pieces").delete()
         .eq("project_id", project_id)
@@ -195,7 +192,7 @@ serve(async (req) => {
       project_id,
       type: mode === "banner" ? "image_email" : mode === "carousel" ? "image_carousel" : "image_post",
       status: "completed",
-      input_data: { content_type, sub_type, mode },
+      input_data: { content_type, mode },
       output_data: { results },
       completed_at: new Date().toISOString(),
     });

@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Image, Send, Mail, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,12 +31,6 @@ const contentTypes: ContentType[] = [
   { key: "telegram", label: "Пост в Telegram", description: "Текст, карусель и изображения", icon: <Send className="h-5 w-5" />, isEmail: false },
   { key: "vk", label: "Пост в ВКонтакте", description: "Текст, карусель и изображения", icon: <Send className="h-5 w-5" />, isEmail: false },
   { key: "email", label: "Email-рассылка", description: "Тема, текст и баннер", icon: <Mail className="h-5 w-5" />, isEmail: true },
-];
-
-const subTypes = [
-  { key: "announcement", label: "Анонс", description: "Привлечь внимание" },
-  { key: "warmup", label: "Прогрев", description: "Усилить интерес" },
-  { key: "conversion", label: "Конверсия", description: "Побудить к действию" },
 ];
 
 export default function ProjectDetail() {
@@ -85,14 +78,13 @@ export default function ProjectDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prompts")
-        .select("content_type, sub_type, id")
+        .select("content_type, id")
         .eq("is_active", true)
         .not("content_type", "is", null);
       if (error) throw error;
       const counts: Record<string, number> = {};
       data?.forEach((p: any) => {
-        const key = `${p.content_type}::${p.sub_type}`;
-        counts[key] = (counts[key] || 0) + 1;
+        counts[p.content_type] = (counts[p.content_type] || 0) + 1;
       });
       return counts;
     },
@@ -119,15 +111,14 @@ export default function ProjectDetail() {
   });
 
   const generatePipelineMutation = useMutation({
-    mutationFn: async ({ contentType, subType }: { contentType: string; subType: string }) => {
-      const key = `${contentType}::${subType}`;
-      setGeneratingKey(key);
+    mutationFn: async (contentType: string) => {
+      setGeneratingKey(contentType);
       const { data, error } = await supabase.functions.invoke("generate-pipeline", {
-        body: { project_id: projectId, content_type: contentType, sub_type: subType },
+        body: { project_id: projectId, content_type: contentType },
       });
       if (error) throw new Error(error.message || "Ошибка генерации");
       if (data?.error) throw new Error(data.error);
-      return { data, key };
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
@@ -140,8 +131,8 @@ export default function ProjectDetail() {
     },
   });
 
-  const getPipelineJson = (subType: string) =>
-    contentPieces?.find((cp) => cp.category === `pipeline_json_${subType}`);
+  const getPipelineJson = (contentType: string) =>
+    contentPieces?.find((cp) => cp.category === `pipeline_json_${contentType}`);
 
   const isLeadSelected = project?.status === "lead_selected" || project?.status === "completed";
   const visibleLeadMagnets = isLeadSelected
@@ -192,88 +183,63 @@ export default function ProjectDetail() {
       )}
 
       {showContentGeneration && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <h2 className="text-lg font-semibold">Создание контента</h2>
-          {contentTypes.map((ct) => (
-            <Card key={ct.key}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="text-muted-foreground">{ct.icon}</div>
-                  <div>
-                    <CardTitle className="text-base">{ct.label}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{ct.description}</p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Тип</TableHead>
-                      <TableHead className="w-[100px] text-center">Статус</TableHead>
-                      <TableHead className="w-[180px] text-right">Действие</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {subTypes.map((st) => {
-                      const pipelineKey = `${ct.key}::${st.key}`;
-                      const stepCount = pipelineCounts?.[pipelineKey] || 0;
-                      const isGenerating = generatingKey === pipelineKey;
-                      const hasContent = !!getPipelineJson(st.key);
+          <div className="grid gap-4 md:grid-cols-2">
+            {contentTypes.map((ct) => {
+              const isGenerating = generatingKey === ct.key;
+              const hasContent = !!getPipelineJson(ct.key);
+              const stepCount = pipelineCounts?.[ct.key] || 0;
+              const contentUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}/content/${ct.key}`;
 
-                      const contentUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}/content/${ct.key}/${st.key}`;
-
-                      return (
-                        <TableRow
-                          key={st.key}
-                          className={hasContent ? "cursor-pointer" : ""}
-                          onClick={() => hasContent && navigate(contentUrl)}
-                        >
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div>
-                                <p className="font-medium text-sm">{st.label}</p>
-                                <p className="text-xs text-muted-foreground">{st.description}</p>
-                              </div>
-                              {hasContent && <ExternalLink className="h-3 w-3 text-muted-foreground" />}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {hasContent && (
-                              <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-                                Готово
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant={hasContent ? "outline" : "default"}
-                              className="text-xs h-7"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                generatePipelineMutation.mutate({ contentType: ct.key, subType: st.key });
-                              }}
-                              disabled={isGenerating || (!!generatingKey && generatingKey !== pipelineKey) || stepCount === 0}
-                            >
-                              {isGenerating ? (
-                                <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
-                              ) : hasContent ? (
-                                <><RefreshCw className="mr-1 h-3 w-3" />Обновить</>
-                              ) : (
-                                <><Sparkles className="mr-1 h-3 w-3" />Создать</>
-                              )}
-                            </Button>
-                            {stepCount === 0 && <p className="text-xs text-destructive mt-1">Нет промптов</p>}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          ))}
+              return (
+                <Card
+                  key={ct.key}
+                  className={`transition-all ${hasContent ? "cursor-pointer hover:border-primary/50" : ""}`}
+                  onClick={() => hasContent && navigate(contentUrl)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-muted-foreground">{ct.icon}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-base">{ct.label}</CardTitle>
+                          {hasContent && (
+                            <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                              Готово
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{ct.description}</p>
+                      </div>
+                      {hasContent && <ExternalLink className="h-4 w-4 text-muted-foreground" />}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <Button
+                      size="sm"
+                      variant={hasContent ? "outline" : "default"}
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        generatePipelineMutation.mutate(ct.key);
+                      }}
+                      disabled={isGenerating || (!!generatingKey && generatingKey !== ct.key) || stepCount === 0}
+                    >
+                      {isGenerating ? (
+                        <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
+                      ) : hasContent ? (
+                        <><RefreshCw className="mr-1 h-3 w-3" />Обновить</>
+                      ) : (
+                        <><Sparkles className="mr-1 h-3 w-3" />Создать</>
+                      )}
+                    </Button>
+                    {stepCount === 0 && <p className="text-xs text-destructive mt-1 text-center">Нет промптов</p>}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

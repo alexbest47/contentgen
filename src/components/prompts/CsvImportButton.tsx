@@ -24,23 +24,17 @@ interface CsvImportButtonProps {
 }
 
 const CSV_HEADERS = [
-  "name","slug","category","content_type","sub_type","step_order",
+  "name","slug","category","content_type","step_order",
   "provider","model","description","system_prompt","user_prompt_template",
   "output_format_hint","is_active",
 ] as const;
 
 const TEMPLATE_ROWS = [
   [
-    "Текст поста Instagram Анонс","text-ig-announce","text_instagram","instagram","announcement","1",
+    "Текст поста + Imagen-промпты: Instagram","text-ig-post","text_instagram","instagram","1",
     "anthropic","claude-sonnet-4-20250514","Генерация текста поста для Instagram",
-    "Ты — опытный копирайтер для Instagram.","Напиши пост-анонс для мини-курса {{program_title}}. Целевая аудитория: {{audience}}.",
-    "Верни текст поста в формате markdown","true",
-  ],
-  [
-    "Текст поста Instagram Прогрев","text-ig-warmup","text_instagram","instagram","warmup","2",
-    "anthropic","claude-sonnet-4-20250514","Прогревающий пост для Instagram",
-    "Ты — опытный копирайтер для Instagram.","Напиши прогревающий пост для {{program_title}}.",
-    "Верни текст поста в формате markdown","true",
+    "Ты — опытный копирайтер для Instagram.","Напиши пост для мини-курса {{program_title}}. Целевая аудитория: {{audience_description}}.",
+    "Верни JSON с текстом и промптами для изображений","true",
   ],
 ];
 
@@ -130,7 +124,6 @@ export default function CsvImportButton({ offerTypeKey, existingCount }: CsvImpo
             row[h] = values[idx]?.trim() ?? "";
           });
 
-          // Validate category
           if (!categories.includes(row.category as PromptCategory)) {
             toast.error(`Строка ${i + 1}: неизвестная категория "${row.category}". Допустимые: ${categories.join(", ")}`);
             return;
@@ -139,7 +132,6 @@ export default function CsvImportButton({ offerTypeKey, existingCount }: CsvImpo
           row.step_order = parseInt(row.step_order, 10) || 1;
           row.is_active = row.is_active?.toLowerCase() !== "false";
           row.content_type = row.content_type || null;
-          row.sub_type = row.sub_type || null;
           row.description = row.description || null;
           row.output_format_hint = row.output_format_hint || null;
           rows.push(row);
@@ -157,27 +149,24 @@ export default function CsvImportButton({ offerTypeKey, existingCount }: CsvImpo
       }
     };
     reader.readAsText(file);
-    // Reset so the same file can be re-selected
     e.target.value = "";
   };
 
   const doImport = async () => {
     setImporting(true);
     try {
-      // 1. Delete existing prompts for this offer_type
       const { error: delError } = await supabase
         .from("prompts")
         .delete()
         .eq("offer_type", offerTypeKey);
       if (delError) throw delError;
 
-      // 2. Insert new prompts with offer_type forced
       const toInsert = parsedRows.map((r) => ({
         name: r.name,
         slug: r.slug,
         category: r.category,
         content_type: r.content_type,
-        sub_type: r.sub_type,
+        sub_type: null,
         step_order: r.step_order,
         provider: r.provider,
         model: r.model,
