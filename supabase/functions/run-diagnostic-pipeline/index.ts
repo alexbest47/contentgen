@@ -193,7 +193,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: prompt.model || "claude-sonnet-4-20250514",
-        max_tokens: 8000,
+        max_tokens: 16000,
         system: prompt.system_prompt,
         messages: [{ role: "user", content: userPrompt }],
       }),
