@@ -148,6 +148,9 @@ export default function DiagnosticDetail() {
       const progress = data.generation_progress as any;
       updateStepsFromStatus(data.status, progress);
 
+      // Update React Query cache with latest data so results render immediately
+      queryClient.setQueryData(["diagnostic", diagnosticId], (old: any) => old ? { ...old, status: data.status, generation_progress: data.generation_progress, quiz_json: data.quiz_json, thank_you_json: (data as any).thank_you_json, card_prompt: (data as any).card_prompt } : old);
+
       if (!ACTIVE_STATUSES.includes(data.status)) {
         // Stop polling
         if (pollingRef.current) {
