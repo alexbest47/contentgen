@@ -27,6 +27,7 @@ export default function PipelineGroup({ groupKey, label, prompts, onEdit, onTogg
             onEdit={onEdit}
             onToggle={onToggle}
             onDuplicate={onDuplicate}
+            onRefine={onRefine}
           />
         ))}
       </div>

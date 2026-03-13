@@ -37,6 +37,11 @@ export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdi
               checked={p.is_active}
               onCheckedChange={(v) => onToggle(p.id, v)}
             />
+            {onRefine && (
+              <Button variant="ghost" size="icon" onClick={() => onRefine(p)} title="Доработать с AI">
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={() => onDuplicate(p)} title="Дублировать">
               <Copy className="h-4 w-4" />
             </Button>
