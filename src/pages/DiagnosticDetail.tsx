@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Copy, Download, Play, Plus, Save,
 } from "lucide-react";
@@ -21,16 +22,15 @@ interface GenerationStep {
   detail?: string;
 }
 
+const ACTIVE_STATUSES = ["generating", "quiz_generated", "generating_images"];
+
 export default function DiagnosticDetail() {
   const { diagnosticId } = useParams<{ diagnosticId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [generating, setGenerating] = useState(false);
   const [steps, setSteps] = useState<GenerationStep[]>([]);
-  const [failedImages, setFailedImages] = useState(0);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [showError, setShowError] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Draft editing state
   const [editName, setEditName] = useState("");
@@ -64,6 +64,93 @@ export default function DiagnosticDetail() {
     setEditTags((diagnostic.audience_tags as string[]) || []);
     setDraftInitialized(true);
   }
+
+  // Derive steps from diagnostic status
+  const updateStepsFromStatus = useCallback((status: string, progress: any) => {
+    const s: GenerationStep[] = [
+      { label: "Генерация структуры теста", status: "pending" },
+      { label: "Создание изображений", status: "pending" },
+      { label: "Готово", status: "pending" },
+    ];
+
+    if (status === "generating") {
+      s[0].status = "active";
+    } else if (status === "quiz_generated") {
+      s[0].status = "done";
+      s[1].status = "active";
+      if (progress?.total_images) {
+        s[1].detail = `0 из ${progress.total_images}`;
+      }
+    } else if (status === "generating_images") {
+      s[0].status = "done";
+      s[1].status = "active";
+      if (progress?.total_images) {
+        const done = progress.completed_images || 0;
+        s[1].detail = `${done} из ${progress.total_images}`;
+      }
+    } else if (status === "ready") {
+      s[0].status = "done";
+      s[1].status = "done";
+      if (progress?.failed_images > 0) {
+        s[1].detail = `${progress.failed_images} не удалось`;
+      }
+      s[2].status = "done";
+    } else if (status === "error") {
+      s[0].status = progress?.error ? "error" : "done";
+      if (progress?.total_images !== undefined) {
+        s[0].status = "done";
+        s[1].status = "error";
+      }
+    }
+
+    setSteps(s);
+  }, []);
+
+  // Polling logic
+  const startPolling = useCallback(() => {
+    if (pollingRef.current) return;
+    pollingRef.current = setInterval(async () => {
+      const { data } = await supabase
+        .from("diagnostics")
+        .select("status, generation_progress, quiz_json")
+        .eq("id", diagnosticId!)
+        .single();
+
+      if (!data) return;
+
+      const progress = data.generation_progress as any;
+      updateStepsFromStatus(data.status, progress);
+
+      if (!ACTIVE_STATUSES.includes(data.status)) {
+        // Stop polling
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+        queryClient.invalidateQueries({ queryKey: ["diagnostic", diagnosticId] });
+        if (data.status === "ready") {
+          toast.success("Диагностика сгенерирована!");
+        } else if (data.status === "error") {
+          toast.error("Ошибка при генерации");
+        }
+      }
+    }, 5000);
+  }, [diagnosticId, queryClient, updateStepsFromStatus]);
+
+  // Auto-start polling if status is active on page load
+  useEffect(() => {
+    if (diagnostic && ACTIVE_STATUSES.includes(diagnostic.status)) {
+      const progress = diagnostic.generation_progress as any;
+      updateStepsFromStatus(diagnostic.status, progress);
+      startPolling();
+    }
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [diagnostic?.status]);
 
   const { data: program } = useQuery({
     queryKey: ["program", diagnostic?.program_id],
@@ -114,7 +201,6 @@ export default function DiagnosticDetail() {
     enabled: diagnostic?.status === "draft",
   });
 
-
   const toggleTag = (tagName: string) => {
     setEditTags((prev) =>
       prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]
@@ -153,15 +239,6 @@ export default function DiagnosticDetail() {
     }
   };
 
-  const updateStep = useCallback(
-    (index: number, update: Partial<GenerationStep>) => {
-      setSteps((prev) =>
-        prev.map((s, i) => (i === index ? { ...s, ...update } : s))
-      );
-    },
-    []
-  );
-
   const handleGenerate = async () => {
     if (!diagnostic) return;
 
@@ -171,118 +248,34 @@ export default function DiagnosticDetail() {
       return;
     }
 
-    setSteps([
-      { label: "Генерация структуры теста", status: "pending" },
-      { label: "Создание изображений", status: "pending" },
-      { label: "Сборка финального файла", status: "pending" },
-      { label: "Готово", status: "pending" },
-    ]);
-    setGenerating(true);
-    setFailedImages(0);
-    setErrorMessage("");
-    setShowError(false);
+    // Update status immediately
+    await supabase
+      .from("diagnostics")
+      .update({ status: "generating", generation_progress: null } as any)
+      .eq("id", diagnostic.id);
 
-    try {
-      await supabase
-        .from("diagnostics")
-        .update({ status: "generating" } as any)
-        .eq("id", diagnostic.id);
+    updateStepsFromStatus("generating", null);
 
-      updateStep(0, { status: "active" });
+    // Fire-and-forget call to pipeline
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-diagnostic-pipeline`;
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({
+        diagnostic_id: diagnostic.id,
+        program_id: diagnostic.program_id,
+        name: diagnostic.name,
+        description: diagnostic.description || "",
+        audience_tags: diagnostic.audience_tags || [],
+        prompt_id: promptId,
+      }),
+    }).catch((err) => console.error("Pipeline call failed:", err));
 
-      const { data: quizData, error: quizErr } = await supabase.functions.invoke(
-        "generate-diagnostic",
-        {
-          body: {
-            diagnostic_id: diagnostic.id,
-            program_id: diagnostic.program_id,
-            name: diagnostic.name,
-            description: diagnostic.description || "",
-            audience_tags: diagnostic.audience_tags || [],
-            prompt_id: promptId,
-          },
-        }
-      );
-
-      if (quizErr || quizData?.error) {
-        throw new Error(quizData?.error || quizErr?.message || "Ошибка генерации");
-      }
-
-      updateStep(0, { status: "done" });
-
-      const quizJson = quizData.quiz_json;
-      const placeholders: string[] = quizData.image_placeholders || [];
-
-      updateStep(1, { status: "active", detail: `0 из ${placeholders.length}` });
-
-      let currentJson = JSON.stringify(quizJson);
-      let failed = 0;
-
-      for (let i = 0; i < placeholders.length; i++) {
-        updateStep(1, { status: "active", detail: `${i + 1} из ${placeholders.length}` });
-
-        try {
-          const { data: imgData, error: imgErr } = await supabase.functions.invoke(
-            "generate-diagnostic-images",
-            {
-              body: {
-                diagnostic_id: diagnostic.id,
-                image_description: placeholders[i],
-                placeholder_index: i,
-              },
-            }
-          );
-
-          if (imgErr || imgData?.error) {
-            console.error("Image error:", imgData?.error || imgErr);
-            failed++;
-            continue;
-          }
-
-          if (imgData?.image_url) {
-            const placeholder = `{{IMAGE:PROMPT=${placeholders[i]}}}`;
-            currentJson = currentJson.split(placeholder).join(imgData.image_url);
-          } else {
-            failed++;
-          }
-        } catch (e) {
-          console.error("Image generation error:", e);
-          failed++;
-        }
-      }
-
-      updateStep(1, { status: "done", detail: failed > 0 ? `${failed} не удалось` : undefined });
-      setFailedImages(failed);
-
-      updateStep(2, { status: "active" });
-
-      currentJson = currentJson.replace(/\{\{IMAGE:[^}]+\}\}/g, "null");
-      const finalJson = JSON.parse(currentJson);
-
-      await supabase
-        .from("diagnostics")
-        .update({ quiz_json: finalJson, status: "ready" } as any)
-        .eq("id", diagnostic.id);
-
-      updateStep(2, { status: "done" });
-      updateStep(3, { status: "done" });
-
-      queryClient.invalidateQueries({ queryKey: ["diagnostic", diagnosticId] });
-      toast.success("Диагностика сгенерирована!");
-    } catch (err: any) {
-      console.error("Generation error:", err);
-      setErrorMessage(err.message || "Неизвестная ошибка");
-      setShowError(true);
-
-      await supabase
-        .from("diagnostics")
-        .update({ status: "error" } as any)
-        .eq("id", diagnostic.id);
-
-      toast.error("Ошибка при генерации");
-    } finally {
-      setGenerating(false);
-    }
+    // Start polling
+    startPolling();
   };
 
   const quizJson = diagnostic?.quiz_json;
@@ -322,6 +315,9 @@ export default function DiagnosticDetail() {
 
   const isReady = diagnostic.status === "ready" && quizJson;
   const isDraft = diagnostic.status === "draft";
+  const isGenerating = ACTIVE_STATUSES.includes(diagnostic.status);
+  const isError = diagnostic.status === "error";
+  const progress = diagnostic.generation_progress as any;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -409,7 +405,7 @@ export default function DiagnosticDetail() {
                 {savingDraft ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                 Сохранить изменения
               </Button>
-              <Button onClick={handleGenerate} disabled={generating} variant="secondary">
+              <Button onClick={handleGenerate} disabled={isGenerating} variant="secondary">
                 <Play className="h-4 w-4 mr-2" />
                 Сгенерировать
               </Button>
@@ -419,7 +415,7 @@ export default function DiagnosticDetail() {
       )}
 
       {/* Non-draft info table */}
-      {!isDraft && (
+      {!isDraft && !isGenerating && (
         <Table>
           <TableHeader>
             <TableRow>
@@ -433,12 +429,10 @@ export default function DiagnosticDetail() {
               <TableCell className="font-medium">{program?.title || "—"}</TableCell>
               <TableCell>{diagnostic.name}</TableCell>
               <TableCell className="text-right">
-                {!generating && !showError && (
-                  <Button onClick={handleGenerate} size="sm">
-                    <Play className="h-4 w-4 mr-2" />
-                    {isReady ? "Перегенерировать" : "Сгенерировать"}
-                  </Button>
-                )}
+                <Button onClick={handleGenerate} size="sm">
+                  <Play className="h-4 w-4 mr-2" />
+                  {isReady ? "Перегенерировать" : "Сгенерировать"}
+                </Button>
               </TableCell>
             </TableRow>
           </TableBody>
@@ -446,7 +440,7 @@ export default function DiagnosticDetail() {
       )}
 
       {/* Generation progress */}
-      {steps.length > 0 && (
+      {steps.length > 0 && (isGenerating || steps.some(s => s.status !== "pending")) && (
         <Card>
           <CardHeader>
             <CardTitle>Прогресс генерации</CardTitle>
@@ -474,17 +468,30 @@ export default function DiagnosticDetail() {
                 )}
               </div>
             ))}
+
+            {/* Progress bar for images */}
+            {progress?.total_images > 0 && isGenerating && (
+              <div className="pt-2">
+                <Progress
+                  value={((progress.completed_images || 0) / progress.total_images) * 100}
+                  className="h-2"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {progress.completed_images || 0} из {progress.total_images} изображений
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Error */}
-      {showError && (
+      {isError && (
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="pt-4 space-y-3">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-              <p className="text-sm">{errorMessage || "Неизвестная ошибка"}</p>
+              <p className="text-sm">{progress?.error || "Неизвестная ошибка"}</p>
             </div>
             <Button variant="outline" size="sm" onClick={handleGenerate}>
               <Play className="h-4 w-4 mr-2" />
@@ -497,12 +504,12 @@ export default function DiagnosticDetail() {
       {/* Result */}
       {isReady && (
         <>
-          {failedImages > 0 && (
+          {progress?.failed_images > 0 && (
             <Card className="border-accent/50 bg-accent/5">
               <CardContent className="pt-4 flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-accent-foreground shrink-0 mt-0.5" />
                 <p className="text-sm">
-                  {failedImages} изображени{failedImages === 1 ? "е" : failedImages < 5 ? "я" : "й"} не удалось сгенерировать.
+                  {progress.failed_images} изображени{progress.failed_images === 1 ? "е" : progress.failed_images < 5 ? "я" : "й"} не удалось сгенерировать.
                 </p>
               </CardContent>
             </Card>

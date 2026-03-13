@@ -20,3 +20,12 @@ verify_jwt = false
 
 [functions.generate-pipeline-images]
 verify_jwt = false
+
+[functions.generate-diagnostic]
+verify_jwt = false
+
+[functions.generate-diagnostic-images]
+verify_jwt = false
+
+[functions.run-diagnostic-pipeline]
+verify_jwt = false
