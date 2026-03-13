@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Plus, Loader2, Eye, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,6 +32,7 @@ export default function Diagnostics() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingDiag, setEditingDiag] = useState<{ id: string; name: string; description: string } | null>(null);
 
   const { data: diagnostics, isLoading } = useQuery({
     queryKey: ["diagnostics"],
@@ -72,6 +77,21 @@ export default function Diagnostics() {
   });
 
   const programMap = Object.fromEntries((programs || []).map((p) => [p.id, p.title]));
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, name, description }: { id: string; name: string; description: string }) => {
+      const { error } = await supabase.from("diagnostics").update({ name, description }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["diagnostics"] });
+      toast.success("Диагностика обновлена");
+      setEditingDiag(null);
+    },
+    onError: () => {
+      toast.error("Не удалось обновить диагностику");
+    },
+  });
 
   const handleRegenerate = async (d: any) => {
     const { error } = await supabase
@@ -158,6 +178,14 @@ export default function Diagnostics() {
                           </>
                         )}
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingDiag({ id: d.id, name: d.name, description: d.description || "" })}
+                        title="Редактировать название/описание"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       {(d.status === "ready" || d.status === "error") && (
                         <Button
                           variant="ghost"
@@ -207,6 +235,40 @@ export default function Diagnostics() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!editingDiag} onOpenChange={(open) => !open && setEditingDiag(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать диагностику</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Название</Label>
+              <Input
+                value={editingDiag?.name || ""}
+                onChange={(e) => setEditingDiag((prev) => prev ? { ...prev, name: e.target.value } : null)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Описание</Label>
+              <Textarea
+                value={editingDiag?.description || ""}
+                onChange={(e) => setEditingDiag((prev) => prev ? { ...prev, description: e.target.value } : null)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingDiag(null)}>Отмена</Button>
+            <Button
+              disabled={updateMutation.isPending || !editingDiag?.name.trim()}
+              onClick={() => editingDiag && updateMutation.mutate(editingDiag)}
+            >
+              {updateMutation.isPending ? "Сохранение..." : "Сохранить"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
