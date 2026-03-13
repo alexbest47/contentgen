@@ -211,59 +211,39 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: false, cancelled: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ---- Steps 2a & 2b: Card prompt + Images in PARALLEL ----
+    // ---- Steps 2a & 2b: Card prompt + Images — both fire-and-forget ----
 
-    // 2a: Card prompt generation (async, saves to DB independently)
-    let cardPromptPromise: Promise<void> | null = null;
+    // 2a: Fire-and-forget card prompt generation (separate edge function)
     if (prompt2) {
-      const userPrompt2 = buildUserPrompt(prompt2.user_prompt_template, templateVars, prompt2.output_format_hint);
-      if (userPrompt2.trim()) {
-        console.log(`[pipeline] Step 2a: Starting card prompt generation (parallel)`);
-        cardPromptPromise = (async () => {
-          try {
-            const rawContent2 = await callClaude(ANTHROPIC_API_KEY, prompt2.system_prompt, userPrompt2, prompt2.model);
-            console.log("[pipeline] Step 2a response length:", rawContent2.length);
-
-            let cardPromptValue: string;
-            try {
-              const parsed = extractJsonFromResponse(rawContent2);
-              cardPromptValue = typeof parsed === "string" ? parsed : JSON.stringify(parsed);
-            } catch {
-              cardPromptValue = rawContent2
-                .replace(/```[a-z]*\s*/gi, "")
-                .replace(/```\s*/g, "")
-                .trim();
-            }
-
-            await supabase
-              .from("diagnostics")
-              .update({ card_prompt: cardPromptValue })
-              .eq("id", diagnostic_id);
-            console.log("[pipeline] Step 2a: Card prompt saved.");
-          } catch (e) {
-            console.error("[pipeline] Step 2a error (card prompt):", e instanceof Error ? e.message : e);
-            // Non-fatal: card prompt failure shouldn't block images
-          }
-        })();
-      }
+      console.log(`[pipeline] Step 2a: Triggering generate-card-prompt (fire-and-forget)`);
+      fetch(`${SUPABASE_URL}/functions/v1/generate-card-prompt`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({ diagnostic_id, program_id, name, description, audience_tags }),
+      }).catch((e) => console.error("[pipeline] Failed to trigger card prompt:", e));
     }
 
     // 2b: Image generation chain
     if (placeholders.length === 0) {
-      // No images — wait for card prompt and finish
-      if (cardPromptPromise) await cardPromptPromise;
-      await supabase
-        .from("diagnostics")
-        .update({ status: "ready", generation_progress: { total_images: 0, completed_images: 0 } })
-        .eq("id", diagnostic_id);
-      console.log("[pipeline] No images to generate. Status set to ready.");
+      // No images — card prompt function will set status to ready when done
+      if (!prompt2) {
+        await supabase
+          .from("diagnostics")
+          .update({ status: "ready", generation_progress: { total_images: 0, completed_images: 0 } })
+          .eq("id", diagnostic_id);
+        console.log("[pipeline] No images and no card prompt. Status set to ready.");
+      } else {
+        console.log("[pipeline] No images. Card prompt running independently.");
+      }
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     if (!OPENROUTER_API_KEY) {
       console.error("[pipeline] OPENROUTER_API_KEY not configured, skipping images.");
-      if (cardPromptPromise) await cardPromptPromise;
       await supabase
         .from("diagnostics")
         .update({ status: "ready", generation_progress: { total_images: placeholders.length, completed_images: 0, failed_images: placeholders.length, error: "OPENROUTER_API_KEY not configured" } })
@@ -271,7 +251,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, warning: "No OPENROUTER_API_KEY" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Set status to generating_images immediately (card prompt saves in background)
+    // Set status to generating_images
     await supabase
       .from("diagnostics")
       .update({ status: "generating_images", generation_progress: { total_images: placeholders.length, completed_images: 0 } })
@@ -291,10 +271,7 @@ serve(async (req) => {
       }),
     }).catch((e) => console.error("[pipeline] Failed to trigger image chain:", e));
 
-    console.log(`[pipeline] Steps 2a+2b: Card prompt + image chain running in parallel (${placeholders.length} images).`);
-
-    // Wait for card prompt to finish before returning (don't lose errors)
-    if (cardPromptPromise) await cardPromptPromise;
+    console.log(`[pipeline] Steps 2a+2b triggered (fire-and-forget). ${placeholders.length} images.`);
 
     return new Response(
       JSON.stringify({ success: true }),
