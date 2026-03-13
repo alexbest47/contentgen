@@ -187,6 +187,11 @@ export default function ContentDetail() {
           <h1 className="text-2xl font-bold">
             {contentTypeLabels[contentType!] ?? contentType}
           </h1>
+          {promptInfo?.[0] && (
+            <p className="text-xs text-muted-foreground">
+              Промпт: «{promptInfo[0].name}»
+            </p>
+          )}
         </div>
         <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Готово</Badge>
       </div>

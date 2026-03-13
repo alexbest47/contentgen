@@ -367,6 +367,11 @@ export default function OfferTypeDetail() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{typeLabel}</h1>
           <p className="text-muted-foreground">{program?.title}</p>
+          {!isDiagnosticType && leadPromptInfo?.[0] && (
+            <p className="text-xs text-muted-foreground">
+              Промпт лид-магнитов: «{leadPromptInfo[0].name}»
+            </p>
+          )}
         </div>
         {!isDiagnosticType && (
           <Button onClick={() => setCreateOpen(true)}>
