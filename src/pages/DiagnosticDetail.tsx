@@ -278,7 +278,6 @@ export default function DiagnosticDetail() {
           status: data.status,
           generation_progress: data.generation_progress,
           quiz_json: data.quiz_json,
-          thank_you_json: (data as any).thank_you_json,
           card_prompt: (data as any).card_prompt,
         } : old
       );
