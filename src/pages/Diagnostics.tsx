@@ -34,7 +34,7 @@ export default function Diagnostics() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("diagnostics")
-        .select("id, name, status, created_at, program_id")
+        .select("id, name, status, created_at, program_id, prompt_id, description, audience_tags")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
