@@ -228,7 +228,7 @@ function EmailView({
 }) {
   const [subject, setSubject] = useState(data.email_subject || "");
   const [body, setBody] = useState(data.email_body || data.email_body_html || "");
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  
   const { data: settings } = useEmailSettings();
 
   const headerHtml = settings?.email_header_html || "";
