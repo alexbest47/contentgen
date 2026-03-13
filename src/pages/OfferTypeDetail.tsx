@@ -14,6 +14,7 @@ import { ChevronRight, ArrowLeft, Pencil, Trash2, Plus, Sparkles, Loader2 } from
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
+import { usePromptInfo } from "@/hooks/usePromptInfo";
 
 interface OfferFormProps {
   title: string;
