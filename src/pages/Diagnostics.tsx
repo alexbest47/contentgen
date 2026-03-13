@@ -158,6 +158,16 @@ export default function Diagnostics() {
                           </>
                         )}
                       </Button>
+                      {(d.status === "ready" || d.status === "error") && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRegenerate(d)}
+                          title="Перегенерировать"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
