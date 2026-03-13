@@ -164,6 +164,11 @@ export default function OfferDetail() {
             {progressText || "Сгенерировать лид-магниты"}
           </Button>
       </div>
+      {promptInfo?.[0] && (
+        <p className="text-xs text-muted-foreground -mt-4">
+          Промпт: «{promptInfo[0].name}»
+        </p>
+      )}
 
 
       {isLoading ? (
