@@ -37,7 +37,8 @@ export default function ProgramDetail() {
         title: editTitle,
         description: editDescription || null,
         audience_doc_url: editAudienceUrl || null,
-      }).eq("id", programId!);
+        program_doc_url: editProgramDocUrl || null,
+      } as any).eq("id", programId!);
       if (error) throw error;
     },
     onSuccess: () => {
