@@ -158,8 +158,8 @@ serve(async (req) => {
 
       results.push({ category, url: publicUrlData.publicUrl });
     } else if (mode === "banner") {
-      const prompt = pipelineJson.banner_prompt;
-      if (!prompt) throw new Error("В JSON нет banner_prompt");
+      const prompt = pipelineJson.banner_prompt || pipelineJson.banner_image_prompt;
+      if (!prompt) throw new Error("В JSON нет banner_prompt / banner_image_prompt");
 
       const imageData = await generateImage(prompt, OPENROUTER_API_KEY);
       const fileName = `${project_id}/${content_type}_banner_${Date.now()}.png`;
