@@ -178,6 +178,14 @@ export default function Diagnostics() {
                           </>
                         )}
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingDiag({ id: d.id, name: d.name, description: d.description || "" })}
+                        title="Редактировать название/описание"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       {(d.status === "ready" || d.status === "error") && (
                         <Button
                           variant="ghost"
