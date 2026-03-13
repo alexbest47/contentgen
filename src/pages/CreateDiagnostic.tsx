@@ -376,7 +376,7 @@ export default function CreateDiagnostic() {
     return (
       <div className="space-y-6 max-w-2xl">
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-6 w-6 text-green-500" />
+          <CheckCircle2 className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold">Диагностика создана</h1>
         </div>
 
