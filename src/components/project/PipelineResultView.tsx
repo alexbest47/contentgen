@@ -21,9 +21,11 @@ interface SocialJson {
 }
 
 interface EmailJson {
-  email_subject: string;
-  email_body: string;
-  banner_prompt: string;
+  email_subject?: string;
+  email_body?: string;
+  email_body_html?: string;
+  banner_prompt?: string;
+  banner_image_prompt?: string;
 }
 
 interface Props {
@@ -224,8 +226,8 @@ function EmailView({
   onSave?: (json: string) => void;
   copyHtmlRef?: React.MutableRefObject<(() => void) | null>;
 }) {
-  const [subject, setSubject] = useState(data.email_subject);
-  const [body, setBody] = useState(data.email_body);
+  const [subject, setSubject] = useState(data.email_subject || "");
+  const [body, setBody] = useState(data.email_body || data.email_body_html || "");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { data: settings } = useEmailSettings();
 
@@ -233,9 +235,9 @@ function EmailView({
   const footerHtml = settings?.email_footer_html || "";
 
   useEffect(() => {
-    setSubject(data.email_subject);
-    setBody(data.email_body);
-  }, [data.email_subject, data.email_body]);
+    setSubject(data.email_subject || "");
+    setBody(data.email_body || data.email_body_html || "");
+  }, [data.email_subject, data.email_body, data.email_body_html]);
 
   const bodyWithBanner = bannerImage
     ? body.replace(/\{\{banner_image_url\}\}/g, bannerImage)
