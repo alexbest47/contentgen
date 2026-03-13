@@ -220,13 +220,7 @@ serve(async (req) => {
 
       console.log(`[pipeline] Step 1.5: Calling Claude for card prompt`);
 
-      const resultTypes = quizPart.resultTypes || quizPart.result_types || [];
-      const step2Vars = {
-        ...templateVars,
-        result_types_json: JSON.stringify(resultTypes, null, 2),
-      };
-
-      const userPrompt2 = buildUserPrompt(prompt2.user_prompt_template, step2Vars, prompt2.output_format_hint);
+      const userPrompt2 = buildUserPrompt(prompt2.user_prompt_template, templateVars, prompt2.output_format_hint);
       if (!userPrompt2.trim()) {
         console.warn("[pipeline] Step 1.5 user prompt is empty, skipping card prompt generation.");
       } else {

@@ -755,31 +755,7 @@ export default function DiagnosticDetail() {
         </Card>
       )}
 
-      {/* Block 2: Thank You Page JSON */}
-      {thankYouJson && (
-        <Card>
-          <CardHeader>
-            <CardTitle>JSON страницы «Спасибо»</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
-              {JSON.stringify(thankYouJson, null, 2)}
-            </pre>
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => copyToClipboard(JSON.stringify(thankYouJson, null, 2), "JSON страницы «Спасибо»")} variant="outline">
-                <Copy className="h-4 w-4 mr-2" />
-                Скопировать
-              </Button>
-              <Button onClick={() => downloadFile(JSON.stringify(thankYouJson, null, 2), "thank_you.json")} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Скачать JSON
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Block 3: Diagnostic Card Prompt */}
+      {/* Block 2: Diagnostic Card Prompt */}
       {cardPrompt && (
         <Card>
           <CardHeader>
