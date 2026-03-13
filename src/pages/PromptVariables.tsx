@@ -13,6 +13,7 @@ const variables = [
   { name: "{{test_name}}", description: "Название диагностики / теста", source: "diagnostics.name" },
   { name: "{{test_description}}", description: "Описание диагностики / теста", source: "diagnostics.description" },
   { name: "{{audience_tags}}", description: "Теги аудитории диагностики (через запятую)", source: "diagnostics.audience_tags" },
+  { name: "{{result_types_json}}", description: "JSON-массив типов результатов теста (из quiz, полученного на шаге 1)", source: "quiz_json.resultTypes (автоподстановка)" },
 ];
 
 export default function PromptVariables() {

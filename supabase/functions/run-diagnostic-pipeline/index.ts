@@ -61,37 +61,27 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
 }
 
 function extractJsonFromResponse(content: string): unknown {
-  // Remove markdown code blocks
   let cleaned = content
     .replace(/```json\s*/gi, "")
     .replace(/```\s*/g, "")
     .trim();
 
-  // 1. Direct parse
   try { return JSON.parse(cleaned); } catch {}
 
-  // 2. Find JSON boundaries
   const jsonStart = cleaned.search(/[\{\[]/);
   if (jsonStart === -1) throw new Error("No JSON object found in response");
 
   cleaned = cleaned.substring(jsonStart);
-  
-  // 3. Try direct parse of extracted JSON
   try { return JSON.parse(cleaned); } catch {}
 
-  // 4. Fix common issues: trailing commas, control characters
   let fixed = cleaned
     .replace(/,\s*}/g, "}")
     .replace(/,\s*]/g, "]")
     .replace(/[\x00-\x1F\x7F]/g, (ch) => ch === '\n' || ch === '\r' || ch === '\t' ? ch : "");
   try { return JSON.parse(fixed); } catch {}
 
-  // 5. Truncated JSON repair: close open strings, arrays, objects
-  // Remove trailing incomplete string value (ends mid-string)
   fixed = fixed.replace(/,\s*"[^"]*":\s*"[^"]*$/, "");
-  // Remove trailing incomplete key
   fixed = fixed.replace(/,\s*"[^"]*$/, "");
-  // Remove trailing comma
   fixed = fixed.replace(/,\s*$/, "");
 
   let braces = 0, brackets = 0, inString = false, escape = false;
@@ -105,13 +95,58 @@ function extractJsonFromResponse(content: string): unknown {
     if (ch === "[") brackets++;
     if (ch === "]") brackets--;
   }
-  // Close unclosed string
   if (inString) fixed += '"';
   while (brackets > 0) { fixed += "]"; brackets--; }
   while (braces > 0) { fixed += "}"; braces--; }
   try { return JSON.parse(fixed); } catch {}
 
   throw new Error("Could not extract valid JSON from response");
+}
+
+async function checkCancelled(supabase: any, diagnosticId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("diagnostics")
+    .select("status")
+    .eq("id", diagnosticId)
+    .single();
+  return data?.status === "error";
+}
+
+async function callClaude(apiKey: string, systemPrompt: string, userPrompt: string, model: string) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: model || "claude-sonnet-4-20250514",
+      max_tokens: 64000,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("Claude API error:", response.status, errText);
+    throw new Error(`Claude API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.content?.[0]?.text || "";
+}
+
+function buildUserPrompt(template: string, vars: Record<string, string>, outputHint?: string): string {
+  let result = template;
+  for (const [key, value] of Object.entries(vars)) {
+    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
+  }
+  if (outputHint) {
+    result += "\n\n" + outputHint;
+  }
+  return result;
 }
 
 serve(async (req) => {
@@ -124,7 +159,7 @@ serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    const { diagnostic_id, program_id, name, description, audience_tags, prompt_id } =
+    const { diagnostic_id, program_id, name, description, audience_tags } =
       await req.json();
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -133,24 +168,29 @@ serve(async (req) => {
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
     if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY not configured");
 
-    // ---- Step 1: Generate quiz JSON via Claude ----
-    const { data: prompt, error: promptErr } = await supabase
+    // Load all active test_generation prompts ordered by step
+    const { data: prompts, error: promptsErr } = await supabase
       .from("prompts")
       .select("*")
-      .eq("id", prompt_id)
-      .single();
+      .eq("category", "test_generation")
+      .eq("is_active", true)
+      .order("step_order");
 
-    if (promptErr || !prompt) {
-      throw new Error("Prompt not found: " + (promptErr?.message || "missing"));
+    if (promptsErr || !prompts || prompts.length === 0) {
+      throw new Error("No active test_generation prompts found");
     }
 
+    const prompt1 = prompts[0]; // step_order=1: quiz + thankYouPage
+    const prompt2 = prompts.length > 1 ? prompts[1] : null; // step_order=2: card prompt
+
+    // Load program data
     const { data: program } = await supabase
       .from("paid_programs")
       .select("title, description, audience_description, program_doc_url")
       .eq("id", program_id)
       .single();
 
-    // Fetch program description from Google Doc if available
+    // Fetch program doc
     let programDocDescription = "";
     if (program?.program_doc_url) {
       try {
@@ -165,68 +205,43 @@ serve(async (req) => {
       } catch (e) { console.error("Error fetching program doc:", e); }
     }
 
-    let userPrompt = (prompt.user_prompt_template || "")
-      .replace(/\{\{program_title\}\}/g, program?.title || "")
-      .replace(/\{\{program_description\}\}/g, program?.description || "")
-      .replace(/\{\{audience_description\}\}/g, program?.audience_description || "")
-      .replace(/\{\{test_name\}\}/g, name || "")
-      .replace(/\{\{test_description\}\}/g, description || "")
-      .replace(/\{\{audience_tags\}\}/g, (audience_tags || []).join(", "))
-      .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
+    const templateVars: Record<string, string> = {
+      program_title: program?.title || "",
+      program_description: program?.description || "",
+      audience_description: program?.audience_description || "",
+      test_name: name || "",
+      test_description: description || "",
+      audience_tags: (audience_tags || []).join(", "),
+      program_doc_description: programDocDescription,
+    };
 
-    if (prompt.output_format_hint) {
-      userPrompt += "\n\n" + prompt.output_format_hint;
+    // ---- Step 1: Generate quiz + thankYouPage ----
+    console.log(`[pipeline] Step 1: Calling Claude for quiz (diagnostic ${diagnostic_id})`);
+
+    const userPrompt1 = buildUserPrompt(prompt1.user_prompt_template, templateVars, prompt1.output_format_hint);
+    if (!userPrompt1.trim()) {
+      throw new Error("Шаблон пользовательского промпта (шаг 1) пуст.");
     }
 
-    if (!userPrompt.trim()) {
-      throw new Error("Шаблон пользовательского промпта пуст.");
-    }
-
-    console.log(`[pipeline] Step 1: Calling Claude for diagnostic ${diagnostic_id}`);
-
-    const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: prompt.model || "claude-sonnet-4-20250514",
-        max_tokens: 64000,
-        system: prompt.system_prompt,
-        messages: [{ role: "user", content: userPrompt }],
-      }),
-    });
-
-    if (!claudeResponse.ok) {
-      const errText = await claudeResponse.text();
-      console.error("Claude API error:", claudeResponse.status, errText);
-      throw new Error(`Claude API error: ${claudeResponse.status}`);
-    }
-
-    const claudeData = await claudeResponse.json();
-    const rawContent = claudeData.content?.[0]?.text || "";
-    console.log("[pipeline] Claude raw response length:", rawContent.length);
+    const rawContent1 = await callClaude(ANTHROPIC_API_KEY, prompt1.system_prompt, userPrompt1, prompt1.model);
+    console.log("[pipeline] Step 1 response length:", rawContent1.length);
 
     let fullResponse: any;
     try {
-      fullResponse = extractJsonFromResponse(rawContent);
+      fullResponse = extractJsonFromResponse(rawContent1);
     } catch (parseErr) {
-      console.error("[pipeline] JSON extraction failed. First 500 chars:", rawContent.substring(0, 500));
+      console.error("[pipeline] Step 1 JSON extraction failed. First 500 chars:", rawContent1.substring(0, 500));
       await supabase
         .from("diagnostics")
-        .update({ status: "error", generation_progress: { error: "Invalid JSON from Claude", raw_preview: rawContent.substring(0, 300) } })
+        .update({ status: "error", generation_progress: { error: "Invalid JSON from Claude (step 1)", raw_preview: rawContent1.substring(0, 300) } })
         .eq("id", diagnostic_id);
-      throw new Error("Claude returned invalid JSON");
+      throw new Error("Claude returned invalid JSON (step 1)");
     }
 
-    // Extract 3 blocks from Claude response
     const quizPart = fullResponse.quiz || fullResponse;
     const thankYouPart = fullResponse.thankYouPage || null;
-    const cardPromptPart = fullResponse.diagnosticCardPrompt || null;
 
-    // Extract image placeholders only from quiz part
+    // Extract image placeholders from quiz
     const quizString = JSON.stringify(quizPart);
     const placeholderRegex = /\{\{IMAGE:PROMPT=([\s\S]*?)\}\}/g;
     const placeholders: string[] = [];
@@ -235,19 +250,79 @@ serve(async (req) => {
       placeholders.push(match[1]);
     }
 
-    // Update status to quiz_generated
+    // Save quiz results
     await supabase
       .from("diagnostics")
       .update({
         quiz_json: quizPart,
         thank_you_json: thankYouPart,
-        card_prompt: typeof cardPromptPart === "string" ? cardPromptPart : cardPromptPart ? JSON.stringify(cardPromptPart) : null,
         status: "quiz_generated",
         generation_progress: { total_images: placeholders.length, completed_images: 0 },
       })
       .eq("id", diagnostic_id);
 
     console.log(`[pipeline] Step 1 done. ${placeholders.length} image placeholders found.`);
+
+    // Check cancellation
+    if (await checkCancelled(supabase, diagnostic_id)) {
+      console.log("[pipeline] Cancelled after step 1.");
+      return new Response(JSON.stringify({ success: false, cancelled: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ---- Step 1.5: Generate card prompt ----
+    if (prompt2) {
+      await supabase
+        .from("diagnostics")
+        .update({ status: "generating_card_prompt" })
+        .eq("id", diagnostic_id);
+
+      console.log(`[pipeline] Step 1.5: Calling Claude for card prompt`);
+
+      // Add result_types_json variable from quiz
+      const resultTypes = quizPart.resultTypes || quizPart.result_types || [];
+      const step2Vars = {
+        ...templateVars,
+        result_types_json: JSON.stringify(resultTypes, null, 2),
+      };
+
+      const userPrompt2 = buildUserPrompt(prompt2.user_prompt_template, step2Vars, prompt2.output_format_hint);
+      if (!userPrompt2.trim()) {
+        console.warn("[pipeline] Step 1.5 user prompt is empty, skipping card prompt generation.");
+      } else {
+        const rawContent2 = await callClaude(ANTHROPIC_API_KEY, prompt2.system_prompt, userPrompt2, prompt2.model);
+        console.log("[pipeline] Step 1.5 response length:", rawContent2.length);
+
+        // Card prompt can be plain text or JSON - store as-is
+        let cardPromptValue: string;
+        try {
+          const parsed = extractJsonFromResponse(rawContent2);
+          cardPromptValue = typeof parsed === "string" ? parsed : JSON.stringify(parsed);
+        } catch {
+          // Not JSON, use raw text (strip markdown code blocks)
+          cardPromptValue = rawContent2
+            .replace(/```[a-z]*\s*/gi, "")
+            .replace(/```\s*/g, "")
+            .trim();
+        }
+
+        await supabase
+          .from("diagnostics")
+          .update({ card_prompt: cardPromptValue })
+          .eq("id", diagnostic_id);
+      }
+
+      // Check cancellation
+      if (await checkCancelled(supabase, diagnostic_id)) {
+        console.log("[pipeline] Cancelled after step 1.5.");
+        return new Response(JSON.stringify({ success: false, cancelled: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // Update status after card prompt
+    await supabase
+      .from("diagnostics")
+      .update({ status: "card_prompt_generated" })
+      .eq("id", diagnostic_id);
 
     if (placeholders.length === 0) {
       await supabase
@@ -261,7 +336,7 @@ serve(async (req) => {
       );
     }
 
-    // ---- Step 2: Generate images (only in quiz part) ----
+    // ---- Step 2: Generate images ----
     await supabase
       .from("diagnostics")
       .update({ status: "generating_images" })
@@ -272,14 +347,7 @@ serve(async (req) => {
     let failedImages = 0;
 
     for (let i = 0; i < placeholders.length; i++) {
-      // Check if generation was cancelled
-      const { data: cancelCheck } = await supabase
-        .from("diagnostics")
-        .select("status")
-        .eq("id", diagnostic_id)
-        .single();
-
-      if (cancelCheck?.status === "error") {
+      if (await checkCancelled(supabase, diagnostic_id)) {
         console.log("[pipeline] Generation cancelled by user, stopping.");
         return new Response(
           JSON.stringify({ success: false, cancelled: true }),
@@ -317,7 +385,7 @@ serve(async (req) => {
         failedImages++;
       }
 
-      // Update progress after each image
+      // Update progress
       const updatedQuizJson = JSON.parse(
         currentQuizJson.replace(/\{\{IMAGE:PROMPT=[^}]*\}\}/g, "null")
       );
@@ -336,15 +404,8 @@ serve(async (req) => {
     }
 
     // ---- Step 3: Finalize ----
-    // Check if generation was cancelled before finalizing
-    const { data: finalCheck } = await supabase
-      .from("diagnostics")
-      .select("status")
-      .eq("id", diagnostic_id)
-      .single();
-
-    if (finalCheck?.status === "error") {
-      console.log("[pipeline] Generation cancelled by user, not finalizing.");
+    if (await checkCancelled(supabase, diagnostic_id)) {
+      console.log("[pipeline] Cancelled before finalize.");
       return new Response(
         JSON.stringify({ success: false, cancelled: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
