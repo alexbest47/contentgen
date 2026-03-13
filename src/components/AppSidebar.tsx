@@ -21,7 +21,7 @@ const mainNav = [
 const adminNav = [
   { title: "Управление промптами", url: "/prompts", icon: MessageSquareText },
   { title: "Переменные промптов", url: "/prompt-variables", icon: Braces },
-  { title: "Настройки Email", url: "/email-settings", icon: MailCog },
+  { title: "Настройки Email", url: "/email-settings", icon: Mail },
   { title: "Пользователи", url: "/users", icon: Users },
 ];
 
