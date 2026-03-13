@@ -327,6 +327,26 @@ export default function OfferTypeDetail() {
         )}
       </div>
 
+      {/* Create dialog (non-diagnostic only) */}
+      {!isDiagnosticType && (
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Новый оффер</DialogTitle>
+            </DialogHeader>
+            <OfferForm
+              title={createTitle} setTitle={setCreateTitle}
+              description={createDescription} setDescription={setCreateDescription}
+              docUrl={createDocUrl} setDocUrl={setCreateDocUrl}
+              selectedTags={createSelectedTags} toggleTag={toggleCreateTag}
+              allTags={allTags} isPending={createMutation.isPending}
+              onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }}
+              submitLabel="Создать" pendingLabel="Создание..."
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Edit dialog (non-diagnostic only) */}
       {!isDiagnosticType && (
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
