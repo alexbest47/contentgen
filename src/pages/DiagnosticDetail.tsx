@@ -97,10 +97,25 @@ export default function DiagnosticDetail() {
       }
       s[2].status = "done";
     } else if (status === "error") {
-      s[0].status = progress?.error ? "error" : "done";
-      if (progress?.total_images !== undefined) {
+      const isStopped = progress?.error === "Остановлено пользователем";
+      const stoppedAt = progress?.stopped_at; // "generating", "quiz_generated", "generating_images"
+
+      if (stoppedAt === "generating" || (!stoppedAt && !progress?.total_images)) {
+        // Stopped during quiz generation
+        s[0].status = "error";
+        s[0].detail = isStopped ? "Остановлено" : undefined;
+      } else {
+        // Stopped during image generation
         s[0].status = "done";
         s[1].status = "error";
+        if (progress?.total_images) {
+          const done = progress.completed_images || 0;
+          s[1].detail = isStopped
+            ? `Остановлено (${done} из ${progress.total_images})`
+            : `${done} из ${progress.total_images}`;
+        } else {
+          s[1].detail = isStopped ? "Остановлено" : undefined;
+        }
       }
     }
 
@@ -138,12 +153,15 @@ export default function DiagnosticDetail() {
     }, 5000);
   }, [diagnosticId, queryClient, updateStepsFromStatus]);
 
-  // Auto-start polling if status is active on page load
+  // Auto-start polling if status is active on page load; also sync steps on error
   useEffect(() => {
-    if (diagnostic && ACTIVE_STATUSES.includes(diagnostic.status)) {
-      const progress = diagnostic.generation_progress as any;
+    if (!diagnostic) return;
+    const progress = diagnostic.generation_progress as any;
+    if (ACTIVE_STATUSES.includes(diagnostic.status)) {
       updateStepsFromStatus(diagnostic.status, progress);
       startPolling();
+    } else if (diagnostic.status === "error") {
+      updateStepsFromStatus(diagnostic.status, progress);
     }
     return () => {
       if (pollingRef.current) {
@@ -282,14 +300,33 @@ export default function DiagnosticDetail() {
   const handleStop = async () => {
     setStopping(true);
     try {
+      // Fetch current progress to preserve image counts
+      const { data: current } = await supabase
+        .from("diagnostics")
+        .select("status, generation_progress")
+        .eq("id", diagnosticId!)
+        .single();
+      const currentProgress = current?.generation_progress as any;
+      
+      const newProgress: any = {
+        error: "Остановлено пользователем",
+        stopped_at: current?.status || "generating",
+      };
+      // Preserve image progress if available
+      if (currentProgress?.total_images) {
+        newProgress.total_images = currentProgress.total_images;
+        newProgress.completed_images = currentProgress.completed_images || 0;
+      }
+
       await supabase
         .from("diagnostics")
-        .update({ status: "error", generation_progress: { error: "Остановлено пользователем" } } as any)
+        .update({ status: "error", generation_progress: newProgress } as any)
         .eq("id", diagnosticId!);
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
+      updateStepsFromStatus("error", newProgress);
       queryClient.invalidateQueries({ queryKey: ["diagnostic", diagnosticId] });
       toast.info("Генерация остановлена");
     } finally {
@@ -514,15 +551,19 @@ export default function DiagnosticDetail() {
 
       {/* Error */}
       {isError && (
-        <Card className="border-destructive/50 bg-destructive/5">
+        <Card className={progress?.error === "Остановлено пользователем" ? "border-muted-foreground/30 bg-muted/30" : "border-destructive/50 bg-destructive/5"}>
           <CardContent className="pt-4 space-y-3">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              {progress?.error === "Остановлено пользователем" ? (
+                <Square className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+              ) : (
+                <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              )}
               <p className="text-sm">{progress?.error || "Неизвестная ошибка"}</p>
             </div>
             <Button variant="outline" size="sm" onClick={handleGenerate}>
               <Play className="h-4 w-4 mr-2" />
-              Попробовать снова
+              {progress?.error === "Остановлено пользователем" ? "Перезапустить" : "Попробовать снова"}
             </Button>
           </CardContent>
         </Card>
