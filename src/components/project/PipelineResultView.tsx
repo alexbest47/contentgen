@@ -492,7 +492,7 @@ function CarouselSlider({
                 onClick={() => slide.url && onPreview(slide.url, `Слайд ${slide.number}`)}
               >
                 {slide.url ? (
-                  <img src={slide.url} alt={`Слайд ${slide.number}`} className="w-full h-full object-cover" />
+                  <img src={slide.url} alt={`Слайд ${slide.number}`} className="w-full h-full object-contain" />
                 ) : (
                   <span className="text-sm text-muted-foreground/50">Слайд {slide.number}</span>
                 )}
