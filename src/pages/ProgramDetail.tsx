@@ -20,6 +20,7 @@ export default function ProgramDetail() {
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editAudienceUrl, setEditAudienceUrl] = useState("");
+  const [editProgramDocUrl, setEditProgramDocUrl] = useState("");
 
   const { data: program } = useQuery({
     queryKey: ["program", programId],
