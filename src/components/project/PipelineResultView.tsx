@@ -21,9 +21,11 @@ interface SocialJson {
 }
 
 interface EmailJson {
-  email_subject: string;
-  email_body: string;
-  banner_prompt: string;
+  email_subject?: string;
+  email_body?: string;
+  email_body_html?: string;
+  banner_prompt?: string;
+  banner_image_prompt?: string;
 }
 
 interface Props {
