@@ -101,6 +101,13 @@ export default function OfferTypeDetail() {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archivingId, setArchivingId] = useState<string | null>(null);
 
+  // Create dialog state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createTitle, setCreateTitle] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
+  const [createDocUrl, setCreateDocUrl] = useState("");
+  const [createSelectedTags, setCreateSelectedTags] = useState<string[]>([]);
+
   // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -160,6 +167,47 @@ export default function OfferTypeDetail() {
       return data;
     },
   });
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase
+        .from("offers")
+        .insert({
+          title: createTitle,
+          description: createDescription || null,
+          doc_url: createDocUrl || null,
+          offer_type: offerType! as any,
+          program_id: programId!,
+          created_by: user!.id,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+
+      if (createSelectedTags.length > 0) {
+        const { error: tagErr } = await supabase.from("offer_tags").insert(
+          createSelectedTags.map((tag_id) => ({ offer_id: data.id, tag_id }))
+        );
+        if (tagErr) throw tagErr;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["offers", programId, offerType] });
+      setCreateOpen(false);
+      setCreateTitle("");
+      setCreateDescription("");
+      setCreateDocUrl("");
+      setCreateSelectedTags([]);
+      toast.success("Оффер создан");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const toggleCreateTag = (tagId: string) => {
+    setCreateSelectedTags((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
 
   const updateMutation = useMutation({
     mutationFn: async () => {
@@ -266,13 +314,38 @@ export default function OfferTypeDetail() {
           <h1 className="text-2xl font-bold">{typeLabel}</h1>
           <p className="text-muted-foreground">{program?.title}</p>
         </div>
-        {isDiagnosticType && (
+        {isDiagnosticType ? (
           <Button onClick={() => navigate(`/create-diagnostic?programId=${programId}`)}>
             <Plus className="h-4 w-4 mr-2" />
             Создать диагностику
           </Button>
+        ) : (
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Создать оффер
+          </Button>
         )}
       </div>
+
+      {/* Create dialog (non-diagnostic only) */}
+      {!isDiagnosticType && (
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Новый оффер</DialogTitle>
+            </DialogHeader>
+            <OfferForm
+              title={createTitle} setTitle={setCreateTitle}
+              description={createDescription} setDescription={setCreateDescription}
+              docUrl={createDocUrl} setDocUrl={setCreateDocUrl}
+              selectedTags={createSelectedTags} toggleTag={toggleCreateTag}
+              allTags={allTags} isPending={createMutation.isPending}
+              onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }}
+              submitLabel="Создать" pendingLabel="Создание..."
+            />
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Edit dialog (non-diagnostic only) */}
       {!isDiagnosticType && (
