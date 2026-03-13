@@ -124,8 +124,9 @@ serve(async (req) => {
       throw new Error("No active test_generation prompts found");
     }
 
-    const prompt1 = prompts[0];
-    const prompt2 = prompts.length > 1 ? prompts[1] : null;
+    // Find prompts by name for robustness (order from DB may vary)
+    const prompt1 = prompts.find((p: any) => p.name.includes("теста")) || prompts[0];
+    const prompt2 = prompts.find((p: any) => p.name.includes("карт")) || (prompts.length > 1 ? prompts[1] : null);
 
     // Load program data
     const { data: program } = await supabase
