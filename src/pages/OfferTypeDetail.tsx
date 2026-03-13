@@ -314,12 +314,7 @@ export default function OfferTypeDetail() {
           <h1 className="text-2xl font-bold">{typeLabel}</h1>
           <p className="text-muted-foreground">{program?.title}</p>
         </div>
-        {isDiagnosticType ? (
-          <Button onClick={() => navigate(`/create-diagnostic?programId=${programId}`)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Создать диагностику
-          </Button>
-        ) : (
+        {!isDiagnosticType && (
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Создать оффер
