@@ -274,12 +274,6 @@ export default function DiagnosticDetail() {
   const handleGenerate = async () => {
     if (!diagnostic) return;
 
-    const promptId = diagnostic.status === "draft" ? (editPromptId || diagnostic.prompt_id) : diagnostic.prompt_id;
-    if (!promptId) {
-      toast.error("Не задан промпт для генерации");
-      return;
-    }
-
     // Update status immediately
     await supabase
       .from("diagnostics")
@@ -288,7 +282,7 @@ export default function DiagnosticDetail() {
 
     updateStepsFromStatus("generating", null);
 
-    // Fire-and-forget call to pipeline
+    // Fire-and-forget call to pipeline (prompts are auto-discovered by category)
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-diagnostic-pipeline`;
     fetch(url, {
       method: "POST",
@@ -302,7 +296,6 @@ export default function DiagnosticDetail() {
         name: diagnostic.name,
         description: diagnostic.description || "",
         audience_tags: diagnostic.audience_tags || [],
-        prompt_id: promptId,
       }),
     }).catch((err) => console.error("Pipeline call failed:", err));
 
