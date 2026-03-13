@@ -85,6 +85,47 @@ export default function OfferDetail() {
     onError: (e: Error) => { toast.error(e.message); setDeleteId(null); },
   });
 
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      setGeneratingProject(true);
+      setProgressText("Генерация названия...");
+      const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
+        body: { course_title: offer?.title || "", program_title: (offer as any)?.paid_programs?.title || "" },
+      });
+      if (nameError) throw new Error(nameError.message || "Ошибка генерации названия");
+      if (nameData?.error) throw new Error(nameData.error);
+
+      setProgressText("Создание проекта...");
+      const { data: project, error: projError } = await supabase
+        .from("projects")
+        .insert({ offer_id: offerId!, title: nameData.name, created_by: user!.id })
+        .select("id")
+        .single();
+      if (projError) throw projError;
+
+      setProgressText("Генерация лид-магнитов...");
+      const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
+        body: { project_id: project.id },
+      });
+      if (genError) throw new Error(genError.message || "Ошибка генерации");
+      if (genData?.error) throw new Error(genData.error);
+
+      return project.id;
+    },
+    onSuccess: (projectId) => {
+      toast.success("Лид-магниты сгенерированы!");
+      setGeneratingProject(false);
+      setProgressText("");
+      queryClient.invalidateQueries({ queryKey: ["projects_by_offer", offerId] });
+      navigate(`/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setGeneratingProject(false);
+      setProgressText("");
+    },
+  });
+
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
   return (
@@ -93,7 +134,7 @@ export default function OfferDetail() {
         <Button variant="ghost" size="icon" onClick={() => navigate(`/programs/${programId}/offers/${offerType}`)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">{offer?.title ?? "..."}</h1>
           <p className="text-muted-foreground">{typeLabel} • Проекты</p>
           {(offer as any)?.offer_tags?.length > 0 && (
@@ -104,6 +145,19 @@ export default function OfferDetail() {
             </div>
           )}
         </div>
+        {offerType !== "diagnostic" && (
+          <Button
+            onClick={() => generateMutation.mutate()}
+            disabled={generatingProject}
+          >
+            {generatingProject ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            {progressText || "Сгенерировать лид-магниты"}
+          </Button>
+        )}
       </div>
 
 
