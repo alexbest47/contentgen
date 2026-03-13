@@ -73,11 +73,18 @@ export default function ProgramDetail() {
             </Button>
           </div>
           <p className="text-muted-foreground">Выберите тип оффера</p>
-          {program?.audience_doc_url && (
-            <p className="text-xs text-muted-foreground mt-1">
-              📄 <a href={program.audience_doc_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google Doc аудитории</a>
-            </p>
-          )}
+          <div className="flex flex-wrap gap-x-4">
+            {program?.audience_doc_url && (
+              <p className="text-xs text-muted-foreground mt-1">
+                📄 <a href={program.audience_doc_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google Doc аудитории</a>
+              </p>
+            )}
+            {(program as any)?.program_doc_url && (
+              <p className="text-xs text-muted-foreground mt-1">
+                📝 <a href={(program as any).program_doc_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google Doc описания программы</a>
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
