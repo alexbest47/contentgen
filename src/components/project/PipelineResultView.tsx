@@ -34,6 +34,7 @@ interface Props {
   staticImage?: string;
   bannerImage?: string;
   onSave?: (updatedJson: string) => void;
+  copyHtmlRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 const slideTypeLabels: Record<string, string> = {
