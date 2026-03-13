@@ -110,9 +110,9 @@ serve(async (req) => {
       throw new Error("Claude returned invalid JSON");
     }
 
-    // Find all image placeholders
+    // Find all image placeholders with new format {{IMAGE:PROMPT=...}}
     const quizJsonString = JSON.stringify(quizJson);
-    const placeholderRegex = /\{\{IMAGE:([^}]+)\}\}/g;
+    const placeholderRegex = /\{\{IMAGE:PROMPT=([\s\S]*?)\}\}/g;
     const placeholders: string[] = [];
     let match;
     while ((match = placeholderRegex.exec(quizJsonString)) !== null) {

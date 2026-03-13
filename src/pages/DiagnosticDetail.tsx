@@ -218,8 +218,6 @@ export default function DiagnosticDetail() {
       let currentJson = JSON.stringify(quizJson);
       let failed = 0;
 
-      const imageTemplate = imagePrompts?.[0]?.user_prompt_template;
-
       for (let i = 0; i < placeholders.length; i++) {
         updateStep(1, { status: "active", detail: `${i + 1} из ${placeholders.length}` });
 
@@ -231,7 +229,6 @@ export default function DiagnosticDetail() {
                 diagnostic_id: diagnostic.id,
                 image_description: placeholders[i],
                 placeholder_index: i,
-                image_prompt_template: imageTemplate,
               },
             }
           );
@@ -243,7 +240,7 @@ export default function DiagnosticDetail() {
           }
 
           if (imgData?.image_url) {
-            const placeholder = `{{IMAGE:${placeholders[i]}}}`;
+            const placeholder = `{{IMAGE:PROMPT=${placeholders[i]}}}`;
             currentJson = currentJson.split(placeholder).join(imgData.image_url);
           } else {
             failed++;
