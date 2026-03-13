@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -301,7 +301,7 @@ function SocialView({
   const setSingleText = hasSplitTexts ? setPostTextSingle : setPostText;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Carousel Post Card */}
       {data.carousel_prompts?.length > 0 && (
         <PostCard
@@ -400,6 +400,14 @@ function PostCard({
   promptsSection?: React.ReactNode;
 }) {
   const [saved, setSaved] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [text]);
 
   const handleSave = () => {
     onSave();
@@ -408,7 +416,7 @@ function PostCard({
   };
 
   return (
-    <Card className="overflow-hidden max-w-[480px]">
+    <Card className="overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b">
         {icon}
@@ -421,9 +429,10 @@ function PostCard({
       {/* Text & actions */}
       <div className="p-4 space-y-3">
         <Textarea
+          ref={textareaRef}
           value={text}
           onChange={(e) => onTextChange(e.target.value)}
-          className="text-sm min-h-[100px] resize-y border-none shadow-none p-0 focus-visible:ring-0"
+          className="text-sm resize-none overflow-hidden border-none shadow-none p-0 focus-visible:ring-0 min-h-0"
           placeholder="Текст поста..."
         />
         <div className="flex items-center gap-2">
@@ -432,7 +441,7 @@ function PostCard({
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleSave}>
             {saved ? <Check className="h-3 w-3 text-green-600" /> : <Save className="h-3 w-3" />}
-            {saved ? "Сохранено" : "Сохранить"}
+            {saved ? "Сохранено" : "Сохранить изменения"}
           </Button>
         </div>
 
