@@ -458,20 +458,14 @@ export default function DiagnosticDetail() {
     updateStepsFromStatus("generating", null);
 
     // Fire-and-forget call to pipeline
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-diagnostic-pipeline`;
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: JSON.stringify({
+    supabase.functions.invoke("run-diagnostic-pipeline", {
+      body: {
         diagnostic_id: diagnostic.id,
         program_id: diagnostic.program_id,
         name: diagnostic.name,
         description: diagnostic.description || "",
         audience_tags: diagnostic.audience_tags || [],
-      }),
+      },
     }).catch((err) => console.error("Pipeline call failed:", err));
 
     // Start polling
