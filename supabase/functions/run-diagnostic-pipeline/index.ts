@@ -97,57 +97,6 @@ function buildUserPrompt(template: string, vars: Record<string, string>, outputH
   return result;
 }
 
-async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array> {
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-pro-image-preview",
-      modalities: ["image", "text"],
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error("OpenRouter error:", response.status, errText);
-    throw new Error(`Image generation failed: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  const images = data.choices?.[0]?.message?.images;
-  if (images && images.length > 0) {
-    const img = images[0];
-    const urlStr = typeof img === "string" ? img
-      : img?.image_url?.url || img?.image_url || img?.url;
-
-    if (typeof urlStr === "string") {
-      const b64Match = urlStr.match(/^data:image\/[^;]+;base64,(.+)/);
-      if (b64Match) return decode(b64Match[1]);
-      if (!urlStr.startsWith("http")) return decode(urlStr);
-    }
-  }
-
-  const content = data.choices?.[0]?.message?.content;
-  if (typeof content === "string") {
-    const b64Match = content.match(/data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)/);
-    if (b64Match) return decode(b64Match[1]);
-  }
-
-  if (Array.isArray(content)) {
-    for (const part of content) {
-      if (part?.inline_data?.data) {
-        return decode(part.inline_data.data);
-      }
-    }
-  }
-
-  throw new Error("No image in response");
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
