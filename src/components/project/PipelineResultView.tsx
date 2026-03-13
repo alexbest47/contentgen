@@ -320,7 +320,7 @@ function EmailView({
           <div className="flex justify-center">
             <div className="w-[600px] max-w-full bg-white rounded-lg shadow-lg border overflow-hidden">
               <iframe
-                ref={iframeRef}
+                ref={iframeCallbackRef}
                 title="Email Preview"
                 className="w-full border-0"
                 style={{ minHeight: 400 }}
