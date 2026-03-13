@@ -272,6 +272,21 @@ serve(async (req) => {
     let failedImages = 0;
 
     for (let i = 0; i < placeholders.length; i++) {
+      // Check if generation was cancelled
+      const { data: cancelCheck } = await supabase
+        .from("diagnostics")
+        .select("status")
+        .eq("id", diagnostic_id)
+        .single();
+
+      if (cancelCheck?.status === "error") {
+        console.log("[pipeline] Generation cancelled by user, stopping.");
+        return new Response(
+          JSON.stringify({ success: false, cancelled: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       console.log(`[pipeline] Generating image ${i + 1}/${placeholders.length}`);
 
       try {
@@ -321,6 +336,21 @@ serve(async (req) => {
     }
 
     // ---- Step 3: Finalize ----
+    // Check if generation was cancelled before finalizing
+    const { data: finalCheck } = await supabase
+      .from("diagnostics")
+      .select("status")
+      .eq("id", diagnostic_id)
+      .single();
+
+    if (finalCheck?.status === "error") {
+      console.log("[pipeline] Generation cancelled by user, not finalizing.");
+      return new Response(
+        JSON.stringify({ success: false, cancelled: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     currentQuizJson = currentQuizJson.replace(/\{\{IMAGE:PROMPT=[^}]*\}\}/g, "null");
     const finalQuizJson = JSON.parse(currentQuizJson);
 
