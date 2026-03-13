@@ -347,6 +347,12 @@ export default function OfferTypeDetail() {
 
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
+  const { data: leadPromptInfo } = usePromptInfo({
+    category: "lead_magnets",
+    offer_type: offerType,
+    enabled: !isDiagnosticType && !!offerType,
+  });
+
   // Find diagnostic by archivingId for deletion
   const archivingDiagnostic = isDiagnosticType
     ? diagnosticItems?.find((d) => d.id === archivingId)
