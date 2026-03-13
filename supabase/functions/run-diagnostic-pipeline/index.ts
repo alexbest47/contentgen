@@ -183,7 +183,6 @@ serve(async (req) => {
     }
 
     const quizPart = fullResponse.quiz || fullResponse;
-    const thankYouPart = fullResponse.thankYouPage || null;
 
     // Extract image placeholders from quiz
     const quizString = JSON.stringify(quizPart);
