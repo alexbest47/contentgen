@@ -14,7 +14,7 @@ interface PromptStepCardProps {
   onRefine?: (prompt: any) => void;
 }
 
-export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdit, onToggle, onDuplicate }: PromptStepCardProps) {
+export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdit, onToggle, onDuplicate, onRefine }: PromptStepCardProps) {
   return (
     <div className="flex items-start gap-4">
       {showStepNumber && (
