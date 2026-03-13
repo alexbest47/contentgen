@@ -26,6 +26,7 @@ export default function ContentDetail() {
   const [generatingImagesKey, setGeneratingImagesKey] = useState<string | null>(null);
   const [carouselProgress, setCarouselProgress] = useState<{ current: number; total: number } | null>(null);
   const abortRef = useRef(false);
+  const copyHtmlRef = useRef<(() => void) | null>(null);
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`;
   const isEmail = isEmailType(contentType!);
