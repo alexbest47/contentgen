@@ -22,7 +22,6 @@ export default function CreateDiagnostic() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [promptId, setPromptId] = useState("");
   const [saving, setSaving] = useState(false);
 
   const { data: programs } = useQuery({
@@ -57,7 +56,7 @@ export default function CreateDiagnostic() {
     },
   });
 
-  const effectivePromptId = promptId || testPrompts?.[0]?.id || "";
+  
 
   const toggleTag = (tagId: string) => {
     setSelectedTags((prev) =>
@@ -89,7 +88,7 @@ export default function CreateDiagnostic() {
           name: title,
           description: description || null,
           audience_tags: tagNames,
-          prompt_id: effectivePromptId || null,
+          prompt_id: null,
           status: "draft",
           created_by: user!.id,
         } as any)
@@ -212,27 +211,22 @@ export default function CreateDiagnostic() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label>Промпт для генерации</Label>
-              {testPrompts && testPrompts.length > 0 ? (
-                <Select value={effectivePromptId} onValueChange={setPromptId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите промпт" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {testPrompts.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Нет активных промптов категории «Генерация теста».
-                </p>
-              )}
-            </div>
+            {testPrompts && testPrompts.length > 0 ? (
+              <div className="space-y-2">
+                <Label>Промпты для генерации ({testPrompts.length} шаг{testPrompts.length > 1 ? "а" : ""})</Label>
+                <div className="space-y-1">
+                  {testPrompts.map((p, i) => (
+                    <p key={p.id} className="text-sm text-muted-foreground">
+                      Шаг {i + 1}: {p.name}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Нет активных промптов категории «Генерация теста».
+              </p>
+            )}
 
             <Button type="submit" className="w-full" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}

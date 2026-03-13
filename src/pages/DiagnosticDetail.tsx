@@ -22,7 +22,7 @@ interface GenerationStep {
   detail?: string;
 }
 
-const ACTIVE_STATUSES = ["generating", "quiz_generated", "generating_images"];
+const ACTIVE_STATUSES = ["generating", "quiz_generated", "generating_card_prompt", "card_prompt_generated", "generating_images"];
 
 export default function DiagnosticDetail() {
   const { diagnosticId } = useParams<{ diagnosticId: string }>();
@@ -36,7 +36,6 @@ export default function DiagnosticDetail() {
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editProgramId, setEditProgramId] = useState("");
-  const [editPromptId, setEditPromptId] = useState("");
   const [editTags, setEditTags] = useState<string[]>([]);
   const [draftInitialized, setDraftInitialized] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -61,7 +60,6 @@ export default function DiagnosticDetail() {
     setEditName(diagnostic.name || "");
     setEditDescription(diagnostic.description || "");
     setEditProgramId(diagnostic.program_id || "");
-    setEditPromptId(diagnostic.prompt_id || "");
     setEditTags((diagnostic.audience_tags as string[]) || []);
     setDraftInitialized(true);
   }
@@ -70,6 +68,7 @@ export default function DiagnosticDetail() {
   const updateStepsFromStatus = useCallback((status: string, progress: any) => {
     const s: GenerationStep[] = [
       { label: "Генерация структуры теста", status: "pending" },
+      { label: "Генерация промпта карты", status: "pending" },
       { label: "Создание изображений", status: "pending" },
       { label: "Готово", status: "pending" },
     ];
@@ -79,42 +78,54 @@ export default function DiagnosticDetail() {
     } else if (status === "quiz_generated") {
       s[0].status = "done";
       s[1].status = "active";
+    } else if (status === "generating_card_prompt") {
+      s[0].status = "done";
+      s[1].status = "active";
+    } else if (status === "card_prompt_generated") {
+      s[0].status = "done";
+      s[1].status = "done";
+      s[2].status = "active";
       if (progress?.total_images) {
-        s[1].detail = `0 из ${progress.total_images}`;
+        s[2].detail = `0 из ${progress.total_images}`;
       }
     } else if (status === "generating_images") {
       s[0].status = "done";
-      s[1].status = "active";
+      s[1].status = "done";
+      s[2].status = "active";
       if (progress?.total_images) {
         const done = progress.completed_images || 0;
-        s[1].detail = `${done} из ${progress.total_images}`;
+        s[2].detail = `${done} из ${progress.total_images}`;
       }
     } else if (status === "ready") {
       s[0].status = "done";
       s[1].status = "done";
-      if (progress?.failed_images > 0) {
-        s[1].detail = `${progress.failed_images} не удалось`;
-      }
       s[2].status = "done";
+      if (progress?.failed_images > 0) {
+        s[2].detail = `${progress.failed_images} не удалось`;
+      }
+      s[3].status = "done";
     } else if (status === "error") {
       const isStopped = progress?.error === "Остановлено пользователем";
-      const stoppedAt = progress?.stopped_at; // "generating", "quiz_generated", "generating_images"
+      const stoppedAt = progress?.stopped_at;
 
       if (stoppedAt === "generating" || (!stoppedAt && !progress?.total_images)) {
-        // Stopped during quiz generation
         s[0].status = "error";
         s[0].detail = isStopped ? "Остановлено" : undefined;
-      } else {
-        // Stopped during image generation
+      } else if (stoppedAt === "quiz_generated" || stoppedAt === "generating_card_prompt") {
         s[0].status = "done";
         s[1].status = "error";
+        s[1].detail = isStopped ? "Остановлено" : undefined;
+      } else {
+        s[0].status = "done";
+        s[1].status = "done";
+        s[2].status = "error";
         if (progress?.total_images) {
           const done = progress.completed_images || 0;
-          s[1].detail = isStopped
+          s[2].detail = isStopped
             ? `Остановлено (${done} из ${progress.total_images})`
             : `${done} из ${progress.total_images}`;
         } else {
-          s[1].detail = isStopped ? "Остановлено" : undefined;
+          s[2].detail = isStopped ? "Остановлено" : undefined;
         }
       }
     }
@@ -243,7 +254,6 @@ export default function DiagnosticDetail() {
           name: editName.trim(),
           description: editDescription || null,
           program_id: editProgramId,
-          prompt_id: editPromptId || null,
           audience_tags: editTags,
         } as any)
         .eq("id", diagnosticId!);
@@ -261,12 +271,6 @@ export default function DiagnosticDetail() {
   const handleGenerate = async () => {
     if (!diagnostic) return;
 
-    const promptId = diagnostic.status === "draft" ? (editPromptId || diagnostic.prompt_id) : diagnostic.prompt_id;
-    if (!promptId) {
-      toast.error("Не задан промпт для генерации");
-      return;
-    }
-
     // Update status immediately
     await supabase
       .from("diagnostics")
@@ -275,7 +279,7 @@ export default function DiagnosticDetail() {
 
     updateStepsFromStatus("generating", null);
 
-    // Fire-and-forget call to pipeline
+    // Fire-and-forget call to pipeline (prompts are auto-discovered by category)
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-diagnostic-pipeline`;
     fetch(url, {
       method: "POST",
@@ -289,7 +293,6 @@ export default function DiagnosticDetail() {
         name: diagnostic.name,
         description: diagnostic.description || "",
         audience_tags: diagnostic.audience_tags || [],
-        prompt_id: promptId,
       }),
     }).catch((err) => console.error("Pipeline call failed:", err));
 
@@ -439,23 +442,21 @@ export default function DiagnosticDetail() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label>Промпт для генерации</Label>
-              {testPrompts && testPrompts.length > 0 ? (
-                <Select value={editPromptId || testPrompts[0]?.id || ""} onValueChange={setEditPromptId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите промпт" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {testPrompts.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-sm text-muted-foreground">Нет активных промптов категории «Генерация теста».</p>
-              )}
-            </div>
+            {/* Prompts are auto-discovered by category test_generation */}
+            {testPrompts && testPrompts.length > 0 ? (
+              <div className="space-y-2">
+                <Label>Промпты для генерации ({testPrompts.length} шаг{testPrompts.length > 1 ? "а" : ""})</Label>
+                <div className="space-y-1">
+                  {testPrompts.map((p, i) => (
+                    <p key={p.id} className="text-sm text-muted-foreground">
+                      Шаг {i + 1}: {p.name}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Нет активных промптов категории «Генерация теста».</p>
+            )}
 
             <div className="flex gap-3">
               <Button onClick={handleSaveDraft} disabled={savingDraft}>
