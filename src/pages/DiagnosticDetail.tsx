@@ -97,10 +97,25 @@ export default function DiagnosticDetail() {
       }
       s[2].status = "done";
     } else if (status === "error") {
-      s[0].status = progress?.error ? "error" : "done";
-      if (progress?.total_images !== undefined) {
+      const isStopped = progress?.error === "Остановлено пользователем";
+      const stoppedAt = progress?.stopped_at; // "generating", "quiz_generated", "generating_images"
+
+      if (stoppedAt === "generating" || (!stoppedAt && !progress?.total_images)) {
+        // Stopped during quiz generation
+        s[0].status = "error";
+        s[0].detail = isStopped ? "Остановлено" : undefined;
+      } else {
+        // Stopped during image generation
         s[0].status = "done";
         s[1].status = "error";
+        if (progress?.total_images) {
+          const done = progress.completed_images || 0;
+          s[1].detail = isStopped
+            ? `Остановлено (${done} из ${progress.total_images})`
+            : `${done} из ${progress.total_images}`;
+        } else {
+          s[1].detail = isStopped ? "Остановлено" : undefined;
+        }
       }
     }
 
