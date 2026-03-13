@@ -106,6 +106,10 @@ export default function ProgramDetail() {
               <Label>Ссылка на Google Doc аудитории</Label>
               <Input value={editAudienceUrl} onChange={(e) => setEditAudienceUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
             </div>
+            <div className="space-y-2">
+              <Label>Ссылка на Google Doc описания программы</Label>
+              <Input value={editProgramDocUrl} onChange={(e) => setEditProgramDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
+            </div>
             <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
               {updateMutation.isPending ? "Сохранение..." : "Сохранить"}
             </Button>

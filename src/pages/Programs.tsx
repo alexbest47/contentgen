@@ -77,6 +77,10 @@ export default function Programs() {
                 <Input value={audienceDocUrl} onChange={(e) => setAudienceDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
                 <p className="text-xs text-muted-foreground">Вставьте ссылку на Google документ (доступ по ссылке для всех)</p>
               </div>
+              <div className="space-y-2">
+                <Label>Ссылка на описание программы (Google Docs)</Label>
+                <Input value={programDocUrl} onChange={(e) => setProgramDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
+              </div>
               <Button type="submit" className="w-full" disabled={createMutation.isPending}>
                 {createMutation.isPending ? "Создание..." : "Создать"}
               </Button>
