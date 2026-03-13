@@ -145,8 +145,7 @@ export default function OfferDetail() {
             </div>
           )}
         </div>
-        {offerType !== "diagnostic" && (
-          <Button
+        <Button
             onClick={() => generateMutation.mutate()}
             disabled={generatingProject}
           >
@@ -157,7 +156,6 @@ export default function OfferDetail() {
             )}
             {progressText || "Сгенерировать лид-магниты"}
           </Button>
-        )}
       </div>
 
 
