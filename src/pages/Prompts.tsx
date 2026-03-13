@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import PromptFormDialog from "@/components/prompts/PromptFormDialog";
 import PipelineGroup from "@/components/prompts/PipelineGroup";
 import PromptStepCard from "@/components/prompts/PromptStepCard";
-import { contentTypeLabels, contentTypeKeys, emptyForm, type PromptForm } from "@/lib/promptConstants";
+import { contentTypeLabels, contentTypeKeys, emptyForm, deriveCategory, type PromptForm } from "@/lib/promptConstants";
 import { OFFER_TYPES, getOfferTypeLabel } from "@/lib/offerTypes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CsvImportButton from "@/components/prompts/CsvImportButton";
@@ -34,6 +34,7 @@ export default function Prompts() {
     mutationFn: async () => {
       const payload = {
         ...form,
+        category: deriveCategory(form.content_type),
         content_type: form.content_type || null,
         sub_type: null,
         offer_type: form.offer_type || null,
@@ -67,7 +68,7 @@ export default function Prompts() {
   const openEdit = (prompt: any) => {
     setEditId(prompt.id);
     setForm({
-      name: prompt.name, slug: prompt.slug, category: prompt.category,
+      name: prompt.name, slug: prompt.slug,
       description: prompt.description ?? "", provider: prompt.provider,
       model: prompt.model, system_prompt: prompt.system_prompt,
       user_prompt_template: prompt.user_prompt_template,

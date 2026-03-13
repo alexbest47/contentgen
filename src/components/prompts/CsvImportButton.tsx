@@ -5,8 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
-import { categories, categoryLabels } from "@/lib/promptConstants";
-import type { PromptCategory } from "@/lib/promptConstants";
+import { deriveCategory } from "@/lib/promptConstants";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,14 +24,14 @@ interface CsvImportButtonProps {
 }
 
 const CSV_HEADERS = [
-  "name","slug","category","content_type","step_order",
+  "name","slug","content_type","step_order",
   "provider","model","description","system_prompt","user_prompt_template",
   "output_format_hint","is_active",
 ] as const;
 
 const TEMPLATE_ROWS = [
   [
-    "Текст поста + Imagen-промпты: Instagram","text-ig-post","text_instagram","instagram","1",
+    "Текст поста + Imagen-промпты: Instagram","text-ig-post","instagram","1",
     "anthropic","claude-sonnet-4-20250514","Генерация текста поста для Instagram",
     "Ты — опытный копирайтер для Instagram.","Напиши пост для мини-курса {{program_title}}. Целевая аудитория: {{audience_description}}.",
     "Верни JSON с текстом и промптами для изображений","true",
@@ -110,7 +109,7 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
       CSV_HEADERS.map(escapeCsvField).join(","),
       ...currentPrompts.map((p) =>
         [
-          p.name, p.slug, p.category, p.content_type ?? "", String(p.step_order ?? 1),
+          p.name, p.slug, p.content_type ?? "", String(p.step_order ?? 1),
           p.provider, p.model, p.description ?? "", p.system_prompt,
           p.user_prompt_template, p.output_format_hint ?? "", String(p.is_active),
         ].map(escapeCsvField).join(",")
@@ -148,11 +147,6 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
             row[h] = values[idx]?.trim() ?? "";
           });
 
-          if (!categories.includes(row.category as PromptCategory)) {
-            toast.error(`Строка ${i + 1}: неизвестная категория "${row.category}". Допустимые: ${categories.join(", ")}`);
-            return;
-          }
-
           row.step_order = parseInt(row.step_order, 10) || 1;
           row.is_active = row.is_active?.toLowerCase() !== "false";
           row.content_type = row.content_type || null;
@@ -188,7 +182,7 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
       const toInsert = parsedRows.map((r) => ({
         name: r.name,
         slug: r.slug,
-        category: r.category,
+        category: deriveCategory(r.content_type || ""),
         content_type: r.content_type,
         sub_type: null,
         step_order: r.step_order,

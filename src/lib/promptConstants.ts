@@ -26,10 +26,19 @@ export const contentTypeLabels: Record<string, string> = {
 
 export const contentTypeKeys = Object.keys(contentTypeLabels);
 
+export const deriveCategory = (contentType: string): PromptCategory => {
+  const mapping: Record<string, PromptCategory> = {
+    instagram: "text_instagram",
+    telegram: "text_telegram",
+    vk: "text_vk",
+    email: "text_email",
+  };
+  return mapping[contentType] || "lead_magnets";
+};
+
 export interface PromptForm {
   name: string;
   slug: string;
-  category: PromptCategory;
   description: string;
   provider: string;
   model: string;
@@ -43,7 +52,7 @@ export interface PromptForm {
 }
 
 export const emptyForm: PromptForm = {
-  name: "", slug: "", category: "lead_magnets", description: "",
+  name: "", slug: "", description: "",
   provider: "anthropic", model: "claude-sonnet-4-20250514",
   system_prompt: "", user_prompt_template: "", output_format_hint: "", is_active: true,
   content_type: "", step_order: 1, offer_type: "mini_course",
