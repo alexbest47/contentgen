@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.run-diagnostic-pipeline]
 verify_jwt = false
+
+[functions.process-diagnostic-image]
+verify_jwt = false
