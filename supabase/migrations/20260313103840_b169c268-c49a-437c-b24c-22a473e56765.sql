@@ -1,0 +1,1 @@
+ALTER TABLE paid_programs ADD COLUMN program_doc_url text;

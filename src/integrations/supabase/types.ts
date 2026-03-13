@@ -311,6 +311,7 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
+          program_doc_url: string | null
           title: string
         }
         Insert: {
@@ -320,6 +321,7 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
+          program_doc_url?: string | null
           title: string
         }
         Update: {
@@ -329,6 +331,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
+          program_doc_url?: string | null
           title?: string
         }
         Relationships: []
