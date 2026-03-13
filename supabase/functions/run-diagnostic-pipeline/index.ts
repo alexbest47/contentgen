@@ -153,18 +153,16 @@ serve(async (req) => {
 
     const claudeData = await claudeResponse.json();
     const rawContent = claudeData.content?.[0]?.text || "";
-
-    let jsonStr = rawContent;
-    const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) jsonStr = jsonMatch[1].trim();
+    console.log("[pipeline] Claude raw response length:", rawContent.length);
 
     let fullResponse: any;
     try {
-      fullResponse = JSON.parse(jsonStr);
-    } catch {
+      fullResponse = extractJsonFromResponse(rawContent);
+    } catch (parseErr) {
+      console.error("[pipeline] JSON extraction failed. First 500 chars:", rawContent.substring(0, 500));
       await supabase
         .from("diagnostics")
-        .update({ status: "error", generation_progress: { error: "Invalid JSON from Claude" } })
+        .update({ status: "error", generation_progress: { error: "Invalid JSON from Claude", raw_preview: rawContent.substring(0, 300) } })
         .eq("id", diagnostic_id);
       throw new Error("Claude returned invalid JSON");
     }
