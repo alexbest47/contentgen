@@ -32,6 +32,7 @@ export default function Diagnostics() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingDiag, setEditingDiag] = useState<{ id: string; name: string; description: string } | null>(null);
 
   const { data: diagnostics, isLoading } = useQuery({
     queryKey: ["diagnostics"],
