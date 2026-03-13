@@ -4,11 +4,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Copy, Download, Play, Plus,
+  ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Copy, Download, Play, Plus, Save,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -29,6 +32,15 @@ export default function DiagnosticDetail() {
   const [errorMessage, setErrorMessage] = useState("");
   const [showError, setShowError] = useState(false);
 
+  // Draft editing state
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editProgramId, setEditProgramId] = useState("");
+  const [editPromptId, setEditPromptId] = useState("");
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [draftInitialized, setDraftInitialized] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+
   const { data: diagnostic, isLoading } = useQuery({
     queryKey: ["diagnostic", diagnosticId],
     queryFn: async () => {
@@ -43,6 +55,16 @@ export default function DiagnosticDetail() {
     enabled: !!diagnosticId,
   });
 
+  // Initialize draft edit fields once
+  if (diagnostic && diagnostic.status === "draft" && !draftInitialized) {
+    setEditName(diagnostic.name || "");
+    setEditDescription(diagnostic.description || "");
+    setEditProgramId(diagnostic.program_id || "");
+    setEditPromptId(diagnostic.prompt_id || "");
+    setEditTags((diagnostic.audience_tags as string[]) || []);
+    setDraftInitialized(true);
+  }
+
   const { data: program } = useQuery({
     queryKey: ["program", diagnostic?.program_id],
     queryFn: async () => {
@@ -55,6 +77,41 @@ export default function DiagnosticDetail() {
       return data;
     },
     enabled: !!diagnostic?.program_id,
+  });
+
+  const { data: programs } = useQuery({
+    queryKey: ["paid_programs"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("paid_programs").select("*").order("title");
+      if (error) throw error;
+      return data;
+    },
+    enabled: diagnostic?.status === "draft",
+  });
+
+  const { data: allTags } = useQuery({
+    queryKey: ["tags"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tags").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: diagnostic?.status === "draft",
+  });
+
+  const { data: testPrompts } = useQuery({
+    queryKey: ["prompts", "test_generation"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("prompts")
+        .select("*")
+        .eq("category", "test_generation")
+        .eq("is_active", true)
+        .order("step_order");
+      if (error) throw error;
+      return data;
+    },
+    enabled: diagnostic?.status === "draft",
   });
 
   const { data: imagePrompts } = useQuery({
@@ -71,6 +128,44 @@ export default function DiagnosticDetail() {
     },
   });
 
+  const toggleTag = (tagName: string) => {
+    setEditTags((prev) =>
+      prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]
+    );
+  };
+
+  const handleSaveDraft = async () => {
+    if (!editName.trim()) {
+      toast.error("Укажите название");
+      return;
+    }
+    if (!editProgramId) {
+      toast.error("Выберите программу");
+      return;
+    }
+    setSavingDraft(true);
+    try {
+      const { error } = await supabase
+        .from("diagnostics")
+        .update({
+          name: editName.trim(),
+          description: editDescription || null,
+          program_id: editProgramId,
+          prompt_id: editPromptId || null,
+          audience_tags: editTags,
+        } as any)
+        .eq("id", diagnosticId!);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["diagnostic", diagnosticId] });
+      queryClient.invalidateQueries({ queryKey: ["diagnostics"] });
+      toast.success("Изменения сохранены");
+    } catch (err: any) {
+      toast.error("Ошибка: " + (err.message || ""));
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
   const updateStep = useCallback(
     (index: number, update: Partial<GenerationStep>) => {
       setSteps((prev) =>
@@ -83,7 +178,7 @@ export default function DiagnosticDetail() {
   const handleGenerate = async () => {
     if (!diagnostic) return;
 
-    const promptId = diagnostic.prompt_id;
+    const promptId = diagnostic.status === "draft" ? (editPromptId || diagnostic.prompt_id) : diagnostic.prompt_id;
     if (!promptId) {
       toast.error("Не задан промпт для генерации");
       return;
@@ -101,13 +196,11 @@ export default function DiagnosticDetail() {
     setShowError(false);
 
     try {
-      // Update status to generating
       await supabase
         .from("diagnostics")
         .update({ status: "generating" } as any)
         .eq("id", diagnostic.id);
 
-      // Step 1: Generate quiz JSON
       updateStep(0, { status: "active" });
 
       const { data: quizData, error: quizErr } = await supabase.functions.invoke(
@@ -133,13 +226,11 @@ export default function DiagnosticDetail() {
       const quizJson = quizData.quiz_json;
       const placeholders: string[] = quizData.image_placeholders || [];
 
-      // Step 2: Generate images
       updateStep(1, { status: "active", detail: `0 из ${placeholders.length}` });
 
       let currentJson = JSON.stringify(quizJson);
       let failed = 0;
 
-      // Get first image prompt template if available
       const imageTemplate = imagePrompts?.[0]?.user_prompt_template;
 
       for (let i = 0; i < placeholders.length; i++) {
@@ -179,7 +270,6 @@ export default function DiagnosticDetail() {
       updateStep(1, { status: "done", detail: failed > 0 ? `${failed} не удалось` : undefined });
       setFailedImages(failed);
 
-      // Step 3: Assemble
       updateStep(2, { status: "active" });
 
       currentJson = currentJson.replace(/\{\{IMAGE:[^}]+\}\}/g, "null");
@@ -248,44 +338,128 @@ export default function DiagnosticDetail() {
 
   const isReady = diagnostic.status === "ready" && quizJson;
   const isDraft = diagnostic.status === "draft";
-  const isGeneratingStatus = diagnostic.status === "generating";
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/diagnostics")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">{diagnostic.name}</h1>
+        <h1 className="text-2xl font-bold">{isDraft ? editName || diagnostic.name : diagnostic.name}</h1>
         <Badge variant={isReady ? "default" : "secondary"} className="ml-2">
           {diagnostic.status}
         </Badge>
       </div>
 
-      {/* Info table */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Программа</TableHead>
-            <TableHead>Название диагностики</TableHead>
-            <TableHead className="text-right">Действие</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow>
-            <TableCell className="font-medium">{program?.title || "—"}</TableCell>
-            <TableCell>{diagnostic.name}</TableCell>
-            <TableCell className="text-right">
-              {!generating && !showError && (
-                <Button onClick={handleGenerate} size="sm">
-                  <Play className="h-4 w-4 mr-2" />
-                  {isReady ? "Перегенерировать" : "Сгенерировать"}
-                </Button>
+      {/* Draft edit form */}
+      {isDraft && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Редактировать черновик</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Программа</Label>
+              <Select value={editProgramId} onValueChange={setEditProgramId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите программу" />
+                </SelectTrigger>
+                <SelectContent>
+                  {programs?.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Название</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Название диагностики" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Описание</Label>
+              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Подробное описание..." className="min-h-[100px]" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Теги аудитории</Label>
+              {allTags && allTags.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {allTags.map((tag) => (
+                    <Badge
+                      key={tag.id}
+                      variant={editTags.includes(tag.name) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleTag(tag.name)}
+                    >
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Нет тегов.</p>
               )}
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Промпт для генерации</Label>
+              {testPrompts && testPrompts.length > 0 ? (
+                <Select value={editPromptId || testPrompts[0]?.id || ""} onValueChange={setEditPromptId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите промпт" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {testPrompts.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-muted-foreground">Нет активных промптов категории «Генерация теста».</p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <Button onClick={handleSaveDraft} disabled={savingDraft}>
+                {savingDraft ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Сохранить изменения
+              </Button>
+              <Button onClick={handleGenerate} disabled={generating} variant="secondary">
+                <Play className="h-4 w-4 mr-2" />
+                Сгенерировать
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Non-draft info table */}
+      {!isDraft && (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Программа</TableHead>
+              <TableHead>Название диагностики</TableHead>
+              <TableHead className="text-right">Действие</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="font-medium">{program?.title || "—"}</TableCell>
+              <TableCell>{diagnostic.name}</TableCell>
+              <TableCell className="text-right">
+                {!generating && !showError && (
+                  <Button onClick={handleGenerate} size="sm">
+                    <Play className="h-4 w-4 mr-2" />
+                    {isReady ? "Перегенерировать" : "Сгенерировать"}
+                  </Button>
+                )}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      )}
 
       {/* Result */}
       {isReady && (
