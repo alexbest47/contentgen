@@ -460,10 +460,12 @@ function CarouselSlider({
   images,
   totalSlides,
   onPreview,
+  contentType,
 }: {
   images?: { slideNumber: number; url: string }[];
   totalSlides: number;
   onPreview: (src: string, alt: string) => void;
+  contentType?: string;
 }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
