@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, RefreshCw, Loader2, Image, Layers } from "lucide-react";
+import { ArrowLeft, RefreshCw, Loader2, Image, Layers, Copy } from "lucide-react";
 import PipelineResultView from "@/components/project/PipelineResultView";
 import { toast } from "sonner";
 
