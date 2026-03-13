@@ -32,6 +32,12 @@ export default function ContentDetail() {
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`;
   const isEmail = isEmailType(contentType!);
 
+  const { data: promptInfo } = usePromptInfo({
+    content_type: contentType,
+    offer_type: offerType,
+    enabled: !!contentType && !!offerType,
+  });
+
   const { data: contentPieces } = useQuery({
     queryKey: ["content_pieces", projectId],
     queryFn: async () => {
