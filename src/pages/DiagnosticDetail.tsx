@@ -139,7 +139,7 @@ export default function DiagnosticDetail() {
     pollingRef.current = setInterval(async () => {
       const { data } = await supabase
         .from("diagnostics")
-        .select("status, generation_progress, quiz_json")
+        .select("status, generation_progress, quiz_json, thank_you_json, card_prompt")
         .eq("id", diagnosticId!)
         .single();
 
