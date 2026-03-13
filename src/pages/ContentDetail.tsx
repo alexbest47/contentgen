@@ -9,6 +9,7 @@ import { ArrowLeft, RefreshCw, Loader2, Image, Layers, Copy } from "lucide-react
 import PipelineResultView from "@/components/project/PipelineResultView";
 import { toast } from "sonner";
 import { usePromptInfo } from "@/hooks/usePromptInfo";
+import { getOfferTypeLabel } from "@/lib/offerTypes";
 
 const contentTypeLabels: Record<string, string> = {
   instagram: "Пост в Instagram",
