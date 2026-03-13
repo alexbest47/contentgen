@@ -129,6 +129,12 @@ export default function OfferDetail() {
 
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
+  const { data: promptInfo } = usePromptInfo({
+    category: "lead_magnets",
+    offer_type: offer?.offer_type,
+    enabled: !!offer?.offer_type,
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
