@@ -350,7 +350,7 @@ function SocialView({
             onClick={() => staticImage && openPreview(staticImage, "Изображение поста")}
           >
             {staticImage ? (
-              <img src={staticImage} alt="Пост" className="w-full h-full object-cover" />
+              <img src={staticImage} alt="Пост" className="w-full h-full object-contain" />
             ) : (
               <span className="text-sm text-muted-foreground/50">Изображение не сгенерировано</span>
             )}
