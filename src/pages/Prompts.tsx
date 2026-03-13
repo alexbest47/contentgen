@@ -79,6 +79,20 @@ export default function Prompts() {
     setOpen(true);
   };
 
+  const openDuplicate = (prompt: any) => {
+    setEditId(null);
+    setForm({
+      name: `${prompt.name} (копия)`, slug: `${prompt.slug}-copy`,
+      description: prompt.description ?? "", provider: prompt.provider,
+      model: prompt.model, system_prompt: prompt.system_prompt,
+      user_prompt_template: prompt.user_prompt_template,
+      output_format_hint: prompt.output_format_hint ?? "", is_active: prompt.is_active,
+      content_type: prompt.content_type ?? "",
+      step_order: prompt.step_order ?? 1, offer_type: prompt.offer_type ?? "",
+    });
+    setOpen(true);
+  };
+
   const setField = (key: keyof PromptForm, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
   const offerTypesWithPrompts = OFFER_TYPES.filter((ot) =>
@@ -112,6 +126,7 @@ export default function Prompts() {
               prompts={groupPrompts}
               onEdit={openEdit}
               onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
+              onDuplicate={openDuplicate}
             />
           );
         })}
@@ -124,7 +139,7 @@ export default function Prompts() {
             </div>
             <div className="space-y-3">
               {otherInGroup.map((p: any) => (
-                <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} />
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
               ))}
             </div>
           </div>
@@ -178,7 +193,7 @@ export default function Prompts() {
             <TabsContent value="_other">
               <div className="space-y-3">
                 {otherPrompts.map((p: any) => (
-                  <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} />
+                  <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
                 ))}
               </div>
             </TabsContent>
