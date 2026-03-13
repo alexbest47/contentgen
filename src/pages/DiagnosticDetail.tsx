@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import {
-  ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Copy, Download, Play, Plus, Save, Square,
+  ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Copy, Download, Play, Plus, Save, Square, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +27,7 @@ const ACTIVE_STATUSES = ["generating", "quiz_generated", "generating_card_prompt
 
 export default function DiagnosticDetail() {
   const { diagnosticId } = useParams<{ diagnosticId: string }>();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -40,6 +42,8 @@ export default function DiagnosticDetail() {
   const [draftInitialized, setDraftInitialized] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [stopping, setStopping] = useState(false);
+  const [generatingProject, setGeneratingProject] = useState(false);
+  const [progressText, setProgressText] = useState("");
 
   const { data: diagnostic, isLoading } = useQuery({
     queryKey: ["diagnostic", diagnosticId],
@@ -415,6 +419,54 @@ export default function DiagnosticDetail() {
     URL.revokeObjectURL(url);
   };
 
+  const generateLeadMagnetsMutation = useMutation({
+    mutationFn: async () => {
+      if (!diagnostic?.offer_id) throw new Error("Нет привязанного оффера");
+      setGeneratingProject(true);
+      setProgressText("Генерация названия...");
+
+      const { data: offerData } = await supabase
+        .from("offers")
+        .select("title, paid_programs(title)")
+        .eq("id", diagnostic.offer_id)
+        .single();
+
+      const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
+        body: { course_title: offerData?.title || diagnostic.name, program_title: (offerData as any)?.paid_programs?.title || "" },
+      });
+      if (nameError) throw new Error(nameError.message || "Ошибка генерации названия");
+      if (nameData?.error) throw new Error(nameData.error);
+
+      setProgressText("Создание проекта...");
+      const { data: project, error: projError } = await supabase
+        .from("projects")
+        .insert({ offer_id: diagnostic.offer_id, title: nameData.name, created_by: user!.id })
+        .select("id")
+        .single();
+      if (projError) throw projError;
+
+      setProgressText("Генерация лид-магнитов...");
+      const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
+        body: { project_id: project.id },
+      });
+      if (genError) throw new Error(genError.message || "Ошибка генерации");
+      if (genData?.error) throw new Error(genData.error);
+
+      return project.id;
+    },
+    onSuccess: (projectId) => {
+      toast.success("Лид-магниты сгенерированы!");
+      setGeneratingProject(false);
+      setProgressText("");
+      navigate(`/programs/${diagnostic?.program_id}/offers/diagnostic/${diagnostic?.offer_id}/projects/${projectId}`);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setGeneratingProject(false);
+      setProgressText("");
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -444,10 +496,23 @@ export default function DiagnosticDetail() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/diagnostics")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">{isDraft ? editName || diagnostic.name : diagnostic.name}</h1>
+        <h1 className="text-2xl font-bold flex-1">{isDraft ? editName || diagnostic.name : diagnostic.name}</h1>
         <Badge variant={isReady ? "default" : "secondary"} className="ml-2">
           {diagnostic.status}
         </Badge>
+        {diagnostic.offer_id && !isGenerating && (
+          <Button
+            onClick={() => generateLeadMagnetsMutation.mutate()}
+            disabled={generatingProject}
+          >
+            {generatingProject ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            {progressText || "Сгенерировать лид-магниты"}
+          </Button>
+        )}
       </div>
 
       {/* Draft edit form */}
