@@ -101,6 +101,13 @@ export default function OfferTypeDetail() {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archivingId, setArchivingId] = useState<string | null>(null);
 
+  // Create dialog state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createTitle, setCreateTitle] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
+  const [createDocUrl, setCreateDocUrl] = useState("");
+  const [createSelectedTags, setCreateSelectedTags] = useState<string[]>([]);
+
   // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
