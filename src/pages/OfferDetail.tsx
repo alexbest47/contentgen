@@ -40,7 +40,6 @@ export default function OfferDetail() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [progressText, setProgressText] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: offer } = useQuery({
