@@ -226,8 +226,8 @@ function EmailView({
   onSave?: (json: string) => void;
   copyHtmlRef?: React.MutableRefObject<(() => void) | null>;
 }) {
-  const [subject, setSubject] = useState(data.email_subject);
-  const [body, setBody] = useState(data.email_body);
+  const [subject, setSubject] = useState(data.email_subject || "");
+  const [body, setBody] = useState(data.email_body || data.email_body_html || "");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { data: settings } = useEmailSettings();
 
