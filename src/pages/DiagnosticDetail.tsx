@@ -60,7 +60,6 @@ export default function DiagnosticDetail() {
     setEditName(diagnostic.name || "");
     setEditDescription(diagnostic.description || "");
     setEditProgramId(diagnostic.program_id || "");
-    setEditPromptId(diagnostic.prompt_id || "");
     setEditTags((diagnostic.audience_tags as string[]) || []);
     setDraftInitialized(true);
   }
