@@ -523,7 +523,7 @@ export default function DiagnosticDetail() {
     );
   }
 
-  const isReady = diagnostic.status === "ready" && (quizJson || thankYouJson || cardPrompt);
+  const isReady = diagnostic.status === "ready" && (quizJson || cardPrompt);
   const isDraft = diagnostic.status === "draft";
   const isGenerating = ACTIVE_STATUSES.includes(diagnostic.status);
   const isError = diagnostic.status === "error";
