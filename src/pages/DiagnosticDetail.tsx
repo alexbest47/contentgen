@@ -318,10 +318,6 @@ export default function DiagnosticDetail() {
                   <Download className="h-4 w-4 mr-2" />
                   Скачать JSON
                 </Button>
-                <Button onClick={handleGenerate} variant="secondary">
-                  <Play className="h-4 w-4 mr-2" />
-                  Перегенерировать
-                </Button>
                 <Button onClick={() => navigate("/create-diagnostic")}>
                   <Plus className="h-4 w-4 mr-2" />
                   Создать ещё
