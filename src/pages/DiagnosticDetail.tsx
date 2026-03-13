@@ -70,6 +70,7 @@ export default function DiagnosticDetail() {
   const updateStepsFromStatus = useCallback((status: string, progress: any) => {
     const s: GenerationStep[] = [
       { label: "Генерация структуры теста", status: "pending" },
+      { label: "Генерация промпта карты", status: "pending" },
       { label: "Создание изображений", status: "pending" },
       { label: "Готово", status: "pending" },
     ];
@@ -79,42 +80,54 @@ export default function DiagnosticDetail() {
     } else if (status === "quiz_generated") {
       s[0].status = "done";
       s[1].status = "active";
+    } else if (status === "generating_card_prompt") {
+      s[0].status = "done";
+      s[1].status = "active";
+    } else if (status === "card_prompt_generated") {
+      s[0].status = "done";
+      s[1].status = "done";
+      s[2].status = "active";
       if (progress?.total_images) {
-        s[1].detail = `0 из ${progress.total_images}`;
+        s[2].detail = `0 из ${progress.total_images}`;
       }
     } else if (status === "generating_images") {
       s[0].status = "done";
-      s[1].status = "active";
+      s[1].status = "done";
+      s[2].status = "active";
       if (progress?.total_images) {
         const done = progress.completed_images || 0;
-        s[1].detail = `${done} из ${progress.total_images}`;
+        s[2].detail = `${done} из ${progress.total_images}`;
       }
     } else if (status === "ready") {
       s[0].status = "done";
       s[1].status = "done";
-      if (progress?.failed_images > 0) {
-        s[1].detail = `${progress.failed_images} не удалось`;
-      }
       s[2].status = "done";
+      if (progress?.failed_images > 0) {
+        s[2].detail = `${progress.failed_images} не удалось`;
+      }
+      s[3].status = "done";
     } else if (status === "error") {
       const isStopped = progress?.error === "Остановлено пользователем";
-      const stoppedAt = progress?.stopped_at; // "generating", "quiz_generated", "generating_images"
+      const stoppedAt = progress?.stopped_at;
 
       if (stoppedAt === "generating" || (!stoppedAt && !progress?.total_images)) {
-        // Stopped during quiz generation
         s[0].status = "error";
         s[0].detail = isStopped ? "Остановлено" : undefined;
-      } else {
-        // Stopped during image generation
+      } else if (stoppedAt === "quiz_generated" || stoppedAt === "generating_card_prompt") {
         s[0].status = "done";
         s[1].status = "error";
+        s[1].detail = isStopped ? "Остановлено" : undefined;
+      } else {
+        s[0].status = "done";
+        s[1].status = "done";
+        s[2].status = "error";
         if (progress?.total_images) {
           const done = progress.completed_images || 0;
-          s[1].detail = isStopped
+          s[2].detail = isStopped
             ? `Остановлено (${done} из ${progress.total_images})`
             : `${done} из ${progress.total_images}`;
         } else {
-          s[1].detail = isStopped ? "Остановлено" : undefined;
+          s[2].detail = isStopped ? "Остановлено" : undefined;
         }
       }
     }
