@@ -47,7 +47,7 @@ serve(async (req) => {
     const programTitle = program?.title || "";
 
     // Build user prompt with variable substitution
-    let userPrompt = prompt.user_prompt_template
+    let userPrompt = (prompt.user_prompt_template || "")
       .replace(/\{\{program_title\}\}/g, programTitle)
       .replace(/\{\{program_description\}\}/g, program?.description || "")
       .replace(/\{\{audience_description\}\}/g, program?.audience_description || "")
@@ -59,7 +59,12 @@ serve(async (req) => {
       userPrompt += "\n\n" + prompt.output_format_hint;
     }
 
+    if (!userPrompt.trim()) {
+      throw new Error("Шаблон пользовательского промпта пуст. Заполните поле в карточке промпта.");
+    }
+
     console.log("Calling Claude with model:", prompt.model);
+    console.log("User prompt length:", userPrompt.length);
 
     // Call Claude API
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
