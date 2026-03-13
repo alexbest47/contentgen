@@ -210,28 +210,6 @@ export default function OfferTypeDetail() {
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />Создать оффер</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Новый оффер — {typeLabel}</DialogTitle>
-            </DialogHeader>
-            <OfferForm
-              title={title} setTitle={setTitle}
-              description={description} setDescription={setDescription}
-              docUrl={docUrl} setDocUrl={setDocUrl}
-              selectedTags={selectedTags} toggleTag={toggleTag}
-              allTags={allTags} isPending={createMutation.isPending}
-              onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }}
-              submitLabel="Создать" pendingLabel="Создание..."
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-2xl">
