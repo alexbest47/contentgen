@@ -175,20 +175,15 @@ serve(async (req) => {
       });
     }
 
-    const progress = currentDiag?.generation_progress as any;
-    const imagesTotal = progress?.total_images || 0;
-    const imagesDone = (progress?.completed_images || 0) + (progress?.failed_images || 0);
-    const allImagesDone = imagesTotal === 0 || imagesDone >= imagesTotal;
+    const allImagesDone = currentDiag?.status === "images_done" || currentDiag?.status === "ready";
 
     // If all images are done too, set status to ready; otherwise just save card_prompt
-    const newStatus = allImagesDone ? "ready" : currentDiag?.status;
-
     await supabase
       .from("diagnostics")
       .update({ card_prompt: cardPromptValue, ...(allImagesDone ? { status: "ready" } : {}) })
       .eq("id", diagnostic_id);
 
-    console.log(`[card-prompt] Card prompt saved. Images done: ${allImagesDone}. Status: ${newStatus}`);
+    console.log(`[card-prompt] Card prompt saved. Images done: ${allImagesDone}. Final status: ${allImagesDone ? "ready" : currentDiag?.status}`);
 
     return new Response(
       JSON.stringify({ success: true }),
