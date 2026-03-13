@@ -93,9 +93,20 @@ export default function DiagnosticDetail() {
         const done = progress.completed_images || 0;
         s[2].detail = `${done} из ${progress.total_images}`;
       }
+    } else if (status === "images_done") {
+      // Images finished but card prompt still generating
+      s[0].status = "done";
+      s[1].status = cardPrompt ? "done" : "active";
+      s[2].status = "done";
+      if (progress?.failed_images > 0) {
+        s[2].detail = `${progress.failed_images} не удалось`;
+      }
+      if (cardPrompt) {
+        s[3].status = "done";
+      }
     } else if (status === "ready") {
       s[0].status = "done";
-      s[1].status = "done";
+      s[1].status = cardPrompt ? "done" : "active";
       s[2].status = "done";
       if (progress?.failed_images > 0) {
         s[2].detail = `${progress.failed_images} не удалось`;

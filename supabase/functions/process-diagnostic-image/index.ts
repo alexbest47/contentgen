@@ -192,7 +192,17 @@ serve(async (req) => {
     }
 
     const isLast = image_index >= placeholders.length - 1;
-    const newStatus = isLast ? "ready" : "generating_images";
+
+    // If last image, check if card_prompt is already saved
+    let newStatus = "generating_images";
+    if (isLast) {
+      const { data: freshDiag } = await supabase
+        .from("diagnostics")
+        .select("card_prompt")
+        .eq("id", diagnostic_id)
+        .single();
+      newStatus = freshDiag?.card_prompt ? "ready" : "images_done";
+    }
 
     await supabase
       .from("diagnostics")
@@ -207,7 +217,7 @@ serve(async (req) => {
       })
       .eq("id", diagnostic_id);
 
-    console.log(`[process-image] Image ${image_index + 1}/${placeholders.length} done. completed=${completedImages}, failed=${failedImages}`);
+    console.log(`[process-image] Image ${image_index + 1}/${placeholders.length} done. completed=${completedImages}, failed=${failedImages}. Status: ${newStatus}`);
 
     // Chain to next image (fire-and-forget)
     if (!isLast) {
