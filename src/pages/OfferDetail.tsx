@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ChevronRight, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
+import { usePromptInfo } from "@/hooks/usePromptInfo";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
