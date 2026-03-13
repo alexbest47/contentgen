@@ -205,6 +205,12 @@ export default function Prompts() {
       ) : (
         <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
       )}
+
+      <RefinePromptDialog
+        prompt={refinePrompt}
+        open={!!refinePrompt}
+        onOpenChange={(o) => { if (!o) setRefinePrompt(null); }}
+      />
     </div>
   );
 }
