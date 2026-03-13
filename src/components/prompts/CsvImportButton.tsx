@@ -76,7 +76,7 @@ function parseCsvLine(line: string): string[] {
   return result;
 }
 
-export default function CsvImportButton({ offerTypeKey, existingCount }: CsvImportButtonProps) {
+export default function CsvImportButton({ offerTypeKey, existingCount, prompts: currentPrompts }: CsvImportButtonProps) {
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
