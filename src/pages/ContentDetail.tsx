@@ -199,18 +199,27 @@ export default function ContentDetail() {
         </Button>
 
         {isEmail ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => generateImagesMutation.mutate("banner")}
-            disabled={isAnyImageGenerating}
-          >
-            {generatingImagesKey === "banner" ? (
-              <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
-            ) : (
-              <><Image className="mr-1 h-3 w-3" />Сгенерировать баннер</>
-            )}
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => generateImagesMutation.mutate("banner")}
+              disabled={isAnyImageGenerating}
+            >
+              {generatingImagesKey === "banner" ? (
+                <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
+              ) : (
+                <><Image className="mr-1 h-3 w-3" />Сгенерировать баннер</>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => copyHtmlRef.current?.()}
+            >
+              <Copy className="mr-1 h-3 w-3" />Скопировать HTML
+            </Button>
+          </>
         ) : (
           <>
             <Button
