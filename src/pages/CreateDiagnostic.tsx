@@ -381,9 +381,9 @@ export default function CreateDiagnostic() {
         </div>
 
         {failedImages > 0 && (
-          <Card className="border-yellow-500/50 bg-yellow-500/5">
+        <Card className="border-accent/50 bg-accent/5">
             <CardContent className="pt-4 flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-accent-foreground shrink-0 mt-0.5" />
               <p className="text-sm">
                 {failedImages} изображени{failedImages === 1 ? "е" : failedImages < 5 ? "я" : "й"} не
                 удалось сгенерировать — вы можете добавить их вручную.
