@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import {
-  ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Copy, Download, Play, Plus, Save,
+  ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Copy, Download, Play, Plus, Save, Square,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,6 +40,7 @@ export default function DiagnosticDetail() {
   const [editTags, setEditTags] = useState<string[]>([]);
   const [draftInitialized, setDraftInitialized] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [stopping, setStopping] = useState(false);
 
   const { data: diagnostic, isLoading } = useQuery({
     queryKey: ["diagnostic", diagnosticId],
@@ -278,6 +279,24 @@ export default function DiagnosticDetail() {
     startPolling();
   };
 
+  const handleStop = async () => {
+    setStopping(true);
+    try {
+      await supabase
+        .from("diagnostics")
+        .update({ status: "error", generation_progress: { error: "Остановлено пользователем" } } as any)
+        .eq("id", diagnosticId!);
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      queryClient.invalidateQueries({ queryKey: ["diagnostic", diagnosticId] });
+      toast.info("Генерация остановлена");
+    } finally {
+      setStopping(false);
+    }
+  };
+
   const quizJson = diagnostic?.quiz_json;
   const thankYouJson = (diagnostic as any)?.thank_you_json;
   const cardPrompt = (diagnostic as any)?.card_prompt;
@@ -481,6 +500,13 @@ export default function DiagnosticDetail() {
                   {progress.completed_images || 0} из {progress.total_images} изображений
                 </p>
               </div>
+            )}
+
+            {isGenerating && (
+              <Button variant="destructive" size="sm" onClick={handleStop} disabled={stopping}>
+                {stopping ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Square className="h-4 w-4 mr-2" />}
+                Остановить
+              </Button>
             )}
           </CardContent>
         </Card>
