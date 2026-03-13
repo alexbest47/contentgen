@@ -318,7 +318,7 @@ export default function CreateDiagnostic() {
               {steps.map((step, i) => (
                 <div key={i} className="flex items-center gap-3">
                   {step.status === "done" ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                   ) : step.status === "active" ? (
                     <Loader2 className="h-5 w-5 text-primary animate-spin shrink-0" />
                   ) : step.status === "error" ? (
