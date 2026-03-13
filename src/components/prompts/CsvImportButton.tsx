@@ -182,7 +182,7 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
       const toInsert = parsedRows.map((r) => ({
         name: r.name,
         slug: r.slug,
-        category: r.category,
+        category: deriveCategory(r.content_type || ""),
         content_type: r.content_type,
         sub_type: null,
         step_order: r.step_order,

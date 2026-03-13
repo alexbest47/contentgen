@@ -60,17 +60,6 @@ export default function PromptFormDialog({ form, setField, editId, saveMutation 
             <Input type="number" min={1} value={form.step_order} onChange={(e) => setField("step_order", parseInt(e.target.value) || 1)} />
           </div>
           <div className="space-y-2">
-            <Label>Категория промпта</Label>
-            <Select value={form.category} onValueChange={(v) => setField("category", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c} value={c}>{categoryLabels[c]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
             <Label>Провайдер</Label>
             <Input value={form.provider} onChange={(e) => setField("provider", e.target.value)} />
           </div>

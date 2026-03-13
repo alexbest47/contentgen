@@ -68,7 +68,7 @@ export default function Prompts() {
   const openEdit = (prompt: any) => {
     setEditId(prompt.id);
     setForm({
-      name: prompt.name, slug: prompt.slug, category: prompt.category,
+      name: prompt.name, slug: prompt.slug,
       description: prompt.description ?? "", provider: prompt.provider,
       model: prompt.model, system_prompt: prompt.system_prompt,
       user_prompt_template: prompt.user_prompt_template,
