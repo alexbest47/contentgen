@@ -114,19 +114,6 @@ export default function DiagnosticDetail() {
     enabled: diagnostic?.status === "draft",
   });
 
-  const { data: imagePrompts } = useQuery({
-    queryKey: ["prompts", "image_prompts_for_diagnostic"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("prompts")
-        .select("*")
-        .in("category", ["image_carousel", "image_post"])
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const toggleTag = (tagName: string) => {
     setEditTags((prev) =>
