@@ -73,6 +73,29 @@ export default function Diagnostics() {
 
   const programMap = Object.fromEntries((programs || []).map((p) => [p.id, p.title]));
 
+  const handleRegenerate = async (d: any) => {
+    const { error } = await supabase
+      .from("diagnostics")
+      .update({ status: "generating", generation_progress: null, quiz_json: null, thank_you_json: null, card_prompt: null })
+      .eq("id", d.id);
+    if (error) {
+      toast.error("Не удалось запустить перегенерацию");
+      return;
+    }
+    supabase.functions.invoke("run-diagnostic-pipeline", {
+      body: {
+        diagnostic_id: d.id,
+        program_id: d.program_id,
+        name: d.name,
+        description: d.description || "",
+        audience_tags: d.audience_tags || [],
+        prompt_id: d.prompt_id,
+      },
+    });
+    toast.success("Перегенерация запущена");
+    navigate(`/diagnostics/${d.id}`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
