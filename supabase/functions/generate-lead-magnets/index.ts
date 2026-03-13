@@ -181,7 +181,7 @@ serve(async (req) => {
       visual_content: lm.visual_content || "",
       instant_value: lm.instant_value || "",
       save_reason: lm.save_reason || "",
-      transition_to_course: lm.transition_to_course || "",
+      transition_to_course: lm.transition_to_test || lm.transition_to_course || "",
       cta_text: lm.cta_text || "",
     }));
 
