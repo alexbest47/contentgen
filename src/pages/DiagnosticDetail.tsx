@@ -65,7 +65,8 @@ export default function DiagnosticDetail() {
   }
 
   // Derive steps from diagnostic status
-  const updateStepsFromStatus = useCallback((status: string, progress: any) => {
+  // Steps 2a (card prompt) and 2b (images) now run in parallel
+  const updateStepsFromStatus = useCallback((status: string, progress: any, cardPrompt?: string | null) => {
     const s: GenerationStep[] = [
       { label: "Генерация структуры теста", status: "pending" },
       { label: "Генерация промпта карты", status: "pending" },
@@ -78,12 +79,15 @@ export default function DiagnosticDetail() {
     } else if (status === "quiz_generated") {
       s[0].status = "done";
       s[1].status = "active";
+      s[2].status = "active";
     } else if (status === "generating_card_prompt") {
       s[0].status = "done";
       s[1].status = "active";
+      s[2].status = "active";
     } else if (status === "card_prompt_generated" || status === "images_pending" || status === "generating_images") {
       s[0].status = "done";
-      s[1].status = "done";
+      // Card prompt: done if already saved, otherwise still active (parallel)
+      s[1].status = cardPrompt ? "done" : "active";
       s[2].status = "active";
       if (progress?.total_images) {
         const done = progress.completed_images || 0;
@@ -110,7 +114,7 @@ export default function DiagnosticDetail() {
         s[1].detail = isStopped ? "Остановлено" : undefined;
       } else {
         s[0].status = "done";
-        s[1].status = "done";
+        s[1].status = cardPrompt ? "done" : "error";
         s[2].status = "error";
         if (progress?.total_images) {
           const done = progress.completed_images || 0;
