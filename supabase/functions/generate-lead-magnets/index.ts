@@ -53,6 +53,24 @@ serve(async (req) => {
       }
     }
 
+    // Fetch program description from Google Doc if available
+    let programDocDescription = "";
+    if (program.program_doc_url) {
+      try {
+        const docMatch = program.program_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        if (docMatch) {
+          const docId = docMatch[1];
+          const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+          const docResponse = await fetch(exportUrl);
+          if (docResponse.ok) {
+            programDocDescription = await docResponse.text();
+          }
+        }
+      } catch (docErr) {
+        console.error("Error fetching program doc:", docErr);
+      }
+    }
+
     // Also fetch offer-level doc if present
     let offerDescription = offer.description || "";
     if (offer.doc_url) {
@@ -96,7 +114,8 @@ serve(async (req) => {
       .replace(/\{\{offer_type\}\}/g, offer.offer_type)
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
-      .replace(/\{\{offer_description\}\}/g, offerDescription);
+      .replace(/\{\{offer_description\}\}/g, offerDescription)
+      .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
 
     // Call Claude API
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {

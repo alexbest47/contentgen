@@ -20,6 +20,7 @@ export default function ProgramDetail() {
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editAudienceUrl, setEditAudienceUrl] = useState("");
+  const [editProgramDocUrl, setEditProgramDocUrl] = useState("");
 
   const { data: program } = useQuery({
     queryKey: ["program", programId],
@@ -36,7 +37,8 @@ export default function ProgramDetail() {
         title: editTitle,
         description: editDescription || null,
         audience_doc_url: editAudienceUrl || null,
-      }).eq("id", programId!);
+        program_doc_url: editProgramDocUrl || null,
+      } as any).eq("id", programId!);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -52,6 +54,7 @@ export default function ProgramDetail() {
       setEditTitle(program.title);
       setEditDescription(program.description || "");
       setEditAudienceUrl(program.audience_doc_url || "");
+      setEditProgramDocUrl((program as any).program_doc_url || "");
       setEditOpen(true);
     }
   };
@@ -70,11 +73,18 @@ export default function ProgramDetail() {
             </Button>
           </div>
           <p className="text-muted-foreground">Выберите тип оффера</p>
-          {program?.audience_doc_url && (
-            <p className="text-xs text-muted-foreground mt-1">
-              📄 <a href={program.audience_doc_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google Doc аудитории</a>
-            </p>
-          )}
+          <div className="flex flex-wrap gap-x-4">
+            {program?.audience_doc_url && (
+              <p className="text-xs text-muted-foreground mt-1">
+                📄 <a href={program.audience_doc_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google Doc аудитории</a>
+              </p>
+            )}
+            {(program as any)?.program_doc_url && (
+              <p className="text-xs text-muted-foreground mt-1">
+                📝 <a href={(program as any).program_doc_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google Doc описания программы</a>
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -95,6 +105,10 @@ export default function ProgramDetail() {
             <div className="space-y-2">
               <Label>Ссылка на Google Doc аудитории</Label>
               <Input value={editAudienceUrl} onChange={(e) => setEditAudienceUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Ссылка на Google Doc описания программы</Label>
+              <Input value={editProgramDocUrl} onChange={(e) => setEditProgramDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
             </div>
             <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
               {updateMutation.isPending ? "Сохранение..." : "Сохранить"}

@@ -40,11 +40,26 @@ serve(async (req) => {
     // Load program title
     const { data: program } = await supabase
       .from("paid_programs")
-      .select("title, description, audience_description")
+      .select("title, description, audience_description, program_doc_url")
       .eq("id", program_id)
       .single();
 
     const programTitle = program?.title || "";
+
+    // Fetch program description from Google Doc if available
+    let programDocDescription = "";
+    if (program?.program_doc_url) {
+      try {
+        const docMatch = program.program_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        if (docMatch) {
+          const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`;
+          const docResponse = await fetch(exportUrl);
+          if (docResponse.ok) {
+            programDocDescription = await docResponse.text();
+          }
+        }
+      } catch (e) { console.error("Error fetching program doc:", e); }
+    }
 
     // Build user prompt with variable substitution
     let userPrompt = (prompt.user_prompt_template || "")
@@ -53,7 +68,8 @@ serve(async (req) => {
       .replace(/\{\{audience_description\}\}/g, program?.audience_description || "")
       .replace(/\{\{test_name\}\}/g, name || "")
       .replace(/\{\{test_description\}\}/g, description || "")
-      .replace(/\{\{audience_tags\}\}/g, (audience_tags || []).join(", "));
+      .replace(/\{\{audience_tags\}\}/g, (audience_tags || []).join(", "))
+      .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
 
     if (prompt.output_format_hint) {
       userPrompt += "\n\n" + prompt.output_format_hint;

@@ -20,6 +20,7 @@ export default function Programs() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [audienceDocUrl, setAudienceDocUrl] = useState("");
+  const [programDocUrl, setProgramDocUrl] = useState("");
 
   const { data: programs, isLoading } = useQuery({
     queryKey: ["paid_programs"],
@@ -32,7 +33,7 @@ export default function Programs() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("paid_programs").insert({ title, description, audience_doc_url: audienceDocUrl || null, created_by: user!.id } as any);
+      const { error } = await supabase.from("paid_programs").insert({ title, description, audience_doc_url: audienceDocUrl || null, program_doc_url: programDocUrl || null, created_by: user!.id } as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -41,6 +42,7 @@ export default function Programs() {
       setTitle("");
       setDescription("");
       setAudienceDocUrl("");
+      setProgramDocUrl("");
       toast.success("Программа создана");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -74,6 +76,10 @@ export default function Programs() {
                 <Label>Ссылка на описание аудитории (Google Docs)</Label>
                 <Input value={audienceDocUrl} onChange={(e) => setAudienceDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
                 <p className="text-xs text-muted-foreground">Вставьте ссылку на Google документ (доступ по ссылке для всех)</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Ссылка на описание программы (Google Docs)</Label>
+                <Input value={programDocUrl} onChange={(e) => setProgramDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
               </div>
               <Button type="submit" className="w-full" disabled={createMutation.isPending}>
                 {createMutation.isPending ? "Создание..." : "Создать"}
