@@ -30,11 +30,9 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
 
   const data = await response.json();
 
-  // Extract image from response
   const images = data.choices?.[0]?.message?.images;
   if (images && images.length > 0) {
     const img = images[0];
-    // Handle nested object format: { image_url: { url: "data:..." } }
     const urlStr = typeof img === "string" ? img
       : img?.image_url?.url || img?.image_url || img?.url;
 
@@ -45,17 +43,14 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
     }
   }
 
-  // Fallback: check content for inline base64
   const content = data.choices?.[0]?.message?.content;
   if (typeof content === "string") {
     const b64Match = content.match(/data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)/);
     if (b64Match) return decode(b64Match[1]);
   }
 
-  // Check inline_data format (Gemini native)
-  const parts = data.choices?.[0]?.message?.content;
-  if (Array.isArray(parts)) {
-    for (const part of parts) {
+  if (Array.isArray(content)) {
+    for (const part of content) {
       if (part?.inline_data?.data) {
         return decode(part.inline_data.data);
       }
@@ -163,9 +158,9 @@ serve(async (req) => {
     const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) jsonStr = jsonMatch[1].trim();
 
-    let quizJson: any;
+    let fullResponse: any;
     try {
-      quizJson = JSON.parse(jsonStr);
+      fullResponse = JSON.parse(jsonStr);
     } catch {
       await supabase
         .from("diagnostics")
@@ -174,12 +169,17 @@ serve(async (req) => {
       throw new Error("Claude returned invalid JSON");
     }
 
-    // Extract placeholders
-    const quizJsonString = JSON.stringify(quizJson);
+    // Extract 3 blocks from Claude response
+    const quizPart = fullResponse.quiz || fullResponse;
+    const thankYouPart = fullResponse.thankYouPage || null;
+    const cardPromptPart = fullResponse.diagnosticCardPrompt || null;
+
+    // Extract image placeholders only from quiz part
+    const quizString = JSON.stringify(quizPart);
     const placeholderRegex = /\{\{IMAGE:PROMPT=([\s\S]*?)\}\}/g;
     const placeholders: string[] = [];
     let match;
-    while ((match = placeholderRegex.exec(quizJsonString)) !== null) {
+    while ((match = placeholderRegex.exec(quizString)) !== null) {
       placeholders.push(match[1]);
     }
 
@@ -187,7 +187,9 @@ serve(async (req) => {
     await supabase
       .from("diagnostics")
       .update({
-        quiz_json: quizJson,
+        quiz_json: quizPart,
+        thank_you_json: thankYouPart,
+        card_prompt: typeof cardPromptPart === "string" ? cardPromptPart : cardPromptPart ? JSON.stringify(cardPromptPart) : null,
         status: "quiz_generated",
         generation_progress: { total_images: placeholders.length, completed_images: 0 },
       })
@@ -207,13 +209,13 @@ serve(async (req) => {
       );
     }
 
-    // ---- Step 2: Generate images ----
+    // ---- Step 2: Generate images (only in quiz part) ----
     await supabase
       .from("diagnostics")
       .update({ status: "generating_images" })
       .eq("id", diagnostic_id);
 
-    let currentJson = quizJsonString;
+    let currentQuizJson = quizString;
     let completedImages = 0;
     let failedImages = 0;
 
@@ -240,7 +242,7 @@ serve(async (req) => {
             .getPublicUrl(fileName);
 
           const placeholder = `{{IMAGE:PROMPT=${placeholders[i]}}}`;
-          currentJson = currentJson.split(placeholder).join(urlData.publicUrl);
+          currentQuizJson = currentQuizJson.split(placeholder).join(urlData.publicUrl);
           completedImages++;
         }
       } catch (imgErr) {
@@ -250,7 +252,7 @@ serve(async (req) => {
 
       // Update progress after each image
       const updatedQuizJson = JSON.parse(
-        currentJson.replace(/\{\{IMAGE:PROMPT=[^}]*\}\}/g, "null")
+        currentQuizJson.replace(/\{\{IMAGE:PROMPT=[^}]*\}\}/g, "null")
       );
 
       await supabase
@@ -267,13 +269,13 @@ serve(async (req) => {
     }
 
     // ---- Step 3: Finalize ----
-    currentJson = currentJson.replace(/\{\{IMAGE:PROMPT=[^}]*\}\}/g, "null");
-    const finalJson = JSON.parse(currentJson);
+    currentQuizJson = currentQuizJson.replace(/\{\{IMAGE:PROMPT=[^}]*\}\}/g, "null");
+    const finalQuizJson = JSON.parse(currentQuizJson);
 
     await supabase
       .from("diagnostics")
       .update({
-        quiz_json: finalJson,
+        quiz_json: finalQuizJson,
         status: "ready",
         generation_progress: {
           total_images: placeholders.length,
@@ -292,7 +294,6 @@ serve(async (req) => {
   } catch (error) {
     console.error("run-diagnostic-pipeline error:", error);
 
-    // Try to update status to error
     try {
       const { diagnostic_id } = await req.clone().json().catch(() => ({}));
       if (diagnostic_id) {

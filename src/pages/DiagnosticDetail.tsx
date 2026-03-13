@@ -279,19 +279,20 @@ export default function DiagnosticDetail() {
   };
 
   const quizJson = diagnostic?.quiz_json;
+  const thankYouJson = (diagnostic as any)?.thank_you_json;
+  const cardPrompt = (diagnostic as any)?.card_prompt;
 
-  const copyJson = () => {
-    navigator.clipboard.writeText(JSON.stringify(quizJson, null, 2));
-    toast.success("JSON скопирован");
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} скопирован`);
   };
 
-  const downloadJson = () => {
-    const slug = (diagnostic?.name || "diagnostic").toLowerCase().replace(/[^a-zа-яё0-9]+/gi, "_").replace(/_+$/, "");
-    const blob = new Blob([JSON.stringify(quizJson, null, 2)], { type: "application/json" });
+  const downloadFile = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${slug}.json`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   };
