@@ -190,7 +190,7 @@ export default function ContentDetail() {
           </h1>
           {promptInfo?.[0] && (
             <p className="text-xs text-muted-foreground">
-              Промпт: «{promptInfo[0].name}»
+              Промпт: «{promptInfo[0].name}» ({getOfferTypeLabel(offerType ?? "")} / {contentType})
             </p>
           )}
         </div>

@@ -247,7 +247,7 @@ export default function ProjectDetail() {
                       const prompt = allPromptInfo?.find(p => p.content_type === ct.key);
                       return prompt ? (
                         <p className="text-xs text-muted-foreground mt-1 text-center">
-                          Промпт: «{prompt.name}»
+                          Промпт: «{prompt.name}» ({getOfferTypeLabel(offerType ?? "")} / {ct.key})
                         </p>
                       ) : null;
                     })()}
