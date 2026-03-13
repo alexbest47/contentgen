@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { categories, categoryLabels, contentTypeLabels, contentTypeKeys, type PromptForm } from "@/lib/promptConstants";
+import { contentTypeLabels, contentTypeKeys, type PromptForm } from "@/lib/promptConstants";
 import { OFFER_TYPES } from "@/lib/offerTypes";
 
 interface PromptFormDialogProps {
