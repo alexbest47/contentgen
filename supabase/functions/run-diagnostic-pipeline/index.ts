@@ -241,7 +241,7 @@ serve(async (req) => {
               .eq("id", diagnostic_id);
             console.log("[pipeline] Step 2a: Card prompt saved.");
           } catch (e) {
-            console.error("[pipeline] Step 2a error (card prompt):", e);
+            console.error("[pipeline] Step 2a error (card prompt):", e instanceof Error ? e.message : e);
             // Non-fatal: card prompt failure shouldn't block images
           }
         })();

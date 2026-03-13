@@ -278,12 +278,12 @@ export default function DiagnosticDetail() {
   };
 
   const handleGenerate = async () => {
-    if (!diagnostic) return;
+    if (!diagnostic || isGenerating) return;
 
-    // Update status immediately
+    // Update status immediately, clearing old results to avoid stale data
     await supabase
       .from("diagnostics")
-      .update({ status: "generating", generation_progress: null } as any)
+      .update({ status: "generating", generation_progress: null, quiz_json: null, card_prompt: null, thank_you_json: null } as any)
       .eq("id", diagnostic.id);
 
     updateStepsFromStatus("generating", null);
