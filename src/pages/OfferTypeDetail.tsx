@@ -80,12 +80,6 @@ export default function OfferTypeDetail() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // Create dialog state
-  const [createOpen, setCreateOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [docUrl, setDocUrl] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // Archive dialog state
   const [archiveOpen, setArchiveOpen] = useState(false);
