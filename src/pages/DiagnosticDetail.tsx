@@ -114,19 +114,6 @@ export default function DiagnosticDetail() {
     enabled: diagnostic?.status === "draft",
   });
 
-  const { data: imagePrompts } = useQuery({
-    queryKey: ["prompts", "image_prompts_for_diagnostic"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("prompts")
-        .select("*")
-        .in("category", ["image_carousel", "image_post"])
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const toggleTag = (tagName: string) => {
     setEditTags((prev) =>
@@ -231,8 +218,6 @@ export default function DiagnosticDetail() {
       let currentJson = JSON.stringify(quizJson);
       let failed = 0;
 
-      const imageTemplate = imagePrompts?.[0]?.user_prompt_template;
-
       for (let i = 0; i < placeholders.length; i++) {
         updateStep(1, { status: "active", detail: `${i + 1} из ${placeholders.length}` });
 
@@ -244,7 +229,6 @@ export default function DiagnosticDetail() {
                 diagnostic_id: diagnostic.id,
                 image_description: placeholders[i],
                 placeholder_index: i,
-                image_prompt_template: imageTemplate,
               },
             }
           );
@@ -256,7 +240,7 @@ export default function DiagnosticDetail() {
           }
 
           if (imgData?.image_url) {
-            const placeholder = `{{IMAGE:${placeholders[i]}}}`;
+            const placeholder = `{{IMAGE:PROMPT=${placeholders[i]}}}`;
             currentJson = currentJson.split(placeholder).join(imgData.image_url);
           } else {
             failed++;

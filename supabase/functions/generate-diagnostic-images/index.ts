@@ -63,7 +63,7 @@ serve(async (req) => {
   }
 
   try {
-    const { diagnostic_id, image_description, placeholder_index, image_prompt_template } =
+    const { diagnostic_id, image_description, placeholder_index } =
       await req.json();
 
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
@@ -76,14 +76,8 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Build image prompt
-    let imagePrompt = image_description;
-    if (image_prompt_template) {
-      imagePrompt = image_prompt_template.replace(
-        /\{\{IMAGE_DESCRIPTION\}\}/g,
-        image_description
-      );
-    }
+    // image_description now contains the full ready-to-use prompt from Claude
+    const imagePrompt = image_description;
 
     console.log(`Generating image ${placeholder_index} for diagnostic ${diagnostic_id}`);
 
