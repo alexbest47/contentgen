@@ -314,7 +314,7 @@ export default function DiagnosticDetail() {
     );
   }
 
-  const isReady = diagnostic.status === "ready" && quizJson;
+  const isReady = diagnostic.status === "ready" && (quizJson || thankYouJson || cardPrompt);
   const isDraft = diagnostic.status === "draft";
   const isGenerating = ACTIVE_STATUSES.includes(diagnostic.status);
   const isError = diagnostic.status === "error";
