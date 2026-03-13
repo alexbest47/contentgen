@@ -36,7 +36,6 @@ export default function DiagnosticDetail() {
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editProgramId, setEditProgramId] = useState("");
-  const [editPromptId, setEditPromptId] = useState("");
   const [editTags, setEditTags] = useState<string[]>([]);
   const [draftInitialized, setDraftInitialized] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
