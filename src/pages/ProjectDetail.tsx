@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Image, Send, Mail, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { usePromptInfo } from "@/hooks/usePromptInfo";
 
 const statusLabels: Record<string, string> = {
   draft: "Черновик",
