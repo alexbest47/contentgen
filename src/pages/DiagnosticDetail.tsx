@@ -279,6 +279,24 @@ export default function DiagnosticDetail() {
     startPolling();
   };
 
+  const handleStop = async () => {
+    setStopping(true);
+    try {
+      await supabase
+        .from("diagnostics")
+        .update({ status: "error", generation_progress: { error: "Остановлено пользователем" } } as any)
+        .eq("id", diagnosticId!);
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      queryClient.invalidateQueries({ queryKey: ["diagnostic", diagnosticId] });
+      toast.info("Генерация остановлена");
+    } finally {
+      setStopping(false);
+    }
+  };
+
   const quizJson = diagnostic?.quiz_json;
   const thankYouJson = (diagnostic as any)?.thank_you_json;
   const cardPrompt = (diagnostic as any)?.card_prompt;
