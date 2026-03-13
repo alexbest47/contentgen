@@ -21,7 +21,7 @@ export default function CreateDiagnostic() {
   const [programId, setProgramId] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [docUrl, setDocUrl] = useState("");
+  
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const { data: programs } = useQuery({
@@ -51,7 +51,6 @@ export default function CreateDiagnostic() {
           offer_type: "diagnostic" as any,
           title,
           description: description || null,
-          doc_url: docUrl || null,
           created_by: user!.id,
         })
         .select("id")
@@ -124,10 +123,6 @@ export default function CreateDiagnostic() {
             <div className="space-y-2">
               <Label>Описание</Label>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Подробное описание..." className="min-h-[100px]" />
-            </div>
-            <div className="space-y-2">
-              <Label>Ссылка на Google Doc</Label>
-              <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
             </div>
             <div className="space-y-2">
               <Label>Теги аудитории</Label>
