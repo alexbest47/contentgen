@@ -180,12 +180,6 @@ export default function OfferTypeDetail() {
     setArchiveOpen(true);
   };
 
-  const toggleTag = (tagId: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
-  };
-
   const toggleEditTag = (tagId: string) => {
     setEditSelectedTags((prev) =>
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
