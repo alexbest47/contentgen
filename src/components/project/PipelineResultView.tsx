@@ -400,7 +400,7 @@ function PostCard({
   promptsSection?: React.ReactNode;
 }) {
   const [saved, setSaved] = useState(false);
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
