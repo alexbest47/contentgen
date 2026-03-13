@@ -61,34 +61,55 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
 }
 
 function extractJsonFromResponse(content: string): unknown {
+  // Remove markdown code blocks
+  let cleaned = content
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
   // 1. Direct parse
-  try { return JSON.parse(content); } catch {}
+  try { return JSON.parse(cleaned); } catch {}
 
-  // 2. Extract from markdown code blocks
-  const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (codeBlockMatch) {
-    try { return JSON.parse(codeBlockMatch[1].trim()); } catch {}
+  // 2. Find JSON boundaries
+  const jsonStart = cleaned.search(/[\{\[]/);
+  if (jsonStart === -1) throw new Error("No JSON object found in response");
+
+  cleaned = cleaned.substring(jsonStart);
+  
+  // 3. Try direct parse of extracted JSON
+  try { return JSON.parse(cleaned); } catch {}
+
+  // 4. Fix common issues: trailing commas, control characters
+  let fixed = cleaned
+    .replace(/,\s*}/g, "}")
+    .replace(/,\s*]/g, "]")
+    .replace(/[\x00-\x1F\x7F]/g, (ch) => ch === '\n' || ch === '\r' || ch === '\t' ? ch : "");
+  try { return JSON.parse(fixed); } catch {}
+
+  // 5. Truncated JSON repair: close open strings, arrays, objects
+  // Remove trailing incomplete string value (ends mid-string)
+  fixed = fixed.replace(/,\s*"[^"]*":\s*"[^"]*$/, "");
+  // Remove trailing incomplete key
+  fixed = fixed.replace(/,\s*"[^"]*$/, "");
+  // Remove trailing comma
+  fixed = fixed.replace(/,\s*$/, "");
+
+  let braces = 0, brackets = 0, inString = false, escape = false;
+  for (const ch of fixed) {
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{") braces++;
+    if (ch === "}") braces--;
+    if (ch === "[") brackets++;
+    if (ch === "]") brackets--;
   }
-
-  // 3. Find the outermost JSON object in mixed text
-  const firstBrace = content.indexOf("{");
-  if (firstBrace !== -1) {
-    const candidate = content.substring(firstBrace);
-    try { return JSON.parse(candidate); } catch {}
-
-    // 4. Try to repair truncated JSON (unbalanced braces/brackets)
-    let braces = 0, brackets = 0;
-    for (const ch of candidate) {
-      if (ch === "{") braces++;
-      if (ch === "}") braces--;
-      if (ch === "[") brackets++;
-      if (ch === "]") brackets--;
-    }
-    let repaired = candidate;
-    while (brackets > 0) { repaired += "]"; brackets--; }
-    while (braces > 0) { repaired += "}"; braces--; }
-    try { return JSON.parse(repaired); } catch {}
-  }
+  // Close unclosed string
+  if (inString) fixed += '"';
+  while (brackets > 0) { fixed += "]"; brackets--; }
+  while (braces > 0) { fixed += "}"; braces--; }
+  try { return JSON.parse(fixed); } catch {}
 
   throw new Error("Could not extract valid JSON from response");
 }
