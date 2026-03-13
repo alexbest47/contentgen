@@ -689,10 +689,16 @@ export default function DiagnosticDetail() {
             <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
               {cardPrompt}
             </pre>
-            <Button onClick={() => copyToClipboard(cardPrompt, "Промпт")} variant="outline">
-              <Copy className="h-4 w-4 mr-2" />
-              Скопировать
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => copyToClipboard(cardPrompt, "Промпт")} variant="outline">
+                <Copy className="h-4 w-4 mr-2" />
+                Скопировать
+              </Button>
+              <Button onClick={() => downloadFile(cardPrompt, "card-prompt.json")} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Скачать JSON
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
