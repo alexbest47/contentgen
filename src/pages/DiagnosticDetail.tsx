@@ -502,7 +502,7 @@ export default function DiagnosticDetail() {
         </Card>
       )}
 
-      {/* Result */}
+      {/* Result — 3 blocks */}
       {isReady && (
         <>
           {progress?.failed_images > 0 && (
@@ -516,30 +516,76 @@ export default function DiagnosticDetail() {
             </Card>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Результат</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
-                {JSON.stringify(quizJson, null, 2)}
-              </pre>
-              <div className="flex flex-wrap gap-3">
-                <Button onClick={copyJson} variant="outline">
+          {/* Block 1: Quiz JSON */}
+          {quizJson && (
+            <Card>
+              <CardHeader>
+                <CardTitle>JSON теста</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
+                  {JSON.stringify(quizJson, null, 2)}
+                </pre>
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={() => copyToClipboard(JSON.stringify(quizJson, null, 2), "JSON теста")} variant="outline">
+                    <Copy className="h-4 w-4 mr-2" />
+                    Скопировать
+                  </Button>
+                  <Button onClick={() => downloadFile(JSON.stringify(quizJson, null, 2), "quiz.json")} variant="outline">
+                    <Download className="h-4 w-4 mr-2" />
+                    Скачать JSON
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Block 2: Thank You Page JSON */}
+          {thankYouJson && (
+            <Card>
+              <CardHeader>
+                <CardTitle>JSON страницы «Спасибо»</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
+                  {JSON.stringify(thankYouJson, null, 2)}
+                </pre>
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={() => copyToClipboard(JSON.stringify(thankYouJson, null, 2), "JSON страницы «Спасибо»")} variant="outline">
+                    <Copy className="h-4 w-4 mr-2" />
+                    Скопировать
+                  </Button>
+                  <Button onClick={() => downloadFile(JSON.stringify(thankYouJson, null, 2), "thank_you.json")} variant="outline">
+                    <Download className="h-4 w-4 mr-2" />
+                    Скачать JSON
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Block 3: Diagnostic Card Prompt */}
+          {cardPrompt && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Промпт диагностической карты</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <pre className="bg-muted p-4 rounded-md text-xs max-h-96 overflow-auto whitespace-pre-wrap">
+                  {cardPrompt}
+                </pre>
+                <Button onClick={() => copyToClipboard(cardPrompt, "Промпт")} variant="outline">
                   <Copy className="h-4 w-4 mr-2" />
-                  Скопировать JSON
+                  Скопировать
                 </Button>
-                <Button onClick={downloadJson} variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Скачать JSON
-                </Button>
-                <Button onClick={() => navigate("/create-diagnostic")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Создать ещё
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
+
+          <Button onClick={() => navigate("/create-diagnostic")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Создать ещё
+          </Button>
         </>
       )}
     </div>
