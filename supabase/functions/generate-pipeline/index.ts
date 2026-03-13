@@ -50,6 +50,21 @@ serve(async (req) => {
       } catch (e) { console.error("Error fetching audience doc:", e); }
     }
 
+    // Fetch program description from Google Doc if available
+    let programDocDescription = "";
+    if (program.program_doc_url) {
+      try {
+        const docMatch = program.program_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        if (docMatch) {
+          const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`;
+          const docResponse = await fetch(exportUrl);
+          if (docResponse.ok) {
+            programDocDescription = await docResponse.text();
+          }
+        }
+      } catch (e) { console.error("Error fetching program doc:", e); }
+    }
+
     // Get offer description
     let offerDescription = offer.description || "";
     if (offer.doc_url && !offerDescription) {
