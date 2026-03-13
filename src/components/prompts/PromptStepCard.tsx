@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Copy, Pencil } from "lucide-react";
+import { Copy, Pencil, Sparkles } from "lucide-react";
 import { categoryLabels, type PromptCategory } from "@/lib/promptConstants";
 
 interface PromptStepCardProps {
@@ -11,9 +11,10 @@ interface PromptStepCardProps {
   onEdit: (prompt: any) => void;
   onToggle: (id: string, is_active: boolean) => void;
   onDuplicate: (prompt: any) => void;
+  onRefine?: (prompt: any) => void;
 }
 
-export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdit, onToggle, onDuplicate }: PromptStepCardProps) {
+export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdit, onToggle, onDuplicate, onRefine }: PromptStepCardProps) {
   return (
     <div className="flex items-start gap-4">
       {showStepNumber && (
@@ -36,6 +37,11 @@ export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdi
               checked={p.is_active}
               onCheckedChange={(v) => onToggle(p.id, v)}
             />
+            {onRefine && (
+              <Button variant="ghost" size="icon" onClick={() => onRefine(p)} title="Доработать с AI">
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={() => onDuplicate(p)} title="Дублировать">
               <Copy className="h-4 w-4" />
             </Button>

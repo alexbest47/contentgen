@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.process-diagnostic-image]
 verify_jwt = false
+
+[functions.refine-prompt]
+verify_jwt = false

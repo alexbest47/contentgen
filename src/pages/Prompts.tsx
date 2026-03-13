@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import PromptFormDialog from "@/components/prompts/PromptFormDialog";
 import PipelineGroup from "@/components/prompts/PipelineGroup";
 import PromptStepCard from "@/components/prompts/PromptStepCard";
+import RefinePromptDialog from "@/components/prompts/RefinePromptDialog";
 import { contentTypeLabels, contentTypeKeys, emptyForm, deriveCategory, type PromptForm } from "@/lib/promptConstants";
 import { OFFER_TYPES, getOfferTypeLabel } from "@/lib/offerTypes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +21,7 @@ export default function Prompts() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<PromptForm>(emptyForm);
   const [activeTab, setActiveTab] = useState<string>("");
+  const [refinePrompt, setRefinePrompt] = useState<any | null>(null);
 
   const { data: prompts, isLoading } = useQuery({
     queryKey: ["prompts"],
@@ -127,6 +129,7 @@ export default function Prompts() {
               onEdit={openEdit}
               onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
               onDuplicate={openDuplicate}
+              onRefine={setRefinePrompt}
             />
           );
         })}
@@ -139,7 +142,7 @@ export default function Prompts() {
             </div>
             <div className="space-y-3">
               {otherInGroup.map((p: any) => (
-                <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
               ))}
             </div>
           </div>
@@ -193,7 +196,7 @@ export default function Prompts() {
             <TabsContent value="_other">
               <div className="space-y-3">
                 {otherPrompts.map((p: any) => (
-                  <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                  <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
                 ))}
               </div>
             </TabsContent>
@@ -202,6 +205,12 @@ export default function Prompts() {
       ) : (
         <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
       )}
+
+      <RefinePromptDialog
+        prompt={refinePrompt}
+        open={!!refinePrompt}
+        onOpenChange={(o) => { if (!o) setRefinePrompt(null); }}
+      />
     </div>
   );
 }
