@@ -26,6 +26,7 @@ interface EmailJson {
 interface Props {
   jsonContent: string;
   isEmail: boolean;
+  contentType?: string;
   carouselImages?: { slideNumber: number; url: string }[];
   staticImage?: string;
   bannerImage?: string;
@@ -164,7 +165,7 @@ function ImagePreviewDialog({
   );
 }
 
-export default function PipelineResultView({ jsonContent, isEmail, carouselImages, staticImage, bannerImage, onSave }: Props) {
+export default function PipelineResultView({ jsonContent, isEmail, contentType, carouselImages, staticImage, bannerImage, onSave }: Props) {
   let parsed: SocialJson | EmailJson;
   try {
     parsed = JSON.parse(jsonContent);
@@ -182,7 +183,7 @@ export default function PipelineResultView({ jsonContent, isEmail, carouselImage
     return <EmailView data={parsed as EmailJson} bannerImage={bannerImage} onSave={onSave} />;
   }
 
-  return <SocialView data={parsed as SocialJson} carouselImages={carouselImages} staticImage={staticImage} onSave={onSave} />;
+  return <SocialView data={parsed as SocialJson} carouselImages={carouselImages} staticImage={staticImage} onSave={onSave} contentType={contentType} />;
 }
 
 function EmailView({ data, bannerImage, onSave }: { data: EmailJson; bannerImage?: string; onSave?: (json: string) => void }) {
@@ -260,11 +261,13 @@ function SocialView({
   carouselImages,
   staticImage,
   onSave,
+  contentType,
 }: {
   data: SocialJson;
   carouselImages?: { slideNumber: number; url: string }[];
   staticImage?: string;
   onSave?: (json: string) => void;
+  contentType?: string;
 }) {
   const hasSplitTexts = !!(data.post_text_single || data.post_text_carousel);
   const [postText, setPostText] = useState(data.post_text || "");
@@ -312,6 +315,7 @@ function SocialView({
               images={carouselImages}
               totalSlides={data.carousel_prompts.length}
               onPreview={openPreview}
+              contentType={contentType}
             />
           }
           text={carouselText}
@@ -346,7 +350,7 @@ function SocialView({
         icon={<Image className="h-4 w-4" />}
         imageSection={
           <div
-            className="aspect-[4/5] bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer"
+            className={`${contentType === "instagram" ? "aspect-[4/5]" : "aspect-square"} bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer`}
             onClick={() => staticImage && openPreview(staticImage, "Изображение поста")}
           >
             {staticImage ? (
@@ -456,10 +460,12 @@ function CarouselSlider({
   images,
   totalSlides,
   onPreview,
+  contentType,
 }: {
   images?: { slideNumber: number; url: string }[];
   totalSlides: number;
   onPreview: (src: string, alt: string) => void;
+  contentType?: string;
 }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -488,7 +494,7 @@ function CarouselSlider({
           {slides.map((slide) => (
             <div key={slide.number} className="flex-[0_0_100%] min-w-0">
               <div
-                className="aspect-[4/5] bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer"
+                className={`${contentType === "instagram" ? "aspect-[4/5]" : "aspect-square"} bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer`}
                 onClick={() => slide.url && onPreview(slide.url, `Слайд ${slide.number}`)}
               >
                 {slide.url ? (

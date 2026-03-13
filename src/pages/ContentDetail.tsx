@@ -253,6 +253,7 @@ export default function ContentDetail() {
         <PipelineResultView
           jsonContent={pipelineJson.content}
           isEmail={isEmail}
+          contentType={contentType}
           carouselImages={carouselImages}
           staticImage={staticImage}
           bannerImage={bannerImage}
