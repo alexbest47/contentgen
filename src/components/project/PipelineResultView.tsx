@@ -190,16 +190,96 @@ export default function PipelineResultView({ jsonContent, isEmail, contentType, 
   return <SocialView data={parsed as SocialJson} carouselImages={carouselImages} staticImage={staticImage} onSave={onSave} contentType={contentType} />;
 }
 
-function EmailView({ data, bannerImage, onSave }: { data: EmailJson; bannerImage?: string; onSave?: (json: string) => void }) {
+function useEmailSettings() {
+  return useQuery({
+    queryKey: ["email_settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("email_settings")
+        .select("setting_key, setting_value");
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      data?.forEach((r: any) => { map[r.setting_key] = r.setting_value; });
+      return map;
+    },
+  });
+}
+
+function buildFullEmailHtml(headerHtml: string, bodyHtml: string, footerHtml: string, bannerUrl?: string) {
+  let body = bodyHtml;
+  if (bannerUrl) {
+    body = body.replace(/\{\{banner_image_url\}\}/g, bannerUrl);
+  }
+  return headerHtml + "\n" + body + "\n" + footerHtml;
+}
+
+function EmailView({
+  data,
+  bannerImage,
+  onSave,
+  copyHtmlRef,
+}: {
+  data: EmailJson;
+  bannerImage?: string;
+  onSave?: (json: string) => void;
+  copyHtmlRef?: React.MutableRefObject<(() => void) | null>;
+}) {
   const [subject, setSubject] = useState(data.email_subject);
   const [body, setBody] = useState(data.email_body);
-  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
-  const [previewAlt, setPreviewAlt] = useState("");
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { data: settings } = useEmailSettings();
+
+  const headerHtml = settings?.email_header_html || "";
+  const footerHtml = settings?.email_footer_html || "";
 
   useEffect(() => {
     setSubject(data.email_subject);
     setBody(data.email_body);
   }, [data.email_subject, data.email_body]);
+
+  const bodyWithBanner = bannerImage
+    ? body.replace(/\{\{banner_image_url\}\}/g, bannerImage)
+    : body;
+
+  const bannerPlaceholder = `<div style="width:100%;height:200px;background:#F0EDF7;display:flex;align-items:center;justify-content:center;color:#6B6B8A;font-size:14px;font-family:sans-serif;border-radius:8px;">Нажмите «Сгенерировать баннер»</div>`;
+
+  const previewBody = bannerImage
+    ? bodyWithBanner
+    : body.replace(/\{\{banner_image_url\}\}/g, "").replace(/<img[^>]*src=["'][^"']*["'][^>]*>/gi, bannerPlaceholder);
+
+  const fullPreviewHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:0;font-family:Arial,sans-serif;}</style></head><body>${headerHtml}${previewBody}${footerHtml}</body></html>`;
+
+  const fullExportHtml = buildFullEmailHtml(headerHtml, body, footerHtml, bannerImage || undefined);
+
+  // Expose copy function to parent
+  useEffect(() => {
+    if (copyHtmlRef) {
+      copyHtmlRef.current = () => {
+        navigator.clipboard.writeText(fullExportHtml);
+        toast.success("HTML скопирован");
+      };
+    }
+  }, [copyHtmlRef, fullExportHtml]);
+
+  // Write to iframe
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+    doc.open();
+    doc.write(fullPreviewHtml);
+    doc.close();
+    // Auto-resize iframe height
+    const tryResize = () => {
+      try {
+        const h = doc.documentElement?.scrollHeight || doc.body?.scrollHeight || 600;
+        iframe.style.height = h + "px";
+      } catch {}
+    };
+    setTimeout(tryResize, 100);
+    setTimeout(tryResize, 500);
+  }, [fullPreviewHtml]);
 
   const saveField = () => {
     if (!onSave) return;
@@ -207,58 +287,89 @@ function EmailView({ data, bannerImage, onSave }: { data: EmailJson; bannerImage
     onSave(JSON.stringify(updated, null, 2));
   };
 
-  const openPreview = (src: string, alt: string) => {
-    setPreviewSrc(src);
-    setPreviewAlt(alt);
+  const [saved, setSaved] = useState(false);
+  const handleSave = () => {
+    saveField();
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
   };
 
   return (
     <div className="space-y-4">
-      <EditableField
-        label="Тема письма"
-        icon={<Mail className="h-3.5 w-3.5" />}
-        value={subject}
-        onChange={setSubject}
-        onSave={saveField}
-      />
+      <Tabs defaultValue="preview">
+        <TabsList>
+          <TabsTrigger value="preview">
+            <Mail className="h-3.5 w-3.5 mr-1.5" />
+            Превью письма
+          </TabsTrigger>
+          <TabsTrigger value="html">
+            <Code className="h-3.5 w-3.5 mr-1.5" />
+            HTML-код
+          </TabsTrigger>
+        </TabsList>
 
-      <EditableField
-        label="Текст письма"
-        value={body}
-        onChange={setBody}
-        onSave={saveField}
-      />
+        <TabsContent value="preview" className="space-y-4 mt-4">
+          {/* Subject line */}
+          <div className="rounded-lg bg-muted/50 border px-4 py-3">
+            <span className="text-sm" style={{ color: "#6B6B8A" }}>
+              Тема: <span className="font-medium text-foreground">{subject}</span>
+            </span>
+          </div>
 
-      {/* Banner */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Баннер</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <span className="text-xs text-muted-foreground">Промпт</span>
-              <p className="text-xs italic text-muted-foreground/70 mt-1 bg-muted/30 rounded-md p-2">
-                {data.banner_prompt}
-              </p>
-            </div>
-            <div>
-              {bannerImage ? (
-                <ImageThumbnail src={bannerImage} alt="Баннер" filename="banner.png" onPreview={openPreview} />
-              ) : (
-                <div className="flex items-center justify-center h-full text-xs text-muted-foreground/50">
-                  Изображение не сгенерировано
-                </div>
-              )}
+          {/* Email iframe preview */}
+          <div className="flex justify-center">
+            <div className="w-[600px] max-w-full bg-white rounded-lg shadow-lg border overflow-hidden">
+              <iframe
+                ref={iframeRef}
+                title="Email Preview"
+                className="w-full border-0"
+                style={{ minHeight: 400 }}
+                sandbox="allow-same-origin"
+              />
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <ImagePreviewDialog src={previewSrc} alt={previewAlt} open={!!previewSrc} onOpenChange={(o) => !o && setPreviewSrc(null)} />
+          {/* Editable fields */}
+          <div className="grid gap-4">
+            <EditableField
+              label="Тема письма"
+              icon={<Mail className="h-3.5 w-3.5" />}
+              value={subject}
+              onChange={setSubject}
+              onSave={handleSave}
+            />
+            <EditableField
+              label="HTML тело письма"
+              value={body}
+              onChange={setBody}
+              onSave={handleSave}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="html" className="mt-4">
+          <div className="relative rounded-lg overflow-hidden">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute top-3 right-3 z-10 gap-1.5 text-xs"
+              onClick={() => copy(fullExportHtml)}
+            >
+              <Copy className="h-3 w-3" /> Скопировать
+            </Button>
+            <pre
+              className="p-4 text-xs leading-relaxed overflow-x-auto font-mono whitespace-pre-wrap break-all"
+              style={{ background: "#1A1A2E", color: "#F5F5F7", maxHeight: "70vh" }}
+            >
+              {fullExportHtml}
+            </pre>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
+
 
 function SocialView({
   data,

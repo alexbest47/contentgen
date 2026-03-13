@@ -267,6 +267,7 @@ export default function ContentDetail() {
           carouselImages={carouselImages}
           staticImage={staticImage}
           bannerImage={bannerImage}
+          copyHtmlRef={copyHtmlRef}
           onSave={async (updatedJson: string) => {
             const { error } = await supabase
               .from("content_pieces")
