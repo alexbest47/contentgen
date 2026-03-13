@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { categories, categoryLabels, contentTypeLabels, subTypeLabels, contentTypeKeys, subTypeKeys, type PromptForm } from "@/lib/promptConstants";
+import { categories, categoryLabels, contentTypeLabels, contentTypeKeys, type PromptForm } from "@/lib/promptConstants";
 import { OFFER_TYPES } from "@/lib/offerTypes";
 
 interface PromptFormDialogProps {
@@ -44,25 +44,13 @@ export default function PromptFormDialog({ form, setField, editId, saveMutation 
             <Input value={form.slug} onChange={(e) => setField("slug", e.target.value)} required />
           </div>
           <div className="space-y-2">
-            <Label>Тип контента (пайплайн)</Label>
+            <Label>Канал (пайплайн)</Label>
             <Select value={form.content_type} onValueChange={(v) => setField("content_type", v)}>
-              <SelectTrigger><SelectValue placeholder="Выберите тип" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Выберите канал" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="_none">— Без типа —</SelectItem>
+                <SelectItem value="_none">— Без канала —</SelectItem>
                 {contentTypeKeys.map((ct) => (
                   <SelectItem key={ct} value={ct}>{contentTypeLabels[ct]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Подтип (стратегия)</Label>
-            <Select value={form.sub_type} onValueChange={(v) => setField("sub_type", v)}>
-              <SelectTrigger><SelectValue placeholder="Выберите подтип" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_none">— Без подтипа —</SelectItem>
-                {subTypeKeys.map((st) => (
-                  <SelectItem key={st} value={st}>{subTypeLabels[st]}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

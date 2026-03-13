@@ -10,8 +10,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { project_id, content_type, sub_type } = await req.json();
-    if (!project_id || !content_type || !sub_type) throw new Error("project_id, content_type, and sub_type are required");
+    const { project_id, content_type } = await req.json();
+    if (!project_id || !content_type) throw new Error("project_id and content_type are required");
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -65,19 +65,18 @@ serve(async (req) => {
       } catch (e) { console.error("Error fetching offer doc:", e); }
     }
 
-    // Get active prompt for this pipeline (single step)
+    // Get active prompt for this pipeline
     const { data: pipelineSteps, error: stepsErr } = await supabase
       .from("prompts")
       .select("*")
       .eq("content_type", content_type)
-      .eq("sub_type", sub_type)
       .eq("offer_type", offer.offer_type)
       .eq("is_active", true)
       .order("step_order", { ascending: true })
       .limit(1);
     if (stepsErr) throw stepsErr;
     if (!pipelineSteps || pipelineSteps.length === 0) {
-      throw new Error(`Нет активных промптов для "${content_type}/${sub_type}". Создайте их в разделе «Управление промптами».`);
+      throw new Error(`Нет активных промптов для "${content_type}". Создайте их в разделе «Управление промптами».`);
     }
 
     const prompt = pipelineSteps[0];
@@ -122,7 +121,7 @@ serve(async (req) => {
     const claudeData = await claudeResponse.json();
     const rawContent = claudeData.content?.[0]?.text || "";
 
-    // Extract JSON from response (handle markdown code blocks)
+    // Extract JSON from response
     let jsonContent = rawContent;
     const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
@@ -137,8 +136,8 @@ serve(async (req) => {
       throw new Error("Claude вернул невалидный JSON. Попробуйте ещё раз.");
     }
 
-    // Save as pipeline_json_{sub_type}
-    const categoryKey = `pipeline_json_${sub_type}`;
+    // Save as pipeline_json_{content_type}
+    const categoryKey = `pipeline_json_${content_type}`;
 
     await supabase.from("content_pieces").delete()
       .eq("project_id", project_id)
@@ -157,7 +156,6 @@ serve(async (req) => {
       status: "completed",
       input_data: {
         content_type,
-        sub_type,
         program_title: program.title,
         offer_title: offer.title,
         lead_magnet_title: selectedLead.title,

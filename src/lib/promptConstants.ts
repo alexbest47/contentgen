@@ -24,14 +24,7 @@ export const contentTypeLabels: Record<string, string> = {
   email: "Email",
 };
 
-export const subTypeLabels: Record<string, string> = {
-  announcement: "Анонс",
-  warmup: "Прогрев",
-  conversion: "Конверсия",
-};
-
 export const contentTypeKeys = Object.keys(contentTypeLabels);
-export const subTypeKeys = Object.keys(subTypeLabels);
 
 export interface PromptForm {
   name: string;
@@ -45,7 +38,6 @@ export interface PromptForm {
   output_format_hint: string;
   is_active: boolean;
   content_type: string;
-  sub_type: string;
   step_order: number;
   offer_type: string;
 }
@@ -54,5 +46,5 @@ export const emptyForm: PromptForm = {
   name: "", slug: "", category: "lead_magnets", description: "",
   provider: "anthropic", model: "claude-sonnet-4-20250514",
   system_prompt: "", user_prompt_template: "", output_format_hint: "", is_active: true,
-  content_type: "", sub_type: "", step_order: 1, offer_type: "mini_course",
+  content_type: "", step_order: 1, offer_type: "mini_course",
 };
