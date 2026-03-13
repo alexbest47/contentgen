@@ -85,23 +85,40 @@ ${instruction}`;
     const content = result.content?.[0]?.text ?? "";
 
     // Extract JSON from response
+    console.log("Raw AI response:", content.substring(0, 500));
     let parsed: { system_prompt: string; user_prompt_template: string };
     try {
+      // Try markdown code blocks first
       const jsonMatch = content.match(/```json\s*([\s\S]*?)```/) || content.match(/```\s*([\s\S]*?)```/);
-      const jsonStr = jsonMatch ? jsonMatch[1].trim() : content.trim();
-      parsed = JSON.parse(jsonStr);
-    } catch {
-      // Try parsing the whole content
-      try {
-        parsed = JSON.parse(content);
-      } catch {
-        throw new Error("Failed to parse AI response as JSON");
+      let jsonStr = jsonMatch ? jsonMatch[1].trim() : null;
+      
+      if (!jsonStr) {
+        // Try finding raw JSON object
+        const braceStart = content.indexOf('{');
+        const braceEnd = content.lastIndexOf('}');
+        if (braceStart !== -1 && braceEnd > braceStart) {
+          jsonStr = content.substring(braceStart, braceEnd + 1);
+        } else {
+          jsonStr = content.trim();
+        }
       }
+      
+      // Clean control characters
+      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, (ch) => ch === '\n' || ch === '\t' ? ch : '');
+      
+      parsed = JSON.parse(jsonStr);
+    } catch (e) {
+      console.error("JSON parse error:", e, "Content:", content.substring(0, 1000));
+      throw new Error("Failed to parse AI response as JSON");
     }
 
-    if (!parsed.system_prompt || !parsed.user_prompt_template) {
+    if (!parsed.system_prompt && !parsed.user_prompt_template) {
+      console.error("Parsed object keys:", Object.keys(parsed));
       throw new Error("AI response missing required fields");
     }
+    // Allow partial updates - keep originals if one field is missing
+    parsed.system_prompt = parsed.system_prompt || prompt.system_prompt;
+    parsed.user_prompt_template = parsed.user_prompt_template || prompt.user_prompt_template;
 
     // Update prompt in DB
     const { error: updateErr } = await supabase
