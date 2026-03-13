@@ -88,7 +88,7 @@ export default function CreateDiagnostic() {
           name: title,
           description: description || null,
           audience_tags: tagNames,
-          prompt_id: effectivePromptId || null,
+          prompt_id: null,
           status: "draft",
           created_by: user!.id,
         } as any)
