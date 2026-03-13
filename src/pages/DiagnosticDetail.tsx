@@ -142,118 +142,144 @@ export default function DiagnosticDetail() {
     imageGenRef.current = true;
     cancelledRef.current = false;
 
-    // Set status to generating_images
-    await supabase
-      .from("diagnostics")
-      .update({ status: "generating_images" } as any)
-      .eq("id", diagId);
+    try {
+      // Set status to generating_images
+      await supabase
+        .from("diagnostics")
+        .update({ status: "generating_images" } as any)
+        .eq("id", diagId);
 
-    let completedImages = completedAlready;
-    let failedImages = 0;
+      let completedImages = completedAlready;
+      let failedImages = 0;
 
-    // Get current quiz_json string to replace placeholders
-    const { data: currentDiag } = await supabase
-      .from("diagnostics")
-      .select("quiz_json")
-      .eq("id", diagId)
-      .single();
+      // Get current quiz_json string to replace placeholders
+      const { data: currentDiag } = await supabase
+        .from("diagnostics")
+        .select("quiz_json")
+        .eq("id", diagId)
+        .single();
 
-    let currentQuizString = JSON.stringify(currentDiag?.quiz_json || {});
+      let currentQuizString = JSON.stringify(currentDiag?.quiz_json || {});
 
-    for (let i = 0; i < placeholders.length; i++) {
-      // Check if user stopped
-      if (cancelledRef.current) {
-        console.log("[frontend] Image generation cancelled by user");
-        imageGenRef.current = false;
-        return;
-      }
+      for (let i = 0; i < placeholders.length; i++) {
+        // Check if user stopped
+        if (cancelledRef.current) {
+          console.log("[frontend] Image generation cancelled by user");
+          return;
+        }
 
-      console.log(`[frontend] Generating image ${i + 1}/${placeholders.length}`);
-      updateStepsFromStatus("generating_images", {
-        total_images: placeholders.length,
-        completed_images: completedImages + failedImages,
-      });
-
-      try {
-        const { data, error } = await supabase.functions.invoke("generate-diagnostic-images", {
-          body: {
-            diagnostic_id: diagId,
-            image_description: placeholders[i],
-            placeholder_index: i,
-          },
+        console.log(`[frontend] Generating image ${i + 1}/${placeholders.length}`);
+        updateStepsFromStatus("generating_images", {
+          total_images: placeholders.length,
+          completed_images: completedImages + failedImages,
         });
 
-        if (error) throw error;
+        try {
+          const { data, error } = await supabase.functions.invoke("generate-diagnostic-images", {
+            body: {
+              diagnostic_id: diagId,
+              image_description: placeholders[i],
+              placeholder_index: i,
+            },
+          });
 
-        if (data?.image_url) {
-          const placeholder = `{{IMAGE:PROMPT=${placeholders[i]}}}`;
-          currentQuizString = currentQuizString.split(placeholder).join(data.image_url);
-          completedImages++;
-        } else {
+          if (error) throw error;
+
+          if (data?.image_url) {
+            const placeholder = `{{IMAGE:PROMPT=${placeholders[i]}}}`;
+            currentQuizString = currentQuizString.split(placeholder).join(data.image_url);
+            completedImages++;
+          } else {
+            failedImages++;
+          }
+        } catch (imgErr) {
+          console.error(`Image ${i} failed:`, imgErr);
           failedImages++;
         }
-      } catch (imgErr) {
-        console.error(`Image ${i} failed:`, imgErr);
-        failedImages++;
+
+        // Update progress in DB after each image
+        // Replace remaining placeholders with null safely (they are inside JSON string values)
+        let safeQuizJson: any;
+        try {
+          safeQuizJson = JSON.parse(
+            currentQuizString.replace(/"?\{\{IMAGE:PROMPT=[^}]*\}\}"?/g, 'null')
+          );
+        } catch {
+          // Fallback: use the raw string replacement approach
+          safeQuizJson = currentDiag?.quiz_json;
+        }
+
+        await supabase
+          .from("diagnostics")
+          .update({
+            quiz_json: safeQuizJson,
+            generation_progress: {
+              total_images: placeholders.length,
+              completed_images: completedImages + failedImages,
+              failed_images: failedImages,
+              placeholders,
+            },
+          } as any)
+          .eq("id", diagId);
+
+        // Update cache
+        queryClient.setQueryData(["diagnostic", diagId], (old: any) =>
+          old ? {
+            ...old,
+            quiz_json: safeQuizJson,
+            generation_progress: {
+              total_images: placeholders.length,
+              completed_images: completedImages + failedImages,
+              failed_images: failedImages,
+              placeholders,
+            },
+          } : old
+        );
       }
 
-      // Update progress in DB after each image
-      const safeQuizJson = JSON.parse(
-        currentQuizString.replace(/\{\{IMAGE:PROMPT=[^}]*\}\}/g, '"null"')
-      );
+      // Finalize
+      if (!cancelledRef.current) {
+        let finalQuizJson: any;
+        try {
+          finalQuizJson = JSON.parse(
+            currentQuizString.replace(/"?\{\{IMAGE:PROMPT=[^}]*\}\}"?/g, 'null')
+          );
+        } catch {
+          finalQuizJson = currentDiag?.quiz_json;
+        }
 
-      await supabase
-        .from("diagnostics")
-        .update({
-          quiz_json: safeQuizJson,
-          generation_progress: {
-            total_images: placeholders.length,
-            completed_images: completedImages + failedImages,
-            failed_images: failedImages,
-            placeholders,
-          },
-        } as any)
-        .eq("id", diagId);
+        await supabase
+          .from("diagnostics")
+          .update({
+            quiz_json: finalQuizJson,
+            status: "ready",
+            generation_progress: {
+              total_images: placeholders.length,
+              completed_images: completedImages,
+              failed_images: failedImages,
+            },
+          } as any)
+          .eq("id", diagId);
 
-      // Update cache
-      queryClient.setQueryData(["diagnostic", diagId], (old: any) =>
-        old ? {
-          ...old,
-          quiz_json: safeQuizJson,
-          generation_progress: {
-            total_images: placeholders.length,
-            completed_images: completedImages + failedImages,
-            failed_images: failedImages,
-            placeholders,
-          },
-        } : old
-      );
+        queryClient.invalidateQueries({ queryKey: ["diagnostic", diagId] });
+        toast.success("Диагностика сгенерирована!");
+      }
+    } catch (err) {
+      console.error("[frontend] Image generation loop error:", err);
+      if (!cancelledRef.current) {
+        await supabase
+          .from("diagnostics")
+          .update({
+            status: "error",
+            generation_progress: { error: `Ошибка генерации изображений: ${(err as Error).message}` },
+          } as any)
+          .eq("id", diagId);
+        queryClient.invalidateQueries({ queryKey: ["diagnostic", diagId] });
+        toast.error("Ошибка при генерации изображений");
+      }
+    } finally {
+      imageGenRef.current = false;
     }
-
-    // Finalize
-    if (!cancelledRef.current) {
-      const finalQuizJson = JSON.parse(
-        currentQuizString.replace(/\{\{IMAGE:PROMPT=[^}]*\}\}/g, '"null"')
-      );
-
-      await supabase
-        .from("diagnostics")
-        .update({
-          quiz_json: finalQuizJson,
-          status: "ready",
-          generation_progress: {
-            total_images: placeholders.length,
-            completed_images: completedImages,
-            failed_images: failedImages,
-          },
-        } as any)
-        .eq("id", diagId);
-
-      queryClient.invalidateQueries({ queryKey: ["diagnostic", diagId] });
-      toast.success("Диагностика сгенерирована!");
-    }
-
-    imageGenRef.current = false;
   }, [queryClient, updateStepsFromStatus]);
 
   // Polling logic
@@ -313,7 +339,7 @@ export default function DiagnosticDetail() {
     if (!diagnostic) return;
     const progress = diagnostic.generation_progress as any;
 
-    if (diagnostic.status === "images_pending" && progress?.placeholders?.length > 0) {
+    if ((diagnostic.status === "images_pending" || diagnostic.status === "generating_images") && progress?.placeholders?.length > 0) {
       updateStepsFromStatus(diagnostic.status, progress);
       startImageGeneration(diagnosticId!, progress.placeholders, progress.completed_images || 0);
     } else if (ACTIVE_STATUSES.includes(diagnostic.status)) {
@@ -432,20 +458,14 @@ export default function DiagnosticDetail() {
     updateStepsFromStatus("generating", null);
 
     // Fire-and-forget call to pipeline
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-diagnostic-pipeline`;
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: JSON.stringify({
+    supabase.functions.invoke("run-diagnostic-pipeline", {
+      body: {
         diagnostic_id: diagnostic.id,
         program_id: diagnostic.program_id,
         name: diagnostic.name,
         description: diagnostic.description || "",
         audience_tags: diagnostic.audience_tags || [],
-      }),
+      },
     }).catch((err) => console.error("Pipeline call failed:", err));
 
     // Start polling
