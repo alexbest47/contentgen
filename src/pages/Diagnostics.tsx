@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Loader2, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Loader2, Eye, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 const statusLabels: Record<string, string> = {
@@ -34,7 +34,7 @@ export default function Diagnostics() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("diagnostics")
-        .select("id, name, status, created_at, program_id")
+        .select("id, name, status, created_at, program_id, prompt_id, description, audience_tags")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -72,6 +72,29 @@ export default function Diagnostics() {
   });
 
   const programMap = Object.fromEntries((programs || []).map((p) => [p.id, p.title]));
+
+  const handleRegenerate = async (d: any) => {
+    const { error } = await supabase
+      .from("diagnostics")
+      .update({ status: "generating", generation_progress: null, quiz_json: null, thank_you_json: null, card_prompt: null })
+      .eq("id", d.id);
+    if (error) {
+      toast.error("Не удалось запустить перегенерацию");
+      return;
+    }
+    supabase.functions.invoke("run-diagnostic-pipeline", {
+      body: {
+        diagnostic_id: d.id,
+        program_id: d.program_id,
+        name: d.name,
+        description: d.description || "",
+        audience_tags: d.audience_tags || [],
+        prompt_id: d.prompt_id,
+      },
+    });
+    toast.success("Перегенерация запущена");
+    navigate(`/diagnostics/${d.id}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -135,6 +158,16 @@ export default function Diagnostics() {
                           </>
                         )}
                       </Button>
+                      {(d.status === "ready" || d.status === "error") && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRegenerate(d)}
+                          title="Перегенерировать"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
