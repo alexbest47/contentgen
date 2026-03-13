@@ -83,42 +83,6 @@ export default function OfferDetail() {
     onError: (e: Error) => { toast.error(e.message); setDeleteId(null); },
   });
 
-  const generateMutation = useMutation({
-    mutationFn: async () => {
-      setProgressText("Генерация названия...");
-      const programTitle = (offer as any)?.paid_programs?.title || "";
-      const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
-        body: { course_title: offer!.title, program_title: programTitle },
-      });
-      if (nameError) throw new Error(nameError.message || "Ошибка генерации названия");
-      if (nameData?.error) throw new Error(nameData.error);
-
-      setProgressText("Создание проекта...");
-      const { data: project, error: projError } = await supabase
-        .from("projects")
-        .insert({ offer_id: offerId!, title: nameData.name, created_by: user!.id })
-        .select("id")
-        .single();
-      if (projError) throw projError;
-
-      setProgressText("Генерация лид-магнитов...");
-      const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
-        body: { project_id: project.id },
-      });
-      if (genError) throw new Error(genError.message || "Ошибка генерации");
-      if (genData?.error) throw new Error(genData.error);
-
-      return project.id;
-    },
-    onSuccess: (projectId) => {
-      queryClient.invalidateQueries({ queryKey: ["projects_by_offer", offerId] });
-      toast.success("Лид-магниты сгенерированы!");
-      setProgressText("");
-      navigate(`/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`);
-    },
-    onError: (e: Error) => { toast.error(e.message); setProgressText(""); },
-  });
-
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
   return (
