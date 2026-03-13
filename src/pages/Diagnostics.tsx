@@ -78,6 +78,21 @@ export default function Diagnostics() {
 
   const programMap = Object.fromEntries((programs || []).map((p) => [p.id, p.title]));
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, name, description }: { id: string; name: string; description: string }) => {
+      const { error } = await supabase.from("diagnostics").update({ name, description }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["diagnostics"] });
+      toast.success("Диагностика обновлена");
+      setEditingDiag(null);
+    },
+    onError: () => {
+      toast.error("Не удалось обновить диагностику");
+    },
+  });
+
   const handleRegenerate = async (d: any) => {
     const { error } = await supabase
       .from("diagnostics")
