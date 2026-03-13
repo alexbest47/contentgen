@@ -488,7 +488,7 @@ function CarouselSlider({
           {slides.map((slide) => (
             <div key={slide.number} className="flex-[0_0_100%] min-w-0">
               <div
-                className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer"
+                className="aspect-[4/5] bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer"
                 onClick={() => slide.url && onPreview(slide.url, `Слайд ${slide.number}`)}
               >
                 {slide.url ? (
