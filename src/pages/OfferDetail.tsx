@@ -104,15 +104,6 @@ export default function OfferDetail() {
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending || !offer}>
-          {generateMutation.isPending ? (
-            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{progressText}</>
-          ) : (
-            <><Sparkles className="mr-2 h-4 w-4" />Сгенерировать лид-магниты</>
-          )}
-        </Button>
-      </div>
 
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
