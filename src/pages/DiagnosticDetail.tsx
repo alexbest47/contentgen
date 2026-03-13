@@ -40,6 +40,7 @@ export default function DiagnosticDetail() {
   const [editTags, setEditTags] = useState<string[]>([]);
   const [draftInitialized, setDraftInitialized] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [stopping, setStopping] = useState(false);
 
   const { data: diagnostic, isLoading } = useQuery({
     queryKey: ["diagnostic", diagnosticId],
