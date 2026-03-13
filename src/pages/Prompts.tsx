@@ -126,6 +126,7 @@ export default function Prompts() {
               prompts={groupPrompts}
               onEdit={openEdit}
               onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
+              onDuplicate={openDuplicate}
             />
           );
         })}
