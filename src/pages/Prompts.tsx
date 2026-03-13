@@ -34,6 +34,7 @@ export default function Prompts() {
     mutationFn: async () => {
       const payload = {
         ...form,
+        category: deriveCategory(form.content_type),
         content_type: form.content_type || null,
         sub_type: null,
         offer_type: form.offer_type || null,
