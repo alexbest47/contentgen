@@ -21,7 +21,7 @@ export default function CreateDiagnostic() {
   const [programId, setProgramId] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [docUrl, setDocUrl] = useState("");
+  
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const { data: programs } = useQuery({
