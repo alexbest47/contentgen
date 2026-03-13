@@ -313,6 +313,7 @@ function SocialView({
               images={carouselImages}
               totalSlides={data.carousel_prompts.length}
               onPreview={openPreview}
+              contentType={contentType}
             />
           }
           text={carouselText}
