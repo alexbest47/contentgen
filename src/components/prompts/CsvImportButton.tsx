@@ -24,14 +24,14 @@ interface CsvImportButtonProps {
 }
 
 const CSV_HEADERS = [
-  "name","slug","category","content_type","step_order",
+  "name","slug","content_type","step_order",
   "provider","model","description","system_prompt","user_prompt_template",
   "output_format_hint","is_active",
 ] as const;
 
 const TEMPLATE_ROWS = [
   [
-    "Текст поста + Imagen-промпты: Instagram","text-ig-post","text_instagram","instagram","1",
+    "Текст поста + Imagen-промпты: Instagram","text-ig-post","instagram","1",
     "anthropic","claude-sonnet-4-20250514","Генерация текста поста для Instagram",
     "Ты — опытный копирайтер для Instagram.","Напиши пост для мини-курса {{program_title}}. Целевая аудитория: {{audience_description}}.",
     "Верни JSON с текстом и промптами для изображений","true",
