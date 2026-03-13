@@ -56,6 +56,48 @@ export type Database = {
           },
         ]
       }
+      diagnostics: {
+        Row: {
+          audience_tags: string[] | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          offer_id: string | null
+          program_id: string
+          prompt_id: string | null
+          quiz_json: Json | null
+          status: string
+        }
+        Insert: {
+          audience_tags?: string[] | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          offer_id?: string | null
+          program_id: string
+          prompt_id?: string | null
+          quiz_json?: Json | null
+          status?: string
+        }
+        Update: {
+          audience_tags?: string[] | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          offer_id?: string | null
+          program_id?: string
+          prompt_id?: string | null
+          quiz_json?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
       email_settings: {
         Row: {
           id: string
