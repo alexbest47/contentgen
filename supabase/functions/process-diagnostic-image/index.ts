@@ -18,7 +18,6 @@ async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array
       },
       body: JSON.stringify({
         model: "google/gemini-3-pro-image-preview",
-        max_tokens: 2048,
         modalities: ["image", "text"],
         messages: [{ role: "user", content: prompt }],
       }),

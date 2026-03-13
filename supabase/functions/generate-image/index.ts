@@ -113,7 +113,6 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-3-pro-image-preview",
-        max_tokens: 2048,
         messages: [{ role: "user", content: imagePrompt }],
         modalities: ["image", "text"],
       }),
