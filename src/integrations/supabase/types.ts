@@ -59,6 +59,7 @@ export type Database = {
       diagnostics: {
         Row: {
           audience_tags: string[] | null
+          card_prompt: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -70,9 +71,11 @@ export type Database = {
           prompt_id: string | null
           quiz_json: Json | null
           status: string
+          thank_you_json: Json | null
         }
         Insert: {
           audience_tags?: string[] | null
+          card_prompt?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -84,9 +87,11 @@ export type Database = {
           prompt_id?: string | null
           quiz_json?: Json | null
           status?: string
+          thank_you_json?: Json | null
         }
         Update: {
           audience_tags?: string[] | null
+          card_prompt?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -98,6 +103,7 @@ export type Database = {
           prompt_id?: string | null
           quiz_json?: Json | null
           status?: string
+          thank_you_json?: Json | null
         }
         Relationships: []
       }
