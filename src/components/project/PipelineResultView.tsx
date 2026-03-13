@@ -346,11 +346,11 @@ function SocialView({
         icon={<Image className="h-4 w-4" />}
         imageSection={
           <div
-            className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer"
+            className="aspect-[4/5] bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer"
             onClick={() => staticImage && openPreview(staticImage, "Изображение поста")}
           >
             {staticImage ? (
-              <img src={staticImage} alt="Пост" className="w-full h-full object-cover" />
+              <img src={staticImage} alt="Пост" className="w-full h-full object-contain" />
             ) : (
               <span className="text-sm text-muted-foreground/50">Изображение не сгенерировано</span>
             )}
@@ -488,11 +488,11 @@ function CarouselSlider({
           {slides.map((slide) => (
             <div key={slide.number} className="flex-[0_0_100%] min-w-0">
               <div
-                className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer"
+                className="aspect-[4/5] bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer"
                 onClick={() => slide.url && onPreview(slide.url, `Слайд ${slide.number}`)}
               >
                 {slide.url ? (
-                  <img src={slide.url} alt={`Слайд ${slide.number}`} className="w-full h-full object-cover" />
+                  <img src={slide.url} alt={`Слайд ${slide.number}`} className="w-full h-full object-contain" />
                 ) : (
                   <span className="text-sm text-muted-foreground/50">Слайд {slide.number}</span>
                 )}
