@@ -147,11 +147,6 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
             row[h] = values[idx]?.trim() ?? "";
           });
 
-          if (!categories.includes(row.category as PromptCategory)) {
-            toast.error(`Строка ${i + 1}: неизвестная категория "${row.category}". Допустимые: ${categories.join(", ")}`);
-            return;
-          }
-
           row.step_order = parseInt(row.step_order, 10) || 1;
           row.is_active = row.is_active?.toLowerCase() !== "false";
           row.content_type = row.content_type || null;
