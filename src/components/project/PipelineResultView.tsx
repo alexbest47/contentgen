@@ -26,6 +26,7 @@ interface EmailJson {
 interface Props {
   jsonContent: string;
   isEmail: boolean;
+  contentType?: string;
   carouselImages?: { slideNumber: number; url: string }[];
   staticImage?: string;
   bannerImage?: string;
