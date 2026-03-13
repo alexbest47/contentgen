@@ -101,6 +101,10 @@ export default function OfferTypeDetail() {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archivingId, setArchivingId] = useState<string | null>(null);
 
+  // Generation state
+  const [generatingOfferId, setGeneratingOfferId] = useState<string | null>(null);
+  const [progressText, setProgressText] = useState("");
+
   // Create dialog state
   const [createOpen, setCreateOpen] = useState(false);
   const [createTitle, setCreateTitle] = useState("");
