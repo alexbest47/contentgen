@@ -129,6 +129,7 @@ export default function Prompts() {
               onEdit={openEdit}
               onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
               onDuplicate={openDuplicate}
+              onRefine={setRefinePrompt}
             />
           );
         })}
