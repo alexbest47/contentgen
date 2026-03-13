@@ -9,23 +9,53 @@ const corsHeaders = {
 };
 
 async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array> {
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-pro-image-preview",
-      modalities: ["image", "text"],
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
+  const doFetch = async () => {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-pro-image-preview",
+        max_tokens: 2048,
+        modalities: ["image", "text"],
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error("OpenRouter error:", response.status, errText);
-    throw new Error(`Image generation failed: ${response.status}`);
+    if (response.status === 402) {
+      const errText = await response.text();
+      console.error("OpenRouter 402:", errText);
+      throw new Error("CREDITS_EXHAUSTED");
+    }
+
+    if (response.status === 429) {
+      const errText = await response.text();
+      console.error("OpenRouter 429, will retry:", errText);
+      throw new Error("RATE_LIMITED");
+    }
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("OpenRouter error:", response.status, errText);
+      throw new Error(`Image generation failed: ${response.status}`);
+    }
+
+    return response;
+  };
+
+  let response: Response;
+  try {
+    response = await doFetch();
+  } catch (e: any) {
+    if (e.message === "RATE_LIMITED") {
+      console.log("[generateImage] Rate limited, retrying in 5s...");
+      await new Promise(r => setTimeout(r, 5000));
+      response = await doFetch();
+    } else {
+      throw e;
+    }
   }
 
   const data = await response.json();
@@ -100,6 +130,7 @@ serve(async (req) => {
 
     // Generate one image
     let imageUrl: string | null = null;
+    let creditsExhausted = false;
     try {
       const imageBytes = await generateImage(prompt, OPENROUTER_API_KEY);
       const fileName = `${diagnostic_id}/image_${image_index}_${Date.now()}.webp`;
@@ -118,9 +149,34 @@ serve(async (req) => {
         imageUrl = urlData.publicUrl;
         completedImages++;
       }
-    } catch (imgErr) {
+    } catch (imgErr: any) {
       console.error(`[process-image] Generation failed:`, imgErr);
+      if (imgErr.message === "CREDITS_EXHAUSTED") {
+        creditsExhausted = true;
+      }
       failedImages++;
+    }
+
+    // If credits exhausted, stop chain immediately
+    if (creditsExhausted) {
+      await supabase
+        .from("diagnostics")
+        .update({
+          status: "error",
+          generation_progress: {
+            total_images: placeholders.length,
+            completed_images: completedImages,
+            failed_images: failedImages,
+            error: "Недостаточно кредитов OpenRouter. Пополните баланс: https://openrouter.ai/settings/credits",
+          },
+        })
+        .eq("id", diagnostic_id);
+
+      console.log("[process-image] Credits exhausted, stopping chain.");
+      return new Response(
+        JSON.stringify({ success: false, credits_exhausted: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Update quiz_json by replacing the placeholder

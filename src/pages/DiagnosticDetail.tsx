@@ -555,7 +555,14 @@ export default function DiagnosticDetail() {
               ) : (
                 <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
               )}
-              <p className="text-sm">{progress?.error || "Неизвестная ошибка"}</p>
+              <div>
+                <p className="text-sm">{progress?.error || "Неизвестная ошибка"}</p>
+                {typeof progress?.error === "string" && progress.error.includes("кредитов") && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Пополните баланс OpenRouter и попробуйте снова.
+                  </p>
+                )}
+              </div>
             </div>
             <Button variant="outline" size="sm" onClick={handleGenerate}>
               <Play className="h-4 w-4 mr-2" />
