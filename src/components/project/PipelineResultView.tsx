@@ -235,9 +235,9 @@ function EmailView({
   const footerHtml = settings?.email_footer_html || "";
 
   useEffect(() => {
-    setSubject(data.email_subject);
-    setBody(data.email_body);
-  }, [data.email_subject, data.email_body]);
+    setSubject(data.email_subject || "");
+    setBody(data.email_body || data.email_body_html || "");
+  }, [data.email_subject, data.email_body, data.email_body_html]);
 
   const bodyWithBanner = bannerImage
     ? body.replace(/\{\{banner_image_url\}\}/g, bannerImage)
