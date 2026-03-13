@@ -56,7 +56,7 @@ export default function CreateDiagnostic() {
     },
   });
 
-  const effectivePromptId = promptId || testPrompts?.[0]?.id || "";
+  
 
   const toggleTag = (tagId: string) => {
     setSelectedTags((prev) =>
