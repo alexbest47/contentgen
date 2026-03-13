@@ -20,6 +20,7 @@ import Descriptions from "@/pages/Descriptions";
 import PromptVariables from "@/pages/PromptVariables";
 import Archive from "@/pages/Archive";
 import EmailSettings from "@/pages/EmailSettings";
+import CreateDiagnostic from "@/pages/CreateDiagnostic";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
