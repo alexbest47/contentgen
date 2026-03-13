@@ -21,6 +21,7 @@ export default function Prompts() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<PromptForm>(emptyForm);
   const [activeTab, setActiveTab] = useState<string>("");
+  const [refinePrompt, setRefinePrompt] = useState<any | null>(null);
 
   const { data: prompts, isLoading } = useQuery({
     queryKey: ["prompts"],
