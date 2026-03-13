@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, RefreshCw, Loader2, Image, Layers, Copy } from "lucide-react";
 import PipelineResultView from "@/components/project/PipelineResultView";
 import { toast } from "sonner";
+import { usePromptInfo } from "@/hooks/usePromptInfo";
 
 const contentTypeLabels: Record<string, string> = {
   instagram: "Пост в Instagram",
