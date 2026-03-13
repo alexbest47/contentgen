@@ -348,7 +348,7 @@ function SocialView({
         icon={<Image className="h-4 w-4" />}
         imageSection={
           <div
-            className="aspect-[4/5] bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer"
+            className={`${contentType === "instagram" ? "aspect-[4/5]" : "aspect-square"} bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer`}
             onClick={() => staticImage && openPreview(staticImage, "Изображение поста")}
           >
             {staticImage ? (
