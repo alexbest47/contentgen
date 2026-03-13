@@ -254,7 +254,6 @@ export default function DiagnosticDetail() {
           name: editName.trim(),
           description: editDescription || null,
           program_id: editProgramId,
-          prompt_id: editPromptId || null,
           audience_tags: editTags,
         } as any)
         .eq("id", diagnosticId!);
