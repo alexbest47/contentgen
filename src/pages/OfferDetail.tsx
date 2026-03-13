@@ -156,7 +156,6 @@ export default function OfferDetail() {
             )}
             {progressText || "Сгенерировать лид-магниты"}
           </Button>
-        )}
       </div>
 
 

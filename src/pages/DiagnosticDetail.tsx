@@ -451,19 +451,6 @@ export default function DiagnosticDetail() {
         <Badge variant={isReady ? "default" : "secondary"} className="ml-2">
           {diagnostic.status}
         </Badge>
-        {diagnostic.offer_id && !isGenerating && (
-          <Button
-            onClick={() => generateLeadMagnetsMutation.mutate()}
-            disabled={generatingProject}
-          >
-            {generatingProject ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4 mr-2" />
-            )}
-            {progressText || "Сгенерировать лид-магниты"}
-          </Button>
-        )}
       </div>
 
       {/* Draft edit form */}
