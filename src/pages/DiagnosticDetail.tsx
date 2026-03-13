@@ -339,7 +339,7 @@ export default function DiagnosticDetail() {
     if (!diagnostic) return;
     const progress = diagnostic.generation_progress as any;
 
-    if (diagnostic.status === "images_pending" && progress?.placeholders?.length > 0) {
+    if ((diagnostic.status === "images_pending" || diagnostic.status === "generating_images") && progress?.placeholders?.length > 0) {
       updateStepsFromStatus(diagnostic.status, progress);
       startImageGeneration(diagnosticId!, progress.placeholders, progress.completed_images || 0);
     } else if (ACTIVE_STATUSES.includes(diagnostic.status)) {
