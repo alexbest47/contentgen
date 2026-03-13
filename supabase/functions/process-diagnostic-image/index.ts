@@ -130,6 +130,7 @@ serve(async (req) => {
 
     // Generate one image
     let imageUrl: string | null = null;
+    let creditsExhausted = false;
     try {
       const imageBytes = await generateImage(prompt, OPENROUTER_API_KEY);
       const fileName = `${diagnostic_id}/image_${image_index}_${Date.now()}.webp`;
@@ -148,9 +149,34 @@ serve(async (req) => {
         imageUrl = urlData.publicUrl;
         completedImages++;
       }
-    } catch (imgErr) {
+    } catch (imgErr: any) {
       console.error(`[process-image] Generation failed:`, imgErr);
+      if (imgErr.message === "CREDITS_EXHAUSTED") {
+        creditsExhausted = true;
+      }
       failedImages++;
+    }
+
+    // If credits exhausted, stop chain immediately
+    if (creditsExhausted) {
+      await supabase
+        .from("diagnostics")
+        .update({
+          status: "error",
+          generation_progress: {
+            total_images: placeholders.length,
+            completed_images: completedImages,
+            failed_images: failedImages,
+            error: "Недостаточно кредитов OpenRouter. Пополните баланс: https://openrouter.ai/settings/credits",
+          },
+        })
+        .eq("id", diagnostic_id);
+
+      console.log("[process-image] Credits exhausted, stopping chain.");
+      return new Response(
+        JSON.stringify({ success: false, credits_exhausted: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Update quiz_json by replacing the placeholder
