@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, ChevronRight, ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
@@ -80,12 +80,6 @@ export default function OfferTypeDetail() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // Create dialog state
-  const [createOpen, setCreateOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [docUrl, setDocUrl] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // Archive dialog state
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -130,41 +124,6 @@ export default function OfferTypeDetail() {
       if (error) throw error;
       return data;
     },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const { data: offer, error } = await supabase
-        .from("offers")
-        .insert({
-          program_id: programId!,
-          offer_type: offerType! as any,
-          title,
-          description: description || null,
-          doc_url: docUrl || null,
-          created_by: user!.id,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      if (selectedTags.length > 0) {
-        const { error: tagErr } = await supabase.from("offer_tags").insert(
-          selectedTags.map((tag_id) => ({ offer_id: offer.id, tag_id }))
-        );
-        if (tagErr) throw tagErr;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["offers", programId, offerType] });
-      setCreateOpen(false);
-      setTitle("");
-      setDescription("");
-      setDocUrl("");
-      setSelectedTags([]);
-      toast.success("Оффер создан");
-    },
-    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateMutation = useMutation({
@@ -221,12 +180,6 @@ export default function OfferTypeDetail() {
     setArchiveOpen(true);
   };
 
-  const toggleTag = (tagId: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
-  };
-
   const toggleEditTag = (tagId: string) => {
     setEditSelectedTags((prev) =>
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
@@ -257,28 +210,6 @@ export default function OfferTypeDetail() {
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />Создать оффер</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Новый оффер — {typeLabel}</DialogTitle>
-            </DialogHeader>
-            <OfferForm
-              title={title} setTitle={setTitle}
-              description={description} setDescription={setDescription}
-              docUrl={docUrl} setDocUrl={setDocUrl}
-              selectedTags={selectedTags} toggleTag={toggleTag}
-              allTags={allTags} isPending={createMutation.isPending}
-              onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }}
-              submitLabel="Создать" pendingLabel="Создание..."
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-2xl">
@@ -302,7 +233,7 @@ export default function OfferTypeDetail() {
       ) : offers?.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            Нет офферов. Создайте первый!
+            Нет офферов.
           </CardContent>
         </Card>
       ) : (
