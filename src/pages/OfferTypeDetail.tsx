@@ -168,6 +168,47 @@ export default function OfferTypeDetail() {
     },
   });
 
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase
+        .from("offers")
+        .insert({
+          title: createTitle,
+          description: createDescription || null,
+          doc_url: createDocUrl || null,
+          offer_type: offerType! as any,
+          program_id: programId!,
+          created_by: user!.id,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+
+      if (createSelectedTags.length > 0) {
+        const { error: tagErr } = await supabase.from("offer_tags").insert(
+          createSelectedTags.map((tag_id) => ({ offer_id: data.id, tag_id }))
+        );
+        if (tagErr) throw tagErr;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["offers", programId, offerType] });
+      setCreateOpen(false);
+      setCreateTitle("");
+      setCreateDescription("");
+      setCreateDocUrl("");
+      setCreateSelectedTags([]);
+      toast.success("Оффер создан");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const toggleCreateTag = (tagId: string) => {
+    setCreateSelectedTags((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!editingId) return;
