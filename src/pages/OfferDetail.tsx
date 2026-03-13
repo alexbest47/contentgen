@@ -166,7 +166,7 @@ export default function OfferDetail() {
       </div>
       {promptInfo?.[0] && (
         <p className="text-xs text-muted-foreground -mt-4">
-          Промпт: «{promptInfo[0].name}»
+          Промпт: «{promptInfo[0].name}» ({typeLabel})
         </p>
       )}
 

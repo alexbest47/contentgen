@@ -369,7 +369,7 @@ export default function OfferTypeDetail() {
           <p className="text-muted-foreground">{program?.title}</p>
           {!isDiagnosticType && leadPromptInfo?.[0] && (
             <p className="text-xs text-muted-foreground">
-              Промпт лид-магнитов: «{leadPromptInfo[0].name}»
+              Промпт лид-магнитов: «{leadPromptInfo[0].name}» ({typeLabel})
             </p>
           )}
         </div>
