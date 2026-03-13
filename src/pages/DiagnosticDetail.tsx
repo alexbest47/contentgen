@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Copy, Download, Play, Plus,
 } from "lucide-react";
@@ -261,101 +262,30 @@ export default function DiagnosticDetail() {
         </Badge>
       </div>
 
-      {/* Info card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Информация</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <div>
-            <span className="text-muted-foreground">Программа: </span>
-            <span className="font-medium">{program?.title || "—"}</span>
-          </div>
-          {diagnostic.description && (
-            <div>
-              <span className="text-muted-foreground">Описание: </span>
-              <span>{diagnostic.description}</span>
-            </div>
-          )}
-          {diagnostic.audience_tags && (diagnostic.audience_tags as string[]).length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-muted-foreground">Теги: </span>
-              {(diagnostic.audience_tags as string[]).map((tag, i) => (
-                <Badge key={i} variant="outline">{tag}</Badge>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Generation progress */}
-      {generating && steps.length > 0 && (
-        <Card>
-          <CardContent className="pt-6 space-y-6">
-            <Progress
-              value={Math.round(
-                (steps.filter((s) => s.status === "done").length / steps.length) * 100
+      {/* Info table */}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Программа</TableHead>
+            <TableHead>Название диагностики</TableHead>
+            <TableHead className="text-right">Действие</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell className="font-medium">{program?.title || "—"}</TableCell>
+            <TableCell>{diagnostic.name}</TableCell>
+            <TableCell className="text-right">
+              {!generating && !showError && (
+                <Button onClick={handleGenerate} size="sm">
+                  <Play className="h-4 w-4 mr-2" />
+                  {isReady ? "Перегенерировать" : "Сгенерировать"}
+                </Button>
               )}
-              className="h-3"
-            />
-            <div className="space-y-3">
-              {steps.map((step, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  {step.status === "done" ? (
-                    <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                  ) : step.status === "active" ? (
-                    <Loader2 className="h-5 w-5 text-primary animate-spin shrink-0" />
-                  ) : step.status === "error" ? (
-                    <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
-                  ) : (
-                    <div className="h-5 w-5 rounded-full border-2 border-muted shrink-0" />
-                  )}
-                  <span
-                    className={
-                      step.status === "active"
-                        ? "font-medium text-foreground"
-                        : step.status === "done"
-                        ? "text-muted-foreground"
-                        : "text-muted-foreground/60"
-                    }
-                  >
-                    Шаг {i + 1} из {steps.length} — {step.label}
-                    {step.detail && ` (${step.detail})`}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Error */}
-      {showError && (
-        <Card>
-          <CardContent className="pt-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-6 w-6 text-destructive shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium">Не удалось сгенерировать тест</p>
-                <p className="text-sm text-muted-foreground mt-1">{errorMessage}</p>
-              </div>
-            </div>
-            <Button onClick={handleGenerate}>Попробовать ещё раз</Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Generate button for draft */}
-      {(isDraft || isGeneratingStatus) && !generating && !showError && (
-        <Card>
-          <CardContent className="pt-6">
-            <Button onClick={handleGenerate} className="w-full" size="lg">
-              <Play className="h-4 w-4 mr-2" />
-              Сгенерировать
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
 
       {/* Result */}
       {isReady && (
@@ -387,10 +317,6 @@ export default function DiagnosticDetail() {
                 <Button onClick={downloadJson} variant="outline">
                   <Download className="h-4 w-4 mr-2" />
                   Скачать JSON
-                </Button>
-                <Button onClick={handleGenerate} variant="secondary">
-                  <Play className="h-4 w-4 mr-2" />
-                  Перегенерировать
                 </Button>
                 <Button onClick={() => navigate("/create-diagnostic")}>
                   <Plus className="h-4 w-4 mr-2" />
