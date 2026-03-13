@@ -27,6 +27,7 @@ const ACTIVE_STATUSES = ["generating", "quiz_generated", "generating_card_prompt
 
 export default function DiagnosticDetail() {
   const { diagnosticId } = useParams<{ diagnosticId: string }>();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -41,6 +42,8 @@ export default function DiagnosticDetail() {
   const [draftInitialized, setDraftInitialized] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [stopping, setStopping] = useState(false);
+  const [generatingProject, setGeneratingProject] = useState(false);
+  const [progressText, setProgressText] = useState("");
 
   const { data: diagnostic, isLoading } = useQuery({
     queryKey: ["diagnostic", diagnosticId],
