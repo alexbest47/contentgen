@@ -1,0 +1,1 @@
+ALTER TABLE public.lead_magnets ADD COLUMN save_reason text DEFAULT ''::text;
