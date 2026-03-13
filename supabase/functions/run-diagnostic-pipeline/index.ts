@@ -197,8 +197,7 @@ serve(async (req) => {
     await supabase
       .from("diagnostics")
       .update({
-        quiz_json: quizPart,
-        thank_you_json: thankYouPart,
+      quiz_json: quizPart,
         status: "quiz_generated",
         generation_progress: { total_images: placeholders.length, completed_images: 0 },
       })
