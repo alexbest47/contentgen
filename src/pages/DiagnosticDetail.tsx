@@ -496,10 +496,23 @@ export default function DiagnosticDetail() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/diagnostics")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">{isDraft ? editName || diagnostic.name : diagnostic.name}</h1>
+        <h1 className="text-2xl font-bold flex-1">{isDraft ? editName || diagnostic.name : diagnostic.name}</h1>
         <Badge variant={isReady ? "default" : "secondary"} className="ml-2">
           {diagnostic.status}
         </Badge>
+        {diagnostic.offer_id && !isGenerating && (
+          <Button
+            onClick={() => generateLeadMagnetsMutation.mutate()}
+            disabled={generatingProject}
+          >
+            {generatingProject ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            {progressText || "Сгенерировать лид-магниты"}
+          </Button>
+        )}
       </div>
 
       {/* Draft edit form */}
