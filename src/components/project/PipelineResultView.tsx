@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import useEmblaCarousel from "embla-carousel-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, Download, Image, Layers, Mail, Save, Check } from "lucide-react";
+import { Copy, Download, Image, ChevronDown, Mail, Save, Check, Layers } from "lucide-react";
 import { toast } from "sonner";
 
 interface SocialJson {
@@ -277,7 +279,7 @@ function SocialView({
     setPostTextCarousel(data.post_text_carousel || "");
   }, [data.post_text, data.post_text_single, data.post_text_carousel]);
 
-  const savePostText = () => {
+  const saveAll = () => {
     if (!onSave) return;
     let updated: any;
     if (hasSplitTexts) {
@@ -293,103 +295,217 @@ function SocialView({
     setPreviewAlt(alt);
   };
 
+  const carouselText = hasSplitTexts ? postTextCarousel : postText;
+  const setCarouselText = hasSplitTexts ? setPostTextCarousel : setPostText;
+  const singleText = hasSplitTexts ? postTextSingle : postText;
+  const setSingleText = hasSplitTexts ? setPostTextSingle : setPostText;
+
   return (
-    <div className="space-y-4">
-      {hasSplitTexts ? (
-        <>
-          <EditableField
-            label="Текст для поста (одно изображение)"
-            value={postTextSingle}
-            onChange={setPostTextSingle}
-            onSave={savePostText}
-          />
-          <EditableField
-            label="Текст для карусели"
-            value={postTextCarousel}
-            onChange={setPostTextCarousel}
-            onSave={savePostText}
-          />
-        </>
-      ) : (
-        <EditableField
-          label="Текст поста"
-          value={postText}
-          onChange={setPostText}
-          onSave={savePostText}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Carousel Post Card */}
+      {data.carousel_prompts?.length > 0 && (
+        <PostCard
+          title="Пост с каруселью"
+          icon={<Layers className="h-4 w-4" />}
+          imageSection={
+            <CarouselSlider
+              images={carouselImages}
+              totalSlides={data.carousel_prompts.length}
+              onPreview={openPreview}
+            />
+          }
+          text={carouselText}
+          onTextChange={setCarouselText}
+          onSave={saveAll}
+          promptsSection={
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-full justify-between text-xs text-muted-foreground gap-1">
+                  Промпты слайдов
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 pt-2">
+                {data.carousel_prompts.map((slide) => (
+                  <div key={slide.slide_number} className="flex items-start gap-2 text-xs">
+                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 shrink-0 ${slideTypeBadgeClass[slide.type] || ""}`}>
+                      {slide.slide_number}. {slideTypeLabels[slide.type] || slide.type}
+                    </Badge>
+                    <span className="italic text-muted-foreground/70">{slide.prompt}</span>
+                  </div>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          }
         />
       )}
 
-      {/* Carousel slides */}
-      {data.carousel_prompts?.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-              <Layers className="h-3.5 w-3.5" /> Слайды карусели ({data.carousel_prompts.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {data.carousel_prompts.map((slide) => {
-              const carouselImg = carouselImages?.find(ci => ci.slideNumber === slide.slide_number);
-              return (
-                <div key={slide.slide_number} className="border rounded-md p-3 grid grid-cols-[1fr_auto] gap-4 items-start bg-muted/20">
-                  <div className="space-y-1.5">
-                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${slideTypeBadgeClass[slide.type] || ""}`}>
-                      {slide.slide_number}. {slideTypeLabels[slide.type] || slide.type}
-                    </Badge>
-                    <p className="text-xs italic text-muted-foreground/70">{slide.prompt}</p>
-                  </div>
-                  <div className="w-[160px] flex-shrink-0">
-                    {carouselImg ? (
-                      <div
-                        className="rounded-md overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => openPreview(carouselImg.url, `Слайд ${slide.slide_number}`)}
-                      >
-                        <img src={carouselImg.url} alt={`Slide ${slide.slide_number}`} className="w-full object-contain bg-muted/30" />
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center h-[80px] text-[10px] text-muted-foreground/40 border rounded-md bg-muted/10">
-                        —
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
+      {/* Single Image Post Card */}
+      <PostCard
+        title="Пост с изображением"
+        icon={<Image className="h-4 w-4" />}
+        imageSection={
+          <div
+            className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer"
+            onClick={() => staticImage && openPreview(staticImage, "Изображение поста")}
+          >
+            {staticImage ? (
+              <img src={staticImage} alt="Пост" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-sm text-muted-foreground/50">Изображение не сгенерировано</span>
+            )}
+          </div>
+        }
+        text={singleText}
+        onTextChange={setSingleText}
+        onSave={saveAll}
+        promptsSection={
+          data.static_image_prompt ? (
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-full justify-between text-xs text-muted-foreground gap-1">
+                  Промпт изображения
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <p className="text-xs italic text-muted-foreground/70 bg-muted/30 rounded-md p-2">{data.static_image_prompt}</p>
+              </CollapsibleContent>
+            </Collapsible>
+          ) : undefined
+        }
+      />
 
-      {/* Static image */}
-      {data.static_image_prompt && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-              <Image className="h-3.5 w-3.5" /> Единое изображение
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-[1fr_auto] gap-4 items-start">
-              <div>
-                <span className="text-xs text-muted-foreground">Промпт</span>
-                <p className="text-xs italic text-muted-foreground/70 mt-1 bg-muted/30 rounded-md p-2">
-                  {data.static_image_prompt}
-                </p>
-              </div>
-              <div className="w-[200px] flex-shrink-0">
-                {staticImage ? (
-                  <ImageThumbnail src={staticImage} alt="Единое изображение" filename="static.png" onPreview={openPreview} />
+      <ImagePreviewDialog src={previewSrc} alt={previewAlt} open={!!previewSrc} onOpenChange={(o) => !o && setPreviewSrc(null)} />
+    </div>
+  );
+}
+
+/** Instagram-style post card */
+function PostCard({
+  title,
+  icon,
+  imageSection,
+  text,
+  onTextChange,
+  onSave,
+  promptsSection,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  imageSection: React.ReactNode;
+  text: string;
+  onTextChange: (v: string) => void;
+  onSave: () => void;
+  promptsSection?: React.ReactNode;
+}) {
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    onSave();
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  return (
+    <Card className="overflow-hidden max-w-[480px]">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b">
+        {icon}
+        <span className="text-sm font-medium">{title}</span>
+      </div>
+
+      {/* Image area */}
+      {imageSection}
+
+      {/* Text & actions */}
+      <div className="p-4 space-y-3">
+        <Textarea
+          value={text}
+          onChange={(e) => onTextChange(e.target.value)}
+          className="text-sm min-h-[100px] resize-y border-none shadow-none p-0 focus-visible:ring-0"
+          placeholder="Текст поста..."
+        />
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => copy(text)}>
+            <Copy className="h-3 w-3" /> Копировать
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleSave}>
+            {saved ? <Check className="h-3 w-3 text-green-600" /> : <Save className="h-3 w-3" />}
+            {saved ? "Сохранено" : "Сохранить"}
+          </Button>
+        </div>
+
+        {promptsSection && <div className="border-t pt-2">{promptsSection}</div>}
+      </div>
+    </Card>
+  );
+}
+
+/** Embla carousel for slide images */
+function CarouselSlider({
+  images,
+  totalSlides,
+  onPreview,
+}: {
+  images?: { slideNumber: number; url: string }[];
+  totalSlides: number;
+  onPreview: (src: string, alt: string) => void;
+}) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on("select", onSelect);
+    return () => { emblaApi.off("select", onSelect); };
+  }, [emblaApi, onSelect]);
+
+  const slides = Array.from({ length: totalSlides }, (_, i) => {
+    const img = images?.find((im) => im.slideNumber === i + 1);
+    return { number: i + 1, url: img?.url };
+  });
+
+  return (
+    <div>
+      <div ref={emblaRef} className="overflow-hidden">
+        <div className="flex">
+          {slides.map((slide) => (
+            <div key={slide.number} className="flex-[0_0_100%] min-w-0">
+              <div
+                className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer"
+                onClick={() => slide.url && onPreview(slide.url, `Слайд ${slide.number}`)}
+              >
+                {slide.url ? (
+                  <img src={slide.url} alt={`Слайд ${slide.number}`} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="flex items-center justify-center h-[80px] text-xs text-muted-foreground/50 border rounded-md bg-muted/10">
-                    Не сгенерировано
-                  </div>
+                  <span className="text-sm text-muted-foreground/50">Слайд {slide.number}</span>
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
+      </div>
+      {/* Dot indicators */}
+      {totalSlides > 1 && (
+        <div className="flex justify-center gap-1.5 py-3">
+          {slides.map((slide, idx) => (
+            <button
+              key={slide.number}
+              className={`h-1.5 rounded-full transition-all ${
+                idx === selectedIndex ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30"
+              }`}
+              onClick={() => emblaApi?.scrollTo(idx)}
+            />
+          ))}
+        </div>
       )}
-
-      <ImagePreviewDialog src={previewSrc} alt={previewAlt} open={!!previewSrc} onOpenChange={(o) => !o && setPreviewSrc(null)} />
     </div>
   );
 }
