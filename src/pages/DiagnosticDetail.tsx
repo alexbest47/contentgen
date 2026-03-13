@@ -445,6 +445,55 @@ export default function DiagnosticDetail() {
         </Table>
       )}
 
+      {/* Generation progress */}
+      {steps.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Прогресс генерации</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {steps.map((step, i) => (
+              <div key={i} className="flex items-center gap-3">
+                {step.status === "pending" && (
+                  <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+                )}
+                {step.status === "active" && (
+                  <Loader2 className="h-5 w-5 animate-spin text-primary shrink-0" />
+                )}
+                {step.status === "done" && (
+                  <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                )}
+                {step.status === "error" && (
+                  <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+                )}
+                <span className={step.status === "pending" ? "text-muted-foreground" : ""}>
+                  {step.label}
+                </span>
+                {step.detail && (
+                  <span className="text-sm text-muted-foreground">({step.detail})</span>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Error */}
+      {showError && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="pt-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <p className="text-sm">{errorMessage || "Неизвестная ошибка"}</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleGenerate}>
+              <Play className="h-4 w-4 mr-2" />
+              Попробовать снова
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Result */}
       {isReady && (
         <>
