@@ -54,6 +54,7 @@ export default function ProgramDetail() {
       setEditTitle(program.title);
       setEditDescription(program.description || "");
       setEditAudienceUrl(program.audience_doc_url || "");
+      setEditProgramDocUrl((program as any).program_doc_url || "");
       setEditOpen(true);
     }
   };
