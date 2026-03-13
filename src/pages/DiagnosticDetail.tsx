@@ -178,7 +178,7 @@ export default function DiagnosticDetail() {
     const progress = diagnostic.generation_progress as any;
 
     if (ACTIVE_STATUSES.includes(diagnostic.status)) {
-      updateStepsFromStatus(diagnostic.status, progress);
+      updateStepsFromStatus(diagnostic.status, progress, diagnostic.card_prompt);
       startPolling();
     } else if (diagnostic.status === "error") {
       updateStepsFromStatus(diagnostic.status, progress);
