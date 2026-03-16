@@ -382,7 +382,6 @@ export default function OfferTypeDetail() {
             </DialogHeader>
             <OfferForm
               title={createTitle} setTitle={setCreateTitle}
-              description={createDescription} setDescription={setCreateDescription}
               docUrl={createDocUrl} setDocUrl={setCreateDocUrl}
               selectedTags={createSelectedTags} toggleTag={toggleCreateTag}
               allTags={allTags} isPending={createMutation.isPending}
