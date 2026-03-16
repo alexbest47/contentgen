@@ -4,7 +4,6 @@ import { Upload, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getOfferTypeLabel } from "@/lib/offerTypes";
 import { deriveCategory } from "@/lib/promptConstants";
 import {
   AlertDialog,
@@ -18,7 +17,6 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface CsvImportButtonProps {
-  offerTypeKey: string;
   existingCount: number;
   prompts: any[];
 }
@@ -33,7 +31,7 @@ const TEMPLATE_ROWS = [
   [
     "Текст поста + Imagen-промпты: Instagram","text-ig-post","instagram","1",
     "anthropic","claude-sonnet-4-20250514","Генерация текста поста для Instagram",
-    "Ты — опытный копирайтер для Instagram.","Напиши пост для мини-курса {{program_title}}. Целевая аудитория: {{audience_description}}.",
+    "Ты — опытный копирайтер для Instagram.","Напиши пост для оффера {{offer_title}} (тип: {{offer_type}}). Целевая аудитория: {{audience_description}}.",
     "Верни JSON с текстом и промптами для изображений","true",
   ],
 ];
@@ -75,7 +73,7 @@ function parseCsvLine(line: string): string[] {
   return result;
 }
 
-export default function CsvImportButton({ offerTypeKey, existingCount, prompts: currentPrompts }: CsvImportButtonProps) {
+export default function CsvImportButton({ existingCount, prompts: currentPrompts }: CsvImportButtonProps) {
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -97,7 +95,7 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
       CSV_HEADERS.map(escapeCsvField).join(","),
       ...TEMPLATE_ROWS.map((row) => row.map(escapeCsvField).join(",")),
     ];
-    downloadFile(lines.join("\n"), `prompts_template_${offerTypeKey}.csv`);
+    downloadFile(lines.join("\n"), `prompts_template.csv`);
   };
 
   const exportCsv = () => {
@@ -115,7 +113,7 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
         ].map(escapeCsvField).join(",")
       ),
     ];
-    downloadFile(lines.join("\n"), `prompts_export_${offerTypeKey}.csv`);
+    downloadFile(lines.join("\n"), `prompts_export.csv`);
     toast.success(`Экспортировано ${currentPrompts.length} промптов`);
   };
 
@@ -173,10 +171,11 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
   const doImport = async () => {
     setImporting(true);
     try {
+      // Delete all existing prompts
       const { error: delError } = await supabase
         .from("prompts")
         .delete()
-        .eq("offer_type", offerTypeKey);
+        .not("id", "is", null);
       if (delError) throw delError;
 
       const toInsert = parsedRows.map((r) => ({
@@ -193,14 +192,13 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
         user_prompt_template: r.user_prompt_template,
         output_format_hint: r.output_format_hint,
         is_active: r.is_active,
-        offer_type: offerTypeKey,
       }));
 
       const { error: insError } = await supabase.from("prompts").insert(toInsert);
       if (insError) throw insError;
 
       queryClient.invalidateQueries({ queryKey: ["prompts"] });
-      toast.success(`Импортировано ${toInsert.length} промптов для "${getOfferTypeLabel(offerTypeKey)}"`);
+      toast.success(`Импортировано ${toInsert.length} промптов`);
     } catch (err: any) {
       toast.error(`Ошибка импорта: ${err.message}`);
     } finally {
@@ -229,7 +227,7 @@ export default function CsvImportButton({ offerTypeKey, existingCount, prompts: 
             <AlertDialogTitle>Подтверждение импорта</AlertDialogTitle>
             <AlertDialogDescription>
               Будет удалено <strong>{existingCount}</strong> существующих промптов и создано{" "}
-              <strong>{parsedRows.length}</strong> новых для типа «{getOfferTypeLabel(offerTypeKey)}».
+              <strong>{parsedRows.length}</strong> новых.
               <br />
               Это действие необратимо.
             </AlertDialogDescription>

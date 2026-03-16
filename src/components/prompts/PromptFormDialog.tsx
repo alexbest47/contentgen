@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { contentTypeLabels, contentTypeKeys, type PromptForm } from "@/lib/promptConstants";
-import { OFFER_TYPES } from "@/lib/offerTypes";
 
 interface PromptFormDialogProps {
   form: PromptForm;
@@ -23,18 +22,6 @@ export default function PromptFormDialog({ form, setField, editId, saveMutation 
       </DialogHeader>
       <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(); }} className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Тип оффера</Label>
-            <Select value={form.offer_type} onValueChange={(v) => setField("offer_type", v)}>
-              <SelectTrigger><SelectValue placeholder="Выберите тип оффера" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_none">— Без типа —</SelectItem>
-                {OFFER_TYPES.map((ot) => (
-                  <SelectItem key={ot.key} value={ot.key}>{ot.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
           <div className="space-y-2">
             <Label>Название</Label>
             <Input value={form.name} onChange={(e) => setField("name", e.target.value)} required />
@@ -79,7 +66,7 @@ export default function PromptFormDialog({ form, setField, editId, saveMutation 
         <div className="space-y-2">
           <Label>Шаблон пользовательского промпта</Label>
           <Textarea value={form.user_prompt_template} onChange={(e) => setField("user_prompt_template", e.target.value)} className="min-h-[120px] font-mono text-sm" />
-          <p className="text-xs text-muted-foreground">Переменные: {"{{program_title}}, {{audience_description}}, {{offer_type}}, {{offer_title}}, {{offer_description}}, {{lead_magnet}}"}</p>
+          <p className="text-xs text-muted-foreground">Переменные: {"{{program_title}}, {{audience_description}}, {{offer_type}}, {{offer_title}}, {{offer_description}}, {{lead_magnet}}, {{program_doc_description}}"}</p>
         </div>
         <div className="space-y-2">
           <Label>Подсказка формата вывода</Label>

@@ -32,18 +32,6 @@ serve(async (req) => {
     if (!offer) throw new Error("Project has no associated offer");
     const program = offer.paid_programs;
 
-    // Load diagnostic data if offer_type is diagnostic
-    let diagnostic: any = null;
-    if (offer.offer_type === "diagnostic") {
-      const { data: diag } = await supabase
-        .from("diagnostics")
-        .select("name, description")
-        .eq("offer_id", offer.id)
-        .limit(1)
-        .maybeSingle();
-      diagnostic = diag;
-    }
-
     // Fetch audience description from Google Doc if needed
     let audienceDescription = program.audience_description || "";
     if (program.audience_doc_url) {
@@ -106,19 +94,18 @@ serve(async (req) => {
     // Update status
     await supabase.from("projects").update({ status: "generating_leads" }).eq("id", project_id);
 
-    // Get active prompt for lead_magnets filtered by offer_type
+    // Get active prompt for lead_magnets (universal, no offer_type filter)
     const { data: prompt, error: promptErr } = await supabase
       .from("prompts")
       .select("*")
       .eq("category", "lead_magnets")
       .eq("is_active", true)
-      .eq("offer_type", offer.offer_type)
       .limit(1)
       .maybeSingle();
 
     if (promptErr || !prompt) {
       await supabase.from("projects").update({ status: "error" }).eq("id", project_id);
-      throw new Error(`No active prompt found for category 'lead_magnets' with offer_type '${offer.offer_type}'. Please create one in the Prompts section.`);
+      throw new Error(`No active prompt found for category 'lead_magnets'. Please create one in the Prompts section.`);
     }
 
     const systemPrompt = prompt.system_prompt;
@@ -128,9 +115,7 @@ serve(async (req) => {
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_description\}\}/g, offerDescription)
-      .replace(/\{\{program_doc_description\}\}/g, programDocDescription)
-      .replace(/\{\{test_name\}\}/g, diagnostic?.name || "")
-      .replace(/\{\{test_description\}\}/g, diagnostic?.description || "");
+      .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
 
     // Call Claude API
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
