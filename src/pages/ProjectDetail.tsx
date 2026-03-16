@@ -83,13 +83,13 @@ export default function ProjectDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prompts")
-        .select("content_type, id")
+        .select("channel, id")
         .eq("is_active", true)
-        .not("content_type", "is", null);
+        .not("channel", "is", null);
       if (error) throw error;
       const counts: Record<string, number> = {};
       data?.forEach((p: any) => {
-        counts[p.content_type] = (counts[p.content_type] || 0) + 1;
+        counts[p.channel] = (counts[p.channel] || 0) + 1;
       });
       return counts;
     },
