@@ -12,7 +12,7 @@ export default function Descriptions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("offers")
-        .select("id, title, offer_type, doc_url, paid_programs(id, title, audience_doc_url, program_doc_url)")
+        .select("id, title, offer_type, doc_url, paid_programs(id, title, audience_doc_url, program_doc_url), diagnostics(doc_url)")
         .eq("is_archived", false)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -78,18 +78,21 @@ export default function Descriptions() {
                     <TableCell>{getOfferTypeLabel(o.offer_type)}</TableCell>
                     <TableCell>{o.title}</TableCell>
                     <TableCell>
-                      {o.doc_url ? (
-                        <a
-                          href={o.doc_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-primary hover:underline"
-                        >
-                          Открыть <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                      {(() => {
+                        const docUrl = o.doc_url || ((o as any).diagnostics as any[])?.[0]?.doc_url;
+                        return docUrl ? (
+                          <a
+                            href={docUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-primary hover:underline"
+                          >
+                            Открыть <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        );
+                      })()}
                     </TableCell>
                   </TableRow>
                 );
