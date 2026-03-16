@@ -18,6 +18,8 @@ export const categoryLabels: Record<PromptCategory, string> = {
 export const categories = Object.keys(categoryLabels) as PromptCategory[];
 
 export const contentTypeLabels: Record<string, string> = {
+  lead_magnet: "Лидмагнит",
+  diagnostic: "Диагностика",
   instagram: "Instagram",
   telegram: "Telegram",
   vk: "ВКонтакте",
@@ -25,6 +27,12 @@ export const contentTypeLabels: Record<string, string> = {
 };
 
 export const contentTypeKeys = Object.keys(contentTypeLabels);
+
+export const pipelineContentTypes = ["instagram", "telegram", "vk", "email"] as const;
+export const tabContentTypes = {
+  lead_magnet: ["lead_magnet", ...pipelineContentTypes],
+  diagnostic: ["diagnostic"],
+} as const;
 
 export const deriveCategory = (contentType: string): PromptCategory => {
   const mapping: Record<string, PromptCategory> = {
