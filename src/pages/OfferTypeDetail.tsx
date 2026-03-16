@@ -274,7 +274,7 @@ export default function OfferTypeDetail() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: async (offerId: string) => {
+    mutationFn: async ({ offerId, contentType = "lead_magnet" }: { offerId: string; contentType?: string }) => {
       setGeneratingOfferId(offerId);
       const offer = offers?.find((o: any) => o.id === offerId);
       if (!offer) throw new Error("Оффер не найден");
@@ -294,9 +294,10 @@ export default function OfferTypeDetail() {
         .single();
       if (projError) throw projError;
 
-      setProgressText("Генерация лид-магнитов...");
+      const label = contentType === "reference_material" ? "справочных материалов" : "лид-магнитов";
+      setProgressText(`Генерация ${label}...`);
       const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
-        body: { project_id: project.id },
+        body: { project_id: project.id, content_type: contentType },
       });
       if (genError) throw new Error(genError.message || "Ошибка генерации");
       if (genData?.error) throw new Error(genData.error);
@@ -304,7 +305,7 @@ export default function OfferTypeDetail() {
       return { offerId, projectId: project.id };
     },
     onSuccess: ({ offerId: oId, projectId }) => {
-      toast.success("Лид-магниты сгенерированы!");
+      toast.success("Генерация завершена!");
       setGeneratingOfferId(null);
       setProgressText("");
       navigate(`/programs/${programId}/offers/${offerType}/${oId}/projects/${projectId}`);
