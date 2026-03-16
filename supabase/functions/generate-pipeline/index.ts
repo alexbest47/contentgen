@@ -84,7 +84,7 @@ serve(async (req) => {
     const { data: pipelineSteps, error: stepsErr } = await supabase
       .from("prompts")
       .select("*")
-      .eq("content_type", content_type)
+      .eq("channel", content_type)
       .eq("is_active", true)
       .order("step_order", { ascending: true })
       .limit(1);

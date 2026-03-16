@@ -242,7 +242,7 @@ export default function ProjectDetail() {
                     </Button>
                     {stepCount === 0 && <p className="text-xs text-destructive mt-1 text-center">Нет промптов</p>}
                     {stepCount > 0 && (() => {
-                      const prompt = allPromptInfo?.find(p => p.content_type === ct.key);
+                      const prompt = allPromptInfo?.find(p => p.channel === ct.key);
                       return prompt ? (
                         <p className="text-xs text-muted-foreground mt-1 text-center">
                           Промпт: «{prompt.name}»
