@@ -73,6 +73,10 @@ export default function CreateDiagnostic() {
       toast.error("Укажите название");
       return;
     }
+    if (!docUrl.trim()) {
+      toast.error("Укажите ссылку на Google Doc");
+      return;
+    }
 
     setSaving(true);
     try {

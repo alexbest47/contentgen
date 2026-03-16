@@ -480,8 +480,8 @@ export default function DiagnosticDetail() {
             </div>
 
             <div className="space-y-2">
-              <Label>Описание</Label>
-              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Подробное описание..." className="min-h-[100px]" />
+              <Label>Ссылка на Google Doc</Label>
+              <Input value={editDocUrl} onChange={(e) => setEditDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
             </div>
 
             <div className="space-y-2">

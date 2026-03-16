@@ -87,7 +87,7 @@ serve(async (req) => {
       .replace(/\{\{program_description\}\}/g, program?.description || "")
       .replace(/\{\{audience_description\}\}/g, program?.audience_description || "")
       .replace(/\{\{test_name\}\}/g, name || "")
-      .replace(/\{\{test_description\}\}/g, description || "")
+      .replace(/\{\{test_description\}\}/g, diagnosticDocDescription || description || "")
       .replace(/\{\{audience_tags\}\}/g, (audience_tags || []).join(", "))
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
 

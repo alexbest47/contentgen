@@ -177,6 +177,7 @@ serve(async (req) => {
       offer_title: name || "",
       offer_description: description || "",
       program_doc_description: programDocDescription,
+      test_description: diagnosticDocDescription,
     };
 
     // ---- Step 1: Generate quiz ----
