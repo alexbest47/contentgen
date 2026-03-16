@@ -172,7 +172,7 @@ serve(async (req) => {
 
     const items = (content_type === "reference_material" || content_type === "expert_content" || content_type === "provocative_content") ? leadMagnets : leadMagnets.slice(0, 3);
     const inserts = items.map((lm: any) => {
-      if (content_type === "expert_content" || content_type === "provocative_content") {
+      if (content_type === "expert_content") {
         return {
           project_id,
           title: lm.topic_title || lm.title || "Без названия",
@@ -180,6 +180,18 @@ serve(async (req) => {
           visual_content: lm.topic_angle || "",
           instant_value: lm.hook || "",
           save_reason: "",
+          transition_to_course: lm.transition_to_offer || "",
+          cta_text: "",
+        };
+      }
+      if (content_type === "provocative_content") {
+        return {
+          project_id,
+          title: lm.topic_title || lm.title || "Без названия",
+          visual_format: lm.format || "",
+          visual_content: lm.topic_angle || "",
+          instant_value: lm.hook || "",
+          save_reason: lm.discussion_trigger || "",
           transition_to_course: lm.transition_to_offer || "",
           cta_text: "",
         };
