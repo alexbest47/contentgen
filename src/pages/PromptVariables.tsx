@@ -44,6 +44,12 @@ const categories = [
     ],
   },
   {
+    title: "Список",
+    variables: [
+      { name: "{{list_topic}}", description: "Полный JSON-объект выбранной темы списка (id, subtype, list_title, hook, items, transition_to_offer)", source: "Сгенерированные данные (lead_magnets)" },
+    ],
+  },
+  {
     title: "Диагностики",
     variables: [
       { name: "{{USER_ANSWERS}}", description: "JSON с ответами пользователя (для диагностик / тестов)", source: "Сгенерированные данные (quiz_json)" },

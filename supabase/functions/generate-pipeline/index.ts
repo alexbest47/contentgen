@@ -118,6 +118,15 @@ serve(async (req) => {
 - Крючок: ${selectedLead.instant_value || ""}
 - Переход к офферу: ${selectedLead.transition_to_course || ""}`;
 
+    const listContext = JSON.stringify({
+      id: selectedLead.id,
+      subtype: selectedLead.visual_format || "",
+      list_title: selectedLead.title,
+      hook: selectedLead.instant_value || "",
+      items: (() => { try { return JSON.parse(selectedLead.visual_content || "[]"); } catch { return []; } })(),
+      transition_to_offer: selectedLead.transition_to_course || "",
+    });
+
     let userPrompt = prompt.user_prompt_template
       .replace(/\{\{program_title\}\}/g, program.title)
       .replace(/\{\{offer_type\}\}/g, offer.offer_type)
@@ -128,6 +137,7 @@ serve(async (req) => {
       .replace(/\{\{reference_material\}\}/g, leadMagnetContext)
       .replace(/\{\{expert_post_topic\}\}/g, expertContext)
       .replace(/\{\{provocation_topic\}\}/g, provocativeContext)
+      .replace(/\{\{list_topic\}\}/g, listContext)
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
 
     // Call Claude

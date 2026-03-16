@@ -172,6 +172,18 @@ serve(async (req) => {
 
     const items = (content_type === "reference_material" || content_type === "expert_content" || content_type === "provocative_content" || content_type === "list_content") ? leadMagnets : leadMagnets.slice(0, 3);
     const inserts = items.map((lm: any) => {
+      if (content_type === "list_content") {
+        return {
+          project_id,
+          title: lm.list_title || lm.title || "Без названия",
+          visual_format: lm.subtype || "",
+          visual_content: JSON.stringify(lm.items || []),
+          instant_value: lm.hook || "",
+          save_reason: "",
+          transition_to_course: lm.transition_to_offer || "",
+          cta_text: "",
+        };
+      }
       if (content_type === "expert_content") {
         return {
           project_id,

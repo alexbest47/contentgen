@@ -221,6 +221,12 @@ export default function ProjectDetail() {
                        <div><span className="font-medium">Триггер дискуссии:</span> {(lm as any).save_reason}</div>
                        <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
                      </>
+                   ) : project?.content_type === "list_content" ? (
+                     <>
+                       <div><span className="font-medium">Подтип:</span> {lm.visual_format}</div>
+                       <div><span className="font-medium">Крючок:</span> {lm.instant_value}</div>
+                       <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
+                     </>
                   ) : (
                     <>
                       <div><span className="font-medium">Визуальный формат:</span> {lm.visual_format}</div>
