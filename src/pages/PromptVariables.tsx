@@ -26,6 +26,12 @@ const categories = [
     ],
   },
   {
+    title: "Справочные материалы",
+    variables: [
+      { name: "{{reference_material}}", description: "Полный контекст выбранного справочного материала (визуальный формат, контент, ценность, переход)", source: "Сгенерированные данные (lead_magnets)" },
+    ],
+  },
+  {
     title: "Диагностики",
     variables: [
       { name: "{{USER_ANSWERS}}", description: "JSON с ответами пользователя (для диагностик / тестов)", source: "Сгенерированные данные (quiz_json)" },

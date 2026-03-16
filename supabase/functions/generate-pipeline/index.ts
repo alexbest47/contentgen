@@ -109,6 +109,7 @@ serve(async (req) => {
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_description\}\}/g, offerDescription)
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
+      .replace(/\{\{reference_material\}\}/g, leadMagnetContext)
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
 
     // Call Claude
