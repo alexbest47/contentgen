@@ -295,6 +295,7 @@ export default function ContentDetail() {
           jsonContent={pipelineJson.content}
           isEmail={isEmail}
           contentType={contentType}
+          projectContentType={project?.content_type}
           carouselImages={carouselImages}
           staticImage={staticImage}
           bannerImage={bannerImage}
