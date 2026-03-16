@@ -195,7 +195,7 @@ export default function ProjectDetail() {
 
       {showLeadMagnets && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">{project?.content_type === "reference_material" ? "Варианты справочных материалов" : (project?.content_type === "expert_content" || project?.content_type === "provocative_content") ? "Темы контента" : "Варианты лид-магнитов"}</h2>
+          <h2 className="text-lg font-semibold">{project?.content_type === "reference_material" ? "Варианты справочных материалов" : (project?.content_type === "expert_content" || project?.content_type === "provocative_content") ? "Темы контента" : project?.content_type === "list_content" ? "Варианты списков" : "Варианты лид-магнитов"}</h2>
           <div className="grid gap-4 lg:grid-cols-3">
             {visibleLeadMagnets.map((lm) => (
               <Card key={lm.id} className={`transition-all ${lm.is_selected ? "ring-2 ring-primary" : ""}`}>
