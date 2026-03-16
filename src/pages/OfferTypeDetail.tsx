@@ -103,7 +103,7 @@ export default function OfferTypeDetail() {
   // Create dialog state
   const [createOpen, setCreateOpen] = useState(false);
   const [createTitle, setCreateTitle] = useState("");
-  const [createDescription, setCreateDescription] = useState("");
+  
   const [createDocUrl, setCreateDocUrl] = useState("");
   const [createSelectedTags, setCreateSelectedTags] = useState<string[]>([]);
 
