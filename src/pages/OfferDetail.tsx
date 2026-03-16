@@ -211,21 +211,21 @@ export default function OfferDetail() {
       <div className="flex flex-wrap justify-center gap-3 pt-2">
         <Button
           onClick={() => generateMutation.mutate("lead_magnet")}
-          disabled={generatingProject}
+          disabled={!!generatingType}
         >
-          {generatingProject ? (
+          {generatingType === "lead_magnet" ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4 mr-2" />
           )}
-          {progressText || "Сгенерировать лид-магниты"}
+          Сгенерировать лид-магниты
         </Button>
         <Button
           variant="outline"
           onClick={() => generateMutation.mutate("reference_material")}
-          disabled={generatingProject}
+          disabled={!!generatingType}
         >
-          {generatingProject ? (
+          {generatingType === "reference_material" ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4 mr-2" />
@@ -235,9 +235,9 @@ export default function OfferDetail() {
         <Button
           variant="outline"
           onClick={() => generateMutation.mutate("expert_content")}
-          disabled={generatingProject}
+          disabled={!!generatingType}
         >
-          {generatingProject ? (
+          {generatingType === "expert_content" ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4 mr-2" />
