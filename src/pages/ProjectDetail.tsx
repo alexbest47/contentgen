@@ -165,7 +165,7 @@ export default function ProjectDetail() {
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{project?.title ?? "..."}</h1>
-          <p className="text-muted-foreground">{statusLabels[project?.status ?? "draft"]}</p>
+          <p className="text-muted-foreground">{getStatusLabel(project?.status ?? "draft", project?.content_type)}</p>
         </div>
       </div>
 
