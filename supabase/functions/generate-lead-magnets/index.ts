@@ -189,11 +189,11 @@ serve(async (req) => {
           project_id,
           title: lm.angle_title || lm.title || "Без названия",
           visual_format: lm.angle_type || "",
-          visual_content: lm.key_idea || "",
+          visual_content: lm.key_quote || "",
           instant_value: lm.hook || "",
-          save_reason: "",
+          save_reason: JSON.stringify(lm.story_arc || null),
           transition_to_course: lm.transition_to_offer || "",
-          cta_text: "",
+          cta_text: lm.what_reader_feels || "",
         };
       }
       if (content_type === "list_content") {
