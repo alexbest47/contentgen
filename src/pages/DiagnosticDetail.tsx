@@ -307,7 +307,7 @@ export default function DiagnosticDetail() {
         diagnostic_id: diagnostic.id,
         program_id: diagnostic.program_id,
         name: diagnostic.name,
-        description: diagnostic.description || "",
+        description: "",
         audience_tags: diagnostic.audience_tags || [],
       },
     }).catch((err) => console.error("Pipeline call failed:", err));
