@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      case_classifications: {
+        Row: {
+          classification_json: Json
+          created_at: string
+          file_id: string
+          file_name: string
+          id: string
+          job_id: string
+          source_url: string | null
+        }
+        Insert: {
+          classification_json: Json
+          created_at?: string
+          file_id: string
+          file_name: string
+          id?: string
+          job_id: string
+          source_url?: string | null
+        }
+        Update: {
+          classification_json?: Json
+          created_at?: string
+          file_id?: string
+          file_name?: string
+          id?: string
+          job_id?: string
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_classifications_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "case_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_classifications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "case_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_files: {
         Row: {
           created_at: string
