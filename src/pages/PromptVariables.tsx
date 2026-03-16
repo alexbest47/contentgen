@@ -32,6 +32,12 @@ const categories = [
     ],
   },
   {
+    title: "Экспертный контент",
+    variables: [
+      { name: "{{expert_post_topic}}", description: "Полный контекст выбранной темы экспертного поста (категория, угол подачи, крючок, переход к офферу)", source: "Сгенерированные данные (lead_magnets)" },
+    ],
+  },
+  {
     title: "Диагностики",
     variables: [
       { name: "{{USER_ANSWERS}}", description: "JSON с ответами пользователя (для диагностик / тестов)", source: "Сгенерированные данные (quiz_json)" },
