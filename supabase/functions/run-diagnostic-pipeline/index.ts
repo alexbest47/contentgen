@@ -110,6 +110,26 @@ serve(async (req) => {
     const { diagnostic_id, program_id, name, description, audience_tags } =
       await req.json();
 
+    // Load diagnostic doc_url for Google Doc content
+    let diagnosticDocDescription = "";
+    const { data: diagData } = await supabase
+      .from("diagnostics")
+      .select("doc_url")
+      .eq("id", diagnostic_id)
+      .single();
+    if (diagData?.doc_url) {
+      try {
+        const docMatch = diagData.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        if (docMatch) {
+          const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`;
+          const docResponse = await fetch(exportUrl);
+          if (docResponse.ok) {
+            diagnosticDocDescription = await docResponse.text();
+          }
+        }
+      } catch (e) { console.error("Error fetching diagnostic doc:", e); }
+    }
+
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
 
