@@ -131,8 +131,6 @@ export default function OfferDetail() {
 
   const { data: promptInfo } = usePromptInfo({
     category: "lead_magnets",
-    offer_type: offer?.offer_type,
-    enabled: !!offer?.offer_type,
   });
 
   return (
