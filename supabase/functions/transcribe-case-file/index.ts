@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
       if (file_id) {
         await supabase
           .from("case_files")
-          .update({ status: "error", error_message: error.message })
+          .update({ status: "error", error_message: error.message, status_updated_at: new Date().toISOString() })
           .eq("id", file_id);
       }
 
