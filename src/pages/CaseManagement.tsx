@@ -45,6 +45,7 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   error: <XCircle className="h-4 w-4 text-destructive" />,
   downloading: <Download className="h-4 w-4 animate-pulse" />,
   transcribing: <Mic className="h-4 w-4 animate-pulse" />,
+  transcribed: <Clock className="h-4 w-4 text-muted-foreground" />,
   classifying: <BrainCircuit className="h-4 w-4 animate-pulse" />,
   classified: <CheckCircle2 className="h-4 w-4 text-primary" />,
   skipped: <SkipForward className="h-4 w-4 text-muted-foreground" />,
