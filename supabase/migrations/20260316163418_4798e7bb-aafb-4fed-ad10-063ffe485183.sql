@@ -1,0 +1,1 @@
+ALTER TYPE public.prompt_category ADD VALUE 'case_analysis';

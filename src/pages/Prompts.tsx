@@ -104,6 +104,7 @@ export default function Prompts() {
   const expertContentPrompts = (prompts ?? []).filter((p: any) => p.content_type === "expert_content");
   const provocativeContentPrompts = (prompts ?? []).filter((p: any) => p.content_type === "provocative_content");
   const listContentPrompts = (prompts ?? []).filter((p: any) => p.content_type === "list_content");
+  const caseAnalysisPrompts = (prompts ?? []).filter((p: any) => p.content_type === "case_analysis");
 
   // Group lead_magnet prompts: those without channel are "general", others grouped by channel
   const generalLeadMagnetPrompts = leadMagnetPrompts
@@ -334,6 +335,19 @@ export default function Prompts() {
     );
   };
 
+  const renderCaseAnalysisTab = () => {
+    const sorted = caseAnalysisPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+    return (
+      <div className="space-y-3">
+        {sorted.length > 0 ? sorted.map((p: any) => (
+          <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+        )) : (
+          <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -366,6 +380,7 @@ export default function Prompts() {
              <TabsTrigger value="expert_content">Экспертный контент</TabsTrigger>
              <TabsTrigger value="provocative_content">Провокационный контент</TabsTrigger>
              <TabsTrigger value="list_content">Список</TabsTrigger>
+             <TabsTrigger value="case_analysis">Кейсы</TabsTrigger>
            </TabsList>
            <TabsContent value="lead_magnet">
              {renderLeadMagnetTab()}
@@ -384,6 +399,9 @@ export default function Prompts() {
            </TabsContent>
            <TabsContent value="list_content">
              {renderListContentTab()}
+           </TabsContent>
+           <TabsContent value="case_analysis">
+             {renderCaseAnalysisTab()}
            </TabsContent>
         </Tabs>
       ) : (
