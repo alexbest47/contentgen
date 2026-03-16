@@ -1,0 +1,1 @@
+ALTER TYPE public.prompt_category ADD VALUE IF NOT EXISTS 'list_content';
