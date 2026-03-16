@@ -34,6 +34,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   transcribing: { label: "Транскрибация...", variant: "default" },
   classifying: { label: "Классификация...", variant: "default" },
   classified: { label: "Классифицировано", variant: "outline" },
+  skipped: { label: "Пропущен (дубль)", variant: "secondary" },
 };
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
