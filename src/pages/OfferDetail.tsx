@@ -61,8 +61,7 @@ export default function OfferDetail() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [generatingProject, setGeneratingProject] = useState(false);
-  const [progressText, setProgressText] = useState("");
+  const [generatingType, setGeneratingType] = useState<string | null>(null);
 
   const { data: offer } = useQuery({
     queryKey: ["offer", offerId],
