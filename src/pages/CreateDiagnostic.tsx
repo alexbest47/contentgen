@@ -86,7 +86,7 @@ export default function CreateDiagnostic() {
         .insert({
           program_id: programId,
           name: title,
-          description: description || null,
+          doc_url: docUrl || null,
           audience_tags: tagNames,
           prompt_id: null,
           status: "draft",
