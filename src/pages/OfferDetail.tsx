@@ -16,14 +16,25 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const statusLabels: Record<string, string> = {
-  draft: "Черновик",
-  generating_leads: "Генерация лид-магнитов",
-  leads_ready: "Лид-магниты готовы",
-  lead_selected: "Лид-магнит выбран",
-  generating_content: "Генерация контента",
-  completed: "Завершено",
-  error: "Ошибка",
+const getStatusLabel = (status: string, contentType?: string): string => {
+  if (contentType === "reference_material") {
+    const refLabels: Record<string, string> = {
+      generating_leads: "Генерация справочного материала",
+      leads_ready: "Справочный материал готов",
+      lead_selected: "Справочный материал выбран",
+    };
+    if (refLabels[status]) return refLabels[status];
+  }
+  const defaultLabels: Record<string, string> = {
+    draft: "Черновик",
+    generating_leads: "Генерация лид-магнитов",
+    leads_ready: "Лид-магниты готовы",
+    lead_selected: "Лид-магнит выбран",
+    generating_content: "Генерация контента",
+    completed: "Завершено",
+    error: "Ошибка",
+  };
+  return defaultLabels[status] ?? status;
 };
 
 const statusColors: Record<string, string> = {
