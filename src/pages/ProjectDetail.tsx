@@ -26,6 +26,14 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (expertLabels[status]) return expertLabels[status];
   }
+  if (contentType === "provocative_content") {
+    const provocativeLabels: Record<string, string> = {
+      generating_leads: "Генерация тем провокационного контента...",
+      leads_ready: "Выберите тему провокационного контента",
+      lead_selected: "Тема провокационного контента выбрана",
+    };
+    if (provocativeLabels[status]) return provocativeLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов...",
