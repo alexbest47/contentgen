@@ -60,7 +60,7 @@ export default function DiagnosticDetail() {
   // Initialize draft edit fields once
   if (diagnostic && diagnostic.status === "draft" && !draftInitialized) {
     setEditName(diagnostic.name || "");
-    setEditDescription(diagnostic.description || "");
+    setEditDocUrl((diagnostic as any).doc_url || "");
     setEditProgramId(diagnostic.program_id || "");
     setEditTags((diagnostic.audience_tags as string[]) || []);
     setDraftInitialized(true);
