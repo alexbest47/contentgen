@@ -224,6 +224,7 @@ export default function CaseManagement() {
 
                     {files.map((file) => {
                       const fStatus = STATUS_MAP[file.status] ?? STATUS_MAP.pending;
+                      const isActive = file.status === "downloading" || file.status === "transcribing";
                       return (
                         <div
                           key={file.id}
@@ -237,15 +238,29 @@ export default function CaseManagement() {
                                 {file.error_message}
                               </p>
                             )}
-                            {file.file_size != null && (
-                              <p className="text-xs text-muted-foreground">
-                                {(file.file_size / 1024 / 1024).toFixed(1)} МБ
-                              </p>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {file.file_size != null && (
+                                <p className="text-xs text-muted-foreground">
+                                  {(file.file_size / 1024 / 1024).toFixed(1)} МБ
+                                </p>
+                              )}
+                              {isActive && (file as any).status_updated_at && (
+                                <ElapsedTime since={(file as any).status_updated_at} />
+                              )}
+                            </div>
                           </div>
-                          <Badge variant={fStatus.variant} className="shrink-0">
-                            {fStatus.label}
-                          </Badge>
+                          {isActive ? (
+                            <div className="flex items-center gap-2 shrink-0">
+                              <div className="h-2 w-16 rounded-full bg-muted overflow-hidden">
+                                <div className="h-full w-full bg-primary animate-pulse rounded-full" />
+                              </div>
+                              <Badge variant={fStatus.variant}>{fStatus.label}</Badge>
+                            </div>
+                          ) : (
+                            <Badge variant={fStatus.variant} className="shrink-0">
+                              {fStatus.label}
+                            </Badge>
+                          )}
                           {file.status === "completed" && file.transcript_text && (
                             <div className="flex gap-1 shrink-0">
                               <Button
