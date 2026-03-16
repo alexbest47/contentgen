@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       throw new Error(`File not found: ${fileError?.message}`);
     }
 
-    // Get job to extract folder_url (public_key)
+    // Get job to extract folder_url
     const { data: job } = await supabase
       .from("case_jobs")
       .select("folder_url, status")
@@ -82,9 +82,20 @@ Deno.serve(async (req) => {
       .update({ status: "transcribing", download_url: downloadUrl })
       .eq("id", file_id);
 
-    // Send to Deepgram - pass URL directly
+    // Build callback URL for Deepgram to send results to
+    const callbackUrl = `${supabaseUrl}/functions/v1/deepgram-callback?file_id=${file_id}&job_id=${job_id}`;
+
+    // Send to Deepgram with callback — function returns immediately
+    const deepgramParams = new URLSearchParams({
+      model: "nova-2",
+      language: "ru",
+      punctuate: "true",
+      utterances: "true",
+      callback: callbackUrl,
+    });
+
     const deepgramRes = await fetch(
-      "https://api.deepgram.com/v1/listen?model=nova-2&language=ru&punctuate=true&utterances=true",
+      `https://api.deepgram.com/v1/listen?${deepgramParams}`,
       {
         method: "POST",
         headers: {
@@ -100,70 +111,16 @@ Deno.serve(async (req) => {
       throw new Error(`Deepgram error ${deepgramRes.status}: ${errText}`);
     }
 
-    const deepgramData = await deepgramRes.json();
-
-    // Extract transcript
-    const transcript =
-      deepgramData.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? "";
-
-    // Extract utterances for timestamps
-    const utterances = deepgramData.results?.utterances ?? [];
-
-    // Save result
-    await supabase
-      .from("case_files")
-      .update({
-        status: "completed",
-        transcript_text: transcript,
-        transcript_json: deepgramData,
-      })
-      .eq("id", file_id);
-
-    // Find next pending file in this job
-    const { data: nextFile } = await supabase
-      .from("case_files")
-      .select("id")
-      .eq("job_id", job_id)
-      .eq("status", "pending")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .single();
-
-    if (nextFile) {
-      // Chain to next file
-      const fnUrl = `${supabaseUrl}/functions/v1/transcribe-case-file`;
-      fetch(fnUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${supabaseServiceKey}`,
-        },
-        body: JSON.stringify({ job_id, file_id: nextFile.id }),
-      }).catch(() => {});
-    } else {
-      // Check if all files are done (completed or error)
-      const { count: pendingCount } = await supabase
-        .from("case_files")
-        .select("id", { count: "exact", head: true })
-        .eq("job_id", job_id)
-        .in("status", ["pending", "downloading", "transcribing"]);
-
-      if (!pendingCount || pendingCount === 0) {
-        await supabase
-          .from("case_jobs")
-          .update({ status: "completed" })
-          .eq("id", job_id);
-      }
-    }
-
+    // Deepgram accepted the request — results will come via callback
+    // No need to wait or self-chain; deepgram-callback handles continuation
     return new Response(
-      JSON.stringify({ success: true, file_id, transcript_length: transcript.length }),
+      JSON.stringify({ success: true, file_id, status: "transcribing" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("transcribe-case-file error:", error);
 
-    // Try to mark file as error and continue chain
+    // Mark file as error and trigger next file
     try {
       const { job_id, file_id } = await req.clone().json().catch(() => ({}));
       if (file_id) {
@@ -173,7 +130,7 @@ Deno.serve(async (req) => {
           .eq("id", file_id);
       }
 
-      // Continue with next file
+      // Continue with next file even on error
       if (job_id) {
         const { data: nextFile } = await supabase
           .from("case_files")
