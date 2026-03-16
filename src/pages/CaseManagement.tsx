@@ -186,6 +186,18 @@ export default function CaseManagement() {
     onError: (err: Error) => toast.error(`Ошибка удаления: ${err.message}`),
   });
 
+  const updateNameMutation = useMutation({
+    mutationFn: async ({ jobId, name }: { jobId: string; name: string }) => {
+      const { error } = await supabase.from("case_jobs").update({ name: name.trim() || null } as any).eq("id", jobId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setEditingJobId(null);
+      queryClient.invalidateQueries({ queryKey: ["case-jobs"] });
+    },
+    onError: (err: Error) => toast.error(`Ошибка: ${err.message}`),
+  });
+
   return (
     <div className="space-y-6">
       <div>
