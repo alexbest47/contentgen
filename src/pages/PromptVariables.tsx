@@ -38,6 +38,12 @@ const categories = [
     ],
   },
   {
+    title: "Провокационный контент",
+    variables: [
+      { name: "{{provocative_post_topic}}", description: "Полный контекст выбранной темы провокационного поста (категория, угол подачи, крючок, переход к офферу)", source: "Сгенерированные данные (lead_magnets)" },
+    ],
+  },
+  {
     title: "Диагностики",
     variables: [
       { name: "{{USER_ANSWERS}}", description: "JSON с ответами пользователя (для диагностик / тестов)", source: "Сгенерированные данные (quiz_json)" },

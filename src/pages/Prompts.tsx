@@ -319,20 +319,24 @@ export default function Prompts() {
             <TabsTrigger value="lead_magnet">Лидмагнит</TabsTrigger>
             <TabsTrigger value="reference_material">Справочный материал</TabsTrigger>
             <TabsTrigger value="diagnostic">Диагностики</TabsTrigger>
-            <TabsTrigger value="expert_content">Экспертный контент</TabsTrigger>
-          </TabsList>
-          <TabsContent value="lead_magnet">
-            {renderLeadMagnetTab()}
-          </TabsContent>
-          <TabsContent value="reference_material">
-            {renderReferenceMaterialTab()}
-          </TabsContent>
-          <TabsContent value="diagnostic">
-            {renderDiagnosticTab()}
-          </TabsContent>
-          <TabsContent value="expert_content">
-            {renderExpertContentTab()}
-          </TabsContent>
+             <TabsTrigger value="expert_content">Экспертный контент</TabsTrigger>
+             <TabsTrigger value="provocative_content">Провокационный контент</TabsTrigger>
+           </TabsList>
+           <TabsContent value="lead_magnet">
+             {renderLeadMagnetTab()}
+           </TabsContent>
+           <TabsContent value="reference_material">
+             {renderReferenceMaterialTab()}
+           </TabsContent>
+           <TabsContent value="diagnostic">
+             {renderDiagnosticTab()}
+           </TabsContent>
+           <TabsContent value="expert_content">
+             {renderExpertContentTab()}
+           </TabsContent>
+           <TabsContent value="provocative_content">
+             {renderProvocativeContentTab()}
+           </TabsContent>
         </Tabs>
       ) : (
         <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>

@@ -198,7 +198,7 @@ export default function ProjectDetail() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  {project?.content_type === "expert_content" ? (
+                  {(project?.content_type === "expert_content" || project?.content_type === "provocative_content") ? (
                     <>
                       <div><span className="font-medium">Категория:</span> {lm.visual_format}</div>
                       <div><span className="font-medium">Угол подачи:</span> {lm.visual_content}</div>
