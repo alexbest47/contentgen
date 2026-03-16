@@ -378,6 +378,7 @@ function SocialView({
   staticImage,
   onSave,
   contentType,
+  projectContentType,
 }: {
   data: SocialJson;
   carouselImages?: { slideNumber: number; url: string }[];
