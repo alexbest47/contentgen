@@ -274,7 +274,7 @@ export default function DiagnosticDetail() {
         .from("diagnostics")
         .update({
           name: editName.trim(),
-          description: editDescription || null,
+          doc_url: editDocUrl || null,
           program_id: editProgramId,
           audience_tags: editTags,
         } as any)
