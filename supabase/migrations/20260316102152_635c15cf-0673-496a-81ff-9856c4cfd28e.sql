@@ -1,0 +1,1 @@
+ALTER TABLE public.diagnostics ADD COLUMN doc_url text;
