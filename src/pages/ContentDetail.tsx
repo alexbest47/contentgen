@@ -263,18 +263,20 @@ export default function ContentDetail() {
                 )}
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => generateImagesMutation.mutate("static")}
-              disabled={isAnyImageGenerating}
-            >
-              {generatingImagesKey === "static" ? (
-                <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
-              ) : (
-                <><Image className="mr-1 h-3 w-3" />Сгенерировать изображение</>
-              )}
-            </Button>
+            {supportsStaticImage && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => generateImagesMutation.mutate("static")}
+                disabled={isAnyImageGenerating}
+              >
+                {generatingImagesKey === "static" ? (
+                  <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Генерация...</>
+                ) : (
+                  <><Image className="mr-1 h-3 w-3" />Сгенерировать изображение</>
+                )}
+              </Button>
+            )}
           </>
         )}
       </div>
