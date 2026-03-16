@@ -108,7 +108,15 @@ export type Database = {
           status?: string
           thank_you_json?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "diagnostics_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_settings: {
         Row: {
