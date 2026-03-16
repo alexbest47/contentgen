@@ -13,14 +13,15 @@ import {
   FolderSearch, Play, ChevronDown, ChevronRight, FileText,
   Copy, CheckCircle2, XCircle, Loader2, Clock, Download, Mic,
 } from "lucide-react";
+import { ElapsedTime } from "@/components/case/ElapsedTime";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  pending: { label: "Ожидание", variant: "secondary" },
+  pending: { label: "В очереди", variant: "secondary" },
   processing: { label: "Обработка", variant: "default" },
   completed: { label: "Готово", variant: "outline" },
   error: { label: "Ошибка", variant: "destructive" },
-  downloading: { label: "Скачивание", variant: "default" },
-  transcribing: { label: "Транскрибация", variant: "default" },
+  downloading: { label: "Скачивание...", variant: "default" },
+  transcribing: { label: "Транскрибация...", variant: "default" },
 };
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
