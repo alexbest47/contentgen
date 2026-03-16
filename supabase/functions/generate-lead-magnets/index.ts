@@ -10,8 +10,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { project_id } = await req.json();
+    const { project_id, content_type = "lead_magnet" } = await req.json();
     if (!project_id) throw new Error("project_id is required");
+    const promptCategory = content_type === "reference_material" ? "reference_materials" : "lead_magnets";
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
