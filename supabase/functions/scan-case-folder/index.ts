@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, job_id: job.id, files_found: videos.length }),
+      JSON.stringify({ success: true, job_id: job.id, files_found: newVideos.length, skipped: skippedCount }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

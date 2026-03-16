@@ -58,6 +58,70 @@ Deno.serve(async (req) => {
       throw new Error("No transcript text available for classification");
     }
 
+    // Deduplication: check if this file_name already has a classification
+    const { data: existingClassification } = await supabase
+      .from("case_classifications")
+      .select("id, classification_json")
+      .eq("file_name", file.file_name)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingClassification) {
+      console.log(`File ${file_id} (${file.file_name}) already classified, skipping`);
+      // Copy existing classification for this job
+      await supabase
+        .from("case_classifications")
+        .insert({
+          file_id: file.id,
+          job_id,
+          file_name: file.file_name,
+          classification_json: existingClassification.classification_json,
+        });
+      await supabase
+        .from("case_files")
+        .update({ status: "skipped", status_updated_at: new Date().toISOString() })
+        .eq("id", file_id);
+
+      // Continue chain
+      const { data: nextFile } = await supabase
+        .from("case_files")
+        .select("id, job_id")
+        .eq("status", "classifying")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (nextFile) {
+        fetch(`${supabaseUrl}/functions/v1/classify-case`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({ file_id: nextFile.id, job_id: nextFile.job_id }),
+        }).catch(() => {});
+      }
+
+      // Check job completion
+      const { count: remainingCount } = await supabase
+        .from("case_files")
+        .select("id", { count: "exact", head: true })
+        .eq("job_id", job_id)
+        .in("status", ["pending", "downloading", "transcribing", "classifying"]);
+
+      if (!remainingCount || remainingCount === 0) {
+        await supabase
+          .from("case_jobs")
+          .update({ status: "completed" })
+          .eq("id", job_id);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, file_id, skipped: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Get the prompt from DB
     const { data: prompt, error: promptError } = await supabase
       .from("prompts")
