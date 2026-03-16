@@ -83,13 +83,13 @@ export default function ProjectDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prompts")
-        .select("content_type, id")
+        .select("channel, id")
         .eq("is_active", true)
-        .not("content_type", "is", null);
+        .not("channel", "is", null);
       if (error) throw error;
       const counts: Record<string, number> = {};
       data?.forEach((p: any) => {
-        counts[p.content_type] = (counts[p.content_type] || 0) + 1;
+        counts[p.channel] = (counts[p.channel] || 0) + 1;
       });
       return counts;
     },
@@ -242,7 +242,7 @@ export default function ProjectDetail() {
                     </Button>
                     {stepCount === 0 && <p className="text-xs text-destructive mt-1 text-center">Нет промптов</p>}
                     {stepCount > 0 && (() => {
-                      const prompt = allPromptInfo?.find(p => p.content_type === ct.key);
+                      const prompt = allPromptInfo?.find(p => p.channel === ct.key);
                       return prompt ? (
                         <p className="text-xs text-muted-foreground mt-1 text-center">
                           Промпт: «{prompt.name}»
