@@ -104,6 +104,20 @@ serve(async (req) => {
 - Мгновенная ценность: ${selectedLead.instant_value || ""}
 - Переход к курсу: ${selectedLead.transition_to_course || ""}`;
 
+    const expertContext = `Выбранная тема экспертного поста:
+- Название: ${selectedLead.title}
+- Категория: ${selectedLead.visual_format || ""}
+- Угол подачи: ${selectedLead.visual_content || ""}
+- Крючок: ${selectedLead.instant_value || ""}
+- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
+
+    const provocativeContext = `Выбранная тема провокационного поста:
+- Название: ${selectedLead.title}
+- Категория: ${selectedLead.visual_format || ""}
+- Угол подачи: ${selectedLead.visual_content || ""}
+- Крючок: ${selectedLead.instant_value || ""}
+- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
+
     let userPrompt = prompt.user_prompt_template
       .replace(/\{\{program_title\}\}/g, program.title)
       .replace(/\{\{offer_type\}\}/g, offer.offer_type)
@@ -112,6 +126,8 @@ serve(async (req) => {
       .replace(/\{\{offer_description\}\}/g, offerDescription)
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
       .replace(/\{\{reference_material\}\}/g, leadMagnetContext)
+      .replace(/\{\{expert_post_topic\}\}/g, expertContext)
+      .replace(/\{\{provocative_post_topic\}\}/g, provocativeContext)
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
 
     // Call Claude

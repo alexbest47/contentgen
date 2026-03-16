@@ -33,6 +33,14 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (expertLabels[status]) return expertLabels[status];
   }
+  if (contentType === "provocative_content") {
+    const provocativeLabels: Record<string, string> = {
+      generating_leads: "Генерация тем провокационного контента",
+      leads_ready: "Темы провокационного контента готовы",
+      lead_selected: "Тема провокационного контента выбрана",
+    };
+    if (provocativeLabels[status]) return provocativeLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов",
@@ -105,9 +113,10 @@ export default function OfferDetail() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: async (contentType: "lead_magnet" | "reference_material" | "expert_content" = "lead_magnet") => {
+    mutationFn: async (contentType: "lead_magnet" | "reference_material" | "expert_content" | "provocative_content" = "lead_magnet") => {
       setGeneratingType(contentType);
-      const label = contentType === "reference_material" ? "справочных материалов" : contentType === "expert_content" ? "тем экспертного контента" : "лид-магнитов";
+      const labelMap: Record<string, string> = { reference_material: "справочных материалов", expert_content: "тем экспертного контента", provocative_content: "тем провокационного контента" };
+      const label = labelMap[contentType] || "лид-магнитов";
       const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
         body: { course_title: offer?.title || "", program_title: (offer as any)?.paid_programs?.title || "" },
       });
@@ -189,7 +198,7 @@ export default function OfferDetail() {
               <div className="min-w-0 flex-1 flex items-center gap-2">
                 <div className="font-medium">{p.title}</div>
                 <Badge variant="outline" className="text-xs shrink-0">
-                  {(p as any).content_type === "reference_material" ? "Справочный материал" : (p as any).content_type === "expert_content" ? "Экспертный контент" : "Лид-магнит"}
+                  {(p as any).content_type === "reference_material" ? "Справочный материал" : (p as any).content_type === "expert_content" ? "Экспертный контент" : (p as any).content_type === "provocative_content" ? "Провокационный контент" : "Лид-магнит"}
                 </Badge>
               </div>
               <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
@@ -243,6 +252,18 @@ export default function OfferDetail() {
             <Sparkles className="h-4 w-4 mr-2" />
           )}
           Сгенерировать экспертный контент
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => generateMutation.mutate("provocative_content")}
+          disabled={!!generatingType}
+        >
+          {generatingType === "provocative_content" ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4 mr-2" />
+          )}
+          Сгенерировать провокационный контент
         </Button>
       </div>
 

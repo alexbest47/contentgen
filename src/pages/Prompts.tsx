@@ -102,6 +102,7 @@ export default function Prompts() {
   const referenceMaterialPrompts = (prompts ?? []).filter((p: any) => p.content_type === "reference_material");
   const diagnosticPrompts = (prompts ?? []).filter((p: any) => p.content_type === "diagnostic");
   const expertContentPrompts = (prompts ?? []).filter((p: any) => p.content_type === "expert_content");
+  const provocativeContentPrompts = (prompts ?? []).filter((p: any) => p.content_type === "provocative_content");
 
   // Group lead_magnet prompts: those without channel are "general", others grouped by channel
   const generalLeadMagnetPrompts = leadMagnetPrompts
@@ -246,6 +247,49 @@ export default function Prompts() {
     );
   };
 
+  const renderProvocativeContentTab = () => {
+    const generalPrompts = provocativeContentPrompts
+      .filter((p: any) => !p.channel)
+      .sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+
+    return (
+      <div className="space-y-10">
+        {generalPrompts.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="text-lg font-semibold">{contentTypeLabels.provocative_content}</h3>
+              <Badge variant="secondary">{generalPrompts.length}</Badge>
+            </div>
+            <div className="space-y-3">
+              {generalPrompts.map((p: any) => (
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {channelKeys.map((ch) => {
+          const channelPrompts = provocativeContentPrompts
+            .filter((p: any) => p.channel === ch)
+            .sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+          if (channelPrompts.length === 0) return null;
+          return (
+            <PipelineGroup
+              key={ch}
+              groupKey={ch}
+              label={`Пайплайн: ${channelLabels[ch]}`}
+              prompts={channelPrompts}
+              onEdit={openEdit}
+              onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
+              onDuplicate={openDuplicate}
+              onRefine={setRefinePrompt}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -275,20 +319,24 @@ export default function Prompts() {
             <TabsTrigger value="lead_magnet">Лидмагнит</TabsTrigger>
             <TabsTrigger value="reference_material">Справочный материал</TabsTrigger>
             <TabsTrigger value="diagnostic">Диагностики</TabsTrigger>
-            <TabsTrigger value="expert_content">Экспертный контент</TabsTrigger>
-          </TabsList>
-          <TabsContent value="lead_magnet">
-            {renderLeadMagnetTab()}
-          </TabsContent>
-          <TabsContent value="reference_material">
-            {renderReferenceMaterialTab()}
-          </TabsContent>
-          <TabsContent value="diagnostic">
-            {renderDiagnosticTab()}
-          </TabsContent>
-          <TabsContent value="expert_content">
-            {renderExpertContentTab()}
-          </TabsContent>
+             <TabsTrigger value="expert_content">Экспертный контент</TabsTrigger>
+             <TabsTrigger value="provocative_content">Провокационный контент</TabsTrigger>
+           </TabsList>
+           <TabsContent value="lead_magnet">
+             {renderLeadMagnetTab()}
+           </TabsContent>
+           <TabsContent value="reference_material">
+             {renderReferenceMaterialTab()}
+           </TabsContent>
+           <TabsContent value="diagnostic">
+             {renderDiagnosticTab()}
+           </TabsContent>
+           <TabsContent value="expert_content">
+             {renderExpertContentTab()}
+           </TabsContent>
+           <TabsContent value="provocative_content">
+             {renderProvocativeContentTab()}
+           </TabsContent>
         </Tabs>
       ) : (
         <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
