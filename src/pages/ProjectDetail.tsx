@@ -9,14 +9,25 @@ import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Image, Send, Mail, Exte
 import { toast } from "sonner";
 import { usePromptInfo } from "@/hooks/usePromptInfo";
 
-const statusLabels: Record<string, string> = {
-  draft: "Черновик",
-  generating_leads: "Генерация лид-магнитов...",
-  leads_ready: "Выберите лид-магнит",
-  lead_selected: "Лид-магнит выбран",
-  generating_content: "Генерация контента...",
-  completed: "Завершено",
-  error: "Ошибка",
+const getStatusLabel = (status: string, contentType?: string): string => {
+  if (contentType === "reference_material") {
+    const refLabels: Record<string, string> = {
+      generating_leads: "Генерация справочного материала...",
+      leads_ready: "Выберите справочный материал",
+      lead_selected: "Справочный материал выбран",
+    };
+    if (refLabels[status]) return refLabels[status];
+  }
+  const defaultLabels: Record<string, string> = {
+    draft: "Черновик",
+    generating_leads: "Генерация лид-магнитов...",
+    leads_ready: "Выберите лид-магнит",
+    lead_selected: "Лид-магнит выбран",
+    generating_content: "Генерация контента...",
+    completed: "Завершено",
+    error: "Ошибка",
+  };
+  return defaultLabels[status] ?? status;
 };
 
 interface ContentType {
