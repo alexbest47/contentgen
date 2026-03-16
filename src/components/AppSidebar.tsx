@@ -64,6 +64,26 @@ export function AppSidebar() {
         </SidebarGroup>
         {isAdmin && (
           <SidebarGroup>
+            <SidebarGroupLabel>Подготовка контента</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {contentPrepNav.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      isActive={location.pathname === item.url}
+                      onClick={() => navigate(item.url)}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+        {isAdmin && (
+          <SidebarGroup>
             <SidebarGroupLabel>Администрирование</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
