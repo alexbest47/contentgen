@@ -10,7 +10,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { project_id, content_type = "lead_magnet" } = await req.json();
+    const body = await req.json();
+    const { project_id, content_type = "lead_magnet", case_classification_id } = body;
     if (!project_id) throw new Error("project_id is required");
     const promptCategory = content_type === "reference_material" ? "reference_materials" : content_type === "expert_content" ? "expert_content" : content_type === "provocative_content" ? "provocative_content" : content_type === "list_content" ? "list_content" : content_type === "testimonial_content" ? "testimonial_content" : "lead_magnets";
 
