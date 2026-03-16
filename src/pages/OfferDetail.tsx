@@ -139,8 +139,7 @@ export default function OfferDetail() {
     },
     onError: (e: Error) => {
       toast.error(e.message);
-      setGeneratingProject(false);
-      setProgressText("");
+      setGeneratingType(null);
     },
   });
 
