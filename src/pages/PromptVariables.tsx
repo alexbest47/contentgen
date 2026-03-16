@@ -40,7 +40,7 @@ const categories = [
   {
     title: "Провокационный контент",
     variables: [
-      { name: "{{provocative_post_topic}}", description: "Полный контекст выбранной темы провокационного поста (категория, угол подачи, крючок, переход к офферу)", source: "Сгенерированные данные (lead_magnets)" },
+      { name: "{{provocation_topic}}", description: "Полный JSON-объект выбранной темы провокационного поста (format, topic_title, topic_angle, hook, discussion_trigger, transition_to_offer)", source: "Сгенерированные данные (lead_magnets)" },
     ],
   },
   {

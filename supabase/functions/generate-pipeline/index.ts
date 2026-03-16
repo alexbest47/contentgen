@@ -127,7 +127,7 @@ serve(async (req) => {
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
       .replace(/\{\{reference_material\}\}/g, leadMagnetContext)
       .replace(/\{\{expert_post_topic\}\}/g, expertContext)
-      .replace(/\{\{provocative_post_topic\}\}/g, provocativeContext)
+      .replace(/\{\{provocation_topic\}\}/g, provocativeContext)
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
 
     // Call Claude
