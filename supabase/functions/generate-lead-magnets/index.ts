@@ -170,9 +170,9 @@ serve(async (req) => {
 
     await supabase.from("lead_magnets").delete().eq("project_id", project_id);
 
-    const items = (content_type === "reference_material" || content_type === "expert_content") ? leadMagnets : leadMagnets.slice(0, 3);
+    const items = (content_type === "reference_material" || content_type === "expert_content" || content_type === "provocative_content") ? leadMagnets : leadMagnets.slice(0, 3);
     const inserts = items.map((lm: any) => {
-      if (content_type === "expert_content") {
+      if (content_type === "expert_content" || content_type === "provocative_content") {
         return {
           project_id,
           title: lm.topic_title || lm.title || "Без названия",
