@@ -506,6 +506,7 @@ export type Database = {
           created_by: string
           id: string
           offer_id: string | null
+          selected_case_id: string | null
           selected_lead_magnet_id: string | null
           status: Database["public"]["Enums"]["project_status"]
           title: string
@@ -516,6 +517,7 @@ export type Database = {
           created_by: string
           id?: string
           offer_id?: string | null
+          selected_case_id?: string | null
           selected_lead_magnet_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           title: string
@@ -526,6 +528,7 @@ export type Database = {
           created_by?: string
           id?: string
           offer_id?: string | null
+          selected_case_id?: string | null
           selected_lead_magnet_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           title?: string
@@ -543,6 +546,13 @@ export type Database = {
             columns: ["offer_id"]
             isOneToOne: false
             referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_selected_case_id_fkey"
+            columns: ["selected_case_id"]
+            isOneToOne: false
+            referencedRelation: "case_classifications"
             referencedColumns: ["id"]
           },
         ]
@@ -698,6 +708,7 @@ export type Database = {
         | "provocative_content"
         | "list_content"
         | "case_analysis"
+        | "testimonial_content"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -862,6 +873,7 @@ export const Constants = {
         "provocative_content",
         "list_content",
         "case_analysis",
+        "testimonial_content",
       ],
     },
   },

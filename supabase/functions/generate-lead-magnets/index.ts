@@ -10,9 +10,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { project_id, content_type = "lead_magnet" } = await req.json();
+    const body = await req.json();
+    const { project_id, content_type = "lead_magnet", case_classification_id } = body;
     if (!project_id) throw new Error("project_id is required");
-    const promptCategory = content_type === "reference_material" ? "reference_materials" : content_type === "expert_content" ? "expert_content" : content_type === "provocative_content" ? "provocative_content" : content_type === "list_content" ? "list_content" : "lead_magnets";
+    const promptCategory = content_type === "reference_material" ? "reference_materials" : content_type === "expert_content" ? "expert_content" : content_type === "provocative_content" ? "provocative_content" : content_type === "list_content" ? "list_content" : content_type === "testimonial_content" ? "testimonial_content" : "lead_magnets";
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -111,13 +112,24 @@ serve(async (req) => {
     }
 
     const systemPrompt = prompt.system_prompt;
-    const userPrompt = prompt.user_prompt_template
+    let userPrompt = prompt.user_prompt_template
       .replace(/\{\{program_title\}\}/g, program.title)
       .replace(/\{\{offer_type\}\}/g, offer.offer_type)
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_description\}\}/g, offerDescription)
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
+
+    // For testimonial_content, fetch case data and substitute
+    if (content_type === "testimonial_content" && case_classification_id) {
+      const { data: caseData, error: caseErr } = await supabase
+        .from("case_classifications")
+        .select("classification_json")
+        .eq("id", case_classification_id)
+        .single();
+      if (caseErr) throw caseErr;
+      userPrompt = userPrompt.replace(/\{\{case_data\}\}/g, JSON.stringify(caseData.classification_json, null, 2));
+    }
 
     // Call Claude API
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
@@ -170,8 +182,20 @@ serve(async (req) => {
 
     await supabase.from("lead_magnets").delete().eq("project_id", project_id);
 
-    const items = (content_type === "reference_material" || content_type === "expert_content" || content_type === "provocative_content" || content_type === "list_content") ? leadMagnets : leadMagnets.slice(0, 3);
+    const items = (content_type === "reference_material" || content_type === "expert_content" || content_type === "provocative_content" || content_type === "list_content" || content_type === "testimonial_content") ? leadMagnets : leadMagnets.slice(0, 3);
     const inserts = items.map((lm: any) => {
+      if (content_type === "testimonial_content") {
+        return {
+          project_id,
+          title: lm.angle_title || lm.title || "Без названия",
+          visual_format: lm.angle_type || "",
+          visual_content: lm.key_idea || "",
+          instant_value: lm.hook || "",
+          save_reason: "",
+          transition_to_course: lm.transition_to_offer || "",
+          cta_text: "",
+        };
+      }
       if (content_type === "list_content") {
         return {
           project_id,

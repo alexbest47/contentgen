@@ -5,9 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Image, Send, Mail, ExternalLink } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Image, Send, Mail, ExternalLink, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { usePromptInfo } from "@/hooks/usePromptInfo";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const getStatusLabel = (status: string, contentType?: string): string => {
   if (contentType === "reference_material") {
@@ -42,6 +44,15 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (listLabels[status]) return listLabels[status];
   }
+  if (contentType === "testimonial_content") {
+    const testimonialLabels: Record<string, string> = {
+      draft: "Выберите кейс-отзыв",
+      generating_leads: "Генерация углов подачи...",
+      leads_ready: "Выберите угол подачи",
+      lead_selected: "Угол подачи выбран",
+    };
+    if (testimonialLabels[status]) return testimonialLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов...",
@@ -74,6 +85,8 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
+  const [jsonDialog, setJsonDialog] = useState<{ name: string; json: any } | null>(null);
+  const [selectingCase, setSelectingCase] = useState(false);
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}`;
 
@@ -130,6 +143,51 @@ export default function ProjectDetail() {
     },
   });
 
+  // Fetch case classifications for testimonial_content
+  const isTestimonial = project?.content_type === "testimonial_content";
+  const needsCaseSelection = isTestimonial && project?.status === "draft" && !(project as any)?.selected_case_id;
+
+  const { data: classifications } = useQuery({
+    queryKey: ["case_classifications_for_select"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("case_classifications")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: needsCaseSelection,
+  });
+
+  const selectCaseMutation = useMutation({
+    mutationFn: async (caseId: string) => {
+      setSelectingCase(true);
+      // Save selected_case_id
+      const { error: updateErr } = await supabase.from("projects").update({
+        selected_case_id: caseId,
+      } as any).eq("id", projectId!);
+      if (updateErr) throw updateErr;
+
+      // Generate angles
+      const { data, error } = await supabase.functions.invoke("generate-lead-magnets", {
+        body: { project_id: projectId, content_type: "testimonial_content", case_classification_id: caseId },
+      });
+      if (error) throw new Error(error.message || "Ошибка генерации углов");
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["lead_magnets", projectId] });
+      toast.success("Углы подачи сгенерированы!");
+      setSelectingCase(false);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setSelectingCase(false);
+    },
+  });
+
   const selectMutation = useMutation({
     mutationFn: async (leadMagnetId: string) => {
       const selectedLm = leadMagnets?.find(lm => lm.id === leadMagnetId);
@@ -145,7 +203,8 @@ export default function ProjectDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       queryClient.invalidateQueries({ queryKey: ["lead_magnets", projectId] });
-      toast.success(project?.content_type === "reference_material" ? "Справочный материал выбран" : project?.content_type === "expert_content" ? "Тема экспертного контента выбрана" : project?.content_type === "provocative_content" ? "Тема провокационного контента выбрана" : project?.content_type === "list_content" ? "Тема списка выбрана" : "Лид-магнит выбран");
+      const ct = project?.content_type;
+      toast.success(ct === "reference_material" ? "Справочный материал выбран" : ct === "expert_content" ? "Тема экспертного контента выбрана" : ct === "provocative_content" ? "Тема провокационного контента выбрана" : ct === "list_content" ? "Тема списка выбрана" : ct === "testimonial_content" ? "Угол подачи выбран" : "Лид-магнит выбран");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -193,9 +252,112 @@ export default function ProjectDetail() {
         </div>
       </div>
 
+      {/* Case selection for testimonial_content */}
+      {needsCaseSelection && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Выберите кейс-отзыв</h2>
+          {selectingCase && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Генерация углов подачи...
+            </div>
+          )}
+          <Card>
+            <CardContent className="pt-6">
+              {!classifications || classifications.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Нет результатов классификации. Сначала обработайте кейсы в разделе «Управление кейсами».
+                </p>
+              ) : (
+                <div className="overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Файл</TableHead>
+                        <TableHead>Тип</TableHead>
+                        <TableHead>Студент</TableHead>
+                        <TableHead>Продукты</TableHead>
+                        <TableHead>Тон</TableHead>
+                        <TableHead>Качество</TableHead>
+                        <TableHead>Теги</TableHead>
+                        <TableHead className="w-[140px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {classifications.map((c) => {
+                        const j = (c.classification_json || {}) as any;
+                        return (
+                          <TableRow key={c.id}>
+                            <TableCell>
+                              <div className="max-w-[200px]">
+                                {c.source_url ? (
+                                  <a href={c.source_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline truncate block">
+                                    {c.file_name}
+                                  </a>
+                                ) : (
+                                  <span className="text-sm font-medium truncate block">{c.file_name}</span>
+                                )}
+                                {j.summary && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{j.summary}</p>}
+                              </div>
+                            </TableCell>
+                            <TableCell>{j.video_type && <Badge variant="outline">{j.video_type}</Badge>}</TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                {j.student_name || "—"}
+                                {j.student_age && <span className="text-muted-foreground">, {j.student_age}</span>}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1 max-w-[180px]">
+                                {(j.products || []).map((p: string, i: number) => (
+                                  <Badge key={i} variant="secondary" className="text-xs">{p}</Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell><span className="text-sm">{j.emotional_tone || "—"}</span></TableCell>
+                            <TableCell><span className="text-sm">{j.content_quality || "—"}</span></TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                {(j.tags || []).slice(0, 3).map((t: string, i: number) => (
+                                  <Badge key={i} variant="outline" className="text-xs">{t}</Badge>
+                                ))}
+                                {(j.tags || []).length > 3 && <span className="text-xs text-muted-foreground">+{j.tags.length - 3}</span>}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="ghost" onClick={() => setJsonDialog({ name: c.file_name, json: j })}>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => selectCaseMutation.mutate(c.id)}
+                                  disabled={selectingCase}
+                                >
+                                  Выбрать
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {showLeadMagnets && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">{project?.content_type === "reference_material" ? "Варианты справочных материалов" : (project?.content_type === "expert_content" || project?.content_type === "provocative_content") ? "Темы контента" : project?.content_type === "list_content" ? "Варианты списков" : "Варианты лид-магнитов"}</h2>
+          <h2 className="text-lg font-semibold">
+            {project?.content_type === "reference_material" ? "Варианты справочных материалов" 
+              : (project?.content_type === "expert_content" || project?.content_type === "provocative_content") ? "Темы контента" 
+              : project?.content_type === "list_content" ? "Варианты списков" 
+              : project?.content_type === "testimonial_content" ? "Углы подачи кейса"
+              : "Варианты лид-магнитов"}
+          </h2>
           <div className="grid gap-4 lg:grid-cols-3">
             {visibleLeadMagnets.map((lm) => (
               <Card key={lm.id} className={`transition-all ${lm.is_selected ? "ring-2 ring-primary" : ""}`}>
@@ -206,7 +368,14 @@ export default function ProjectDetail() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                   {project?.content_type === "expert_content" ? (
+                   {project?.content_type === "testimonial_content" ? (
+                     <>
+                       <div><span className="font-medium">Тип угла:</span> {lm.visual_format}</div>
+                       <div><span className="font-medium">Ключевая идея:</span> {lm.visual_content}</div>
+                       <div><span className="font-medium">Крючок:</span> {lm.instant_value}</div>
+                       <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
+                     </>
+                   ) : project?.content_type === "expert_content" ? (
                      <>
                        <div><span className="font-medium">Категория:</span> {lm.visual_format}</div>
                        <div><span className="font-medium">Угол подачи:</span> {lm.visual_content}</div>
@@ -316,6 +485,48 @@ export default function ProjectDetail() {
           </div>
         </div>
       )}
+
+      {/* JSON dialog for case preview */}
+      <Dialog open={!!jsonDialog} onOpenChange={() => setJsonDialog(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Классификация: {jsonDialog?.name}</DialogTitle>
+          </DialogHeader>
+          {jsonDialog?.json && (
+            <div className="space-y-4">
+              {jsonDialog.json.quote && (
+                <blockquote className="border-l-4 border-primary pl-4 italic text-sm">«{jsonDialog.json.quote}»</blockquote>
+              )}
+              {jsonDialog.json.before_after && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-md bg-muted p-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">До</p>
+                    <p className="text-sm">{jsonDialog.json.before_after.before || "—"}</p>
+                  </div>
+                  <div className="rounded-md bg-muted p-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">После</p>
+                    <p className="text-sm">{jsonDialog.json.before_after.after || "—"}</p>
+                  </div>
+                </div>
+              )}
+              {jsonDialog.json.key_insights && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Ключевые инсайты</p>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    {jsonDialog.json.key_insights.map((insight: string, i: number) => <li key={i}>{insight}</li>)}
+                  </ul>
+                </div>
+              )}
+              <details>
+                <summary className="text-xs text-muted-foreground cursor-pointer">Полный JSON</summary>
+                <pre className="whitespace-pre-wrap text-xs leading-relaxed rounded-md bg-muted p-4 mt-2">
+                  {JSON.stringify(jsonDialog.json, null, 2)}
+                </pre>
+              </details>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
