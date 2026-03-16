@@ -24,29 +24,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Queue check: is there already a file actively being classified?
-    const { data: activeFiles } = await supabase
-      .from("case_files")
-      .select("id")
-      .eq("status", "classifying")
-      .limit(1);
-
-    if (activeFiles && activeFiles.length > 0) {
-      // Another classification is in progress — it will pick us up via self-chain
-      console.log(`Another classification active, skipping file ${file_id}`);
-      return new Response(
-        JSON.stringify({ success: true, queued: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Set this file to "classifying" (only one at a time)
-    await supabase
-      .from("case_files")
-      .update({ status: "classifying", status_updated_at: new Date().toISOString() })
-      .eq("id", file_id);
-
-    // Get the file
+    // 1. Get the file first
     const { data: file, error: fileError } = await supabase
       .from("case_files")
       .select("*")
@@ -57,8 +35,57 @@ Deno.serve(async (req) => {
       throw new Error(`File not found: ${fileError?.message}`);
     }
 
+    // 2. Check transcript_text BEFORE changing status
     if (!file.transcript_text) {
-      throw new Error("No transcript text available for classification");
+      await supabase
+        .from("case_files")
+        .update({
+          status: "error",
+          error_message: "No transcript text available for classification",
+          status_updated_at: new Date().toISOString(),
+        })
+        .eq("id", file_id);
+
+      // Chain to next transcribed file
+      const { data: nextFile } = await supabase
+        .from("case_files")
+        .select("id, job_id")
+        .eq("status", "transcribed")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (nextFile) {
+        fetch(`${supabaseUrl}/functions/v1/classify-case`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({ file_id: nextFile.id, job_id: nextFile.job_id }),
+        }).catch(() => {});
+      }
+
+      return new Response(
+        JSON.stringify({ success: false, file_id, error: "No transcript" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 3. Queue check: is there ANOTHER file actively being classified?
+    const { data: activeFiles } = await supabase
+      .from("case_files")
+      .select("id")
+      .eq("status", "classifying")
+      .neq("id", file_id)
+      .limit(1);
+
+    if (activeFiles && activeFiles.length > 0) {
+      console.log(`Another classification active, skipping file ${file_id}`);
+      return new Response(
+        JSON.stringify({ success: true, queued: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Deduplication: check if this file_name already has a classification
@@ -71,7 +98,6 @@ Deno.serve(async (req) => {
 
     if (existingClassification) {
       console.log(`File ${file_id} (${file.file_name}) already classified, skipping`);
-      // Copy existing classification for this job
       await supabase
         .from("case_classifications")
         .insert({
@@ -85,7 +111,7 @@ Deno.serve(async (req) => {
         .update({ status: "skipped", status_updated_at: new Date().toISOString() })
         .eq("id", file_id);
 
-      // Continue chain
+      // Chain to next
       const { data: nextFile } = await supabase
         .from("case_files")
         .select("id, job_id")
@@ -124,6 +150,12 @@ Deno.serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // 4. Set this file to "classifying" NOW (only one at a time)
+    await supabase
+      .from("case_files")
+      .update({ status: "classifying", status_updated_at: new Date().toISOString() })
+      .eq("id", file_id);
 
     // Get the prompt from DB
     const { data: prompt, error: promptError } = await supabase
@@ -172,15 +204,12 @@ Deno.serve(async (req) => {
     // Parse JSON from response
     let classificationJson: any;
     try {
-      // Try direct parse first
       classificationJson = JSON.parse(responseText);
     } catch {
-      // Try to extract JSON from markdown code block
       const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
         classificationJson = JSON.parse(jsonMatch[1].trim());
       } else {
-        // Try finding outermost braces
         const start = responseText.indexOf("{");
         const end = responseText.lastIndexOf("}");
         if (start !== -1 && end > start) {
@@ -191,7 +220,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Build source URL for Yandex Disk
+    // Build source URL
     const { data: jobData } = await supabase
       .from("case_jobs")
       .select("folder_url")
@@ -221,7 +250,7 @@ Deno.serve(async (req) => {
 
     console.log(`File ${file_id} classified successfully`);
 
-    // Self-chain: find next file waiting for classification
+    // Self-chain: find next transcribed file
     const { data: nextFile } = await supabase
       .from("case_files")
       .select("id, job_id")
@@ -242,7 +271,7 @@ Deno.serve(async (req) => {
       }).catch(() => {});
     }
 
-    // Check if all files in this job are done (classified or error)
+    // Check if all files in this job are done
     const { count: remainingCount } = await supabase
       .from("case_files")
       .select("id", { count: "exact", head: true })
@@ -263,7 +292,6 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("classify-case error:", error);
 
-    // Mark file as error
     try {
       const body = await req.clone().json().catch(() => ({}));
       if (body.file_id) {
