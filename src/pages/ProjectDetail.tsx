@@ -34,6 +34,14 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (provocativeLabels[status]) return provocativeLabels[status];
   }
+  if (contentType === "list_content") {
+    const listLabels: Record<string, string> = {
+      generating_leads: "Генерация тем списка...",
+      leads_ready: "Выберите тему списка",
+      lead_selected: "Тема списка выбрана",
+    };
+    if (listLabels[status]) return listLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов...",
