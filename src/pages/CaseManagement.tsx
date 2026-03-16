@@ -6,6 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,7 +21,7 @@ import { toast } from "sonner";
 import {
   FolderSearch, Play, ChevronDown, ChevronRight, FileText,
   Copy, CheckCircle2, XCircle, Loader2, Clock, Download, Mic,
-  BrainCircuit, Eye,
+  BrainCircuit, Eye, Trash2, SkipForward,
 } from "lucide-react";
 import { ElapsedTime } from "@/components/case/ElapsedTime";
 
@@ -29,6 +34,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   transcribing: { label: "Транскрибация...", variant: "default" },
   classifying: { label: "Классификация...", variant: "default" },
   classified: { label: "Классифицировано", variant: "outline" },
+  skipped: { label: "Пропущен (дубль)", variant: "secondary" },
 };
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
@@ -40,6 +46,7 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   transcribing: <Mic className="h-4 w-4 animate-pulse" />,
   classifying: <BrainCircuit className="h-4 w-4 animate-pulse" />,
   classified: <CheckCircle2 className="h-4 w-4 text-primary" />,
+  skipped: <SkipForward className="h-4 w-4 text-muted-foreground" />,
 };
 
 export default function CaseManagement() {
@@ -120,7 +127,8 @@ export default function CaseManagement() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast.success(`Сканирование запущено. Найдено файлов: ${data.files_found}`);
+      const skippedMsg = data.skipped > 0 ? ` Пропущено дублей: ${data.skipped}` : "";
+      toast.success(`Сканирование запущено. Новых файлов: ${data.files_found}.${skippedMsg}`);
       setFolderUrl("");
       queryClient.invalidateQueries({ queryKey: ["case-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["case-files"] });
@@ -145,7 +153,7 @@ export default function CaseManagement() {
   const getJobProgress = (jobId: string) => {
     const files = getJobFiles(jobId);
     if (files.length === 0) return { total: 0, done: 0, percent: 0 };
-    const done = files.filter((f) => f.status === "classified" || f.status === "completed" || f.status === "error").length;
+    const done = files.filter((f) => ["classified", "completed", "error", "skipped"].includes(f.status)).length;
     return { total: files.length, done, percent: Math.round((done / files.length) * 100) };
   };
 
@@ -153,6 +161,20 @@ export default function CaseManagement() {
     navigator.clipboard.writeText(text);
     toast.success("Текст скопирован");
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      const { error } = await supabase.from("case_jobs").delete().eq("id", jobId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Задание удалено");
+      queryClient.invalidateQueries({ queryKey: ["case-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["case-files"] });
+      queryClient.invalidateQueries({ queryKey: ["case-classifications"] });
+    },
+    onError: (err: Error) => toast.error(`Ошибка удаления: ${err.message}`),
+  });
 
   return (
     <div className="space-y-6">
@@ -248,6 +270,35 @@ export default function CaseManagement() {
                               </span>
                             )}
                             <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Удалить задание?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Будут удалены все файлы и результаты классификации этого задания. Это действие необратимо.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteMutation.mutate(job.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Удалить
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </CardContent>
                       </CollapsibleTrigger>

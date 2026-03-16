@@ -171,8 +171,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Insert file records
-    const fileRows = videos.map((v) => ({
+    // Deduplication: check for already processed files by file_name + file_size
+    const videoNames = videos.map((v) => v.name);
+    const { data: existingFiles } = await supabase
+      .from("case_files")
+      .select("file_name, file_size")
+      .in("file_name", videoNames)
+      .neq("status", "error");
+
+    const existingSet = new Set(
+      (existingFiles || []).map((f) => `${f.file_name}::${f.file_size}`)
+    );
+
+    const newVideos = videos.filter(
+      (v) => !existingSet.has(`${v.name}::${v.size}`)
+    );
+    const skippedCount = videos.length - newVideos.length;
+
+    if (skippedCount > 0) {
+      console.log(`Skipped ${skippedCount} duplicate files`);
+    }
+
+    // Insert file records (only new ones)
+    const fileRows = newVideos.map((v) => ({
       job_id: job.id,
       file_path: v.path,
       file_name: v.name,
@@ -181,13 +202,24 @@ Deno.serve(async (req) => {
       status: "pending",
     }));
 
-    const { data: insertedFiles, error: filesError } = await supabase
-      .from("case_files")
-      .insert(fileRows)
-      .select("id");
+    let insertedFiles: { id: string }[] = [];
+    if (fileRows.length > 0) {
+      const { data, error: filesError } = await supabase
+        .from("case_files")
+        .insert(fileRows)
+        .select("id");
 
-    if (filesError) {
-      throw new Error(`Failed to insert files: ${filesError.message}`);
+      if (filesError) {
+        throw new Error(`Failed to insert files: ${filesError.message}`);
+      }
+      insertedFiles = data || [];
+    }
+
+    if (fileRows.length === 0) {
+      await supabase
+        .from("case_jobs")
+        .update({ status: "completed", error_message: skippedCount > 0 ? `Все ${skippedCount} файлов уже обработаны` : "Видеофайлы не найдены" })
+        .eq("id", job.id);
     }
 
     // Chain to transcribe first file
@@ -205,7 +237,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, job_id: job.id, files_found: videos.length }),
+      JSON.stringify({ success: true, job_id: job.id, files_found: newVideos.length, skipped: skippedCount }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
