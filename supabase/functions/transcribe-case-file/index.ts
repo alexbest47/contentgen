@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     // Update status to transcribing
     await supabase
       .from("case_files")
-      .update({ status: "transcribing", download_url: downloadUrl })
+      .update({ status: "transcribing", download_url: downloadUrl, status_updated_at: new Date().toISOString() })
       .eq("id", file_id);
 
     // Build callback URL for Deepgram to send results to
