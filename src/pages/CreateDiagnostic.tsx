@@ -105,7 +105,8 @@ export default function CreateDiagnostic() {
           program_id: programId,
           offer_type: "diagnostic" as any,
           title,
-          description: description || null,
+          description: null,
+          doc_url: docUrl || null,
           created_by: user!.id,
         })
         .select("id")
