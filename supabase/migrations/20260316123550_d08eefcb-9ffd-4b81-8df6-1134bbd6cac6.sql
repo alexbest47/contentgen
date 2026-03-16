@@ -1,0 +1,1 @@
+ALTER TABLE public.projects ADD COLUMN content_type text NOT NULL DEFAULT 'lead_magnet';

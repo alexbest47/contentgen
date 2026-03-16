@@ -373,6 +373,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          content_type: string
           created_at: string
           created_by: string
           id: string
@@ -382,6 +383,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          content_type?: string
           created_at?: string
           created_by: string
           id?: string
@@ -391,6 +393,7 @@ export type Database = {
           title: string
         }
         Update: {
+          content_type?: string
           created_at?: string
           created_by?: string
           id?: string
