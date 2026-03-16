@@ -95,18 +95,19 @@ serve(async (req) => {
     // Update status
     await supabase.from("projects").update({ status: "generating_leads" }).eq("id", project_id);
 
-    // Get active prompt for lead_magnets (universal, no offer_type filter)
+    // Get active prompt for the given category
     const { data: prompt, error: promptErr } = await supabase
       .from("prompts")
       .select("*")
-      .eq("category", "lead_magnets")
+      .eq("category", promptCategory)
       .eq("is_active", true)
+      .is("channel", null)
       .limit(1)
       .maybeSingle();
 
     if (promptErr || !prompt) {
       await supabase.from("projects").update({ status: "error" }).eq("id", project_id);
-      throw new Error(`No active prompt found for category 'lead_magnets'. Please create one in the Prompts section.`);
+      throw new Error(`No active prompt found for category '${promptCategory}'. Please create one in the Prompts section.`);
     }
 
     const systemPrompt = prompt.system_prompt;
