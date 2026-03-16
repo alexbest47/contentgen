@@ -59,6 +59,7 @@ const categories = [
     title: "Контент-отзыв",
     variables: [
       { name: "{{case_data}}", description: "Полный JSON классификации выбранного кейса (тип видео, студент, цитаты, инсайты, ДО/ПОСЛЕ, теги)", source: "case_classifications.classification_json" },
+      { name: "{{case_angle}}", description: "Полный JSON выбранного угла подачи кейса (angle_type, angle_title, hook, key_idea, transition_to_offer)", source: "Выбранный lead_magnet для testimonial_content" },
     ],
   },
 ];
