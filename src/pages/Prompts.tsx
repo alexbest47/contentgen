@@ -380,6 +380,7 @@ export default function Prompts() {
              <TabsTrigger value="expert_content">Экспертный контент</TabsTrigger>
              <TabsTrigger value="provocative_content">Провокационный контент</TabsTrigger>
              <TabsTrigger value="list_content">Список</TabsTrigger>
+             <TabsTrigger value="case_analysis">Кейсы</TabsTrigger>
            </TabsList>
            <TabsContent value="lead_magnet">
              {renderLeadMagnetTab()}
