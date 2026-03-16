@@ -121,7 +121,7 @@ export default function ProjectDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       queryClient.invalidateQueries({ queryKey: ["lead_magnets", projectId] });
-      toast.success("Лид-магнит выбран");
+      toast.success(project?.content_type === "reference_material" ? "Справочный материал выбран" : "Лид-магнит выбран");
     },
     onError: (e: Error) => toast.error(e.message),
   });
