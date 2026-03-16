@@ -41,7 +41,7 @@ export default function PromptFormDialog({ form, setField, editId, saveMutation 
               </SelectContent>
             </Select>
           </div>
-          {(form.content_type === "lead_magnet" || form.content_type === "expert_content" || form.content_type === "provocative_content" || form.content_type === "list_content") && form.content_type !== "case_analysis" && (
+          {["lead_magnet", "expert_content", "provocative_content", "list_content"].includes(form.content_type) && (
             <div className="space-y-2">
               <Label>Канал</Label>
               <Select value={form.channel || "_none"} onValueChange={(v) => setField("channel", v === "_none" ? "" : v)}>

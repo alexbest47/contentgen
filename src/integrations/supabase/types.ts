@@ -652,6 +652,7 @@ export type Database = {
         | "expert_content"
         | "provocative_content"
         | "list_content"
+        | "case_analysis"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -815,6 +816,7 @@ export const Constants = {
         "expert_content",
         "provocative_content",
         "list_content",
+        "case_analysis",
       ],
     },
   },
