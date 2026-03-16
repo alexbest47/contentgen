@@ -14,6 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
+      case_files: {
+        Row: {
+          created_at: string
+          download_url: string | null
+          error_message: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          job_id: string
+          resource_id: string | null
+          status: string
+          transcript_json: Json | null
+          transcript_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          download_url?: string | null
+          error_message?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          job_id: string
+          resource_id?: string | null
+          status?: string
+          transcript_json?: Json | null
+          transcript_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          download_url?: string | null
+          error_message?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          job_id?: string
+          resource_id?: string | null
+          status?: string
+          transcript_json?: Json | null
+          transcript_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_files_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "case_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_jobs: {
+        Row: {
+          created_at: string
+          created_by: string
+          error_message: string | null
+          folder_url: string
+          id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          error_message?: string | null
+          folder_url: string
+          id?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          folder_url?: string
+          id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       content_pieces: {
         Row: {
           category: string
