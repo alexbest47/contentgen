@@ -103,6 +103,7 @@ export default function Prompts() {
   const diagnosticPrompts = (prompts ?? []).filter((p: any) => p.content_type === "diagnostic");
   const expertContentPrompts = (prompts ?? []).filter((p: any) => p.content_type === "expert_content");
   const provocativeContentPrompts = (prompts ?? []).filter((p: any) => p.content_type === "provocative_content");
+  const listContentPrompts = (prompts ?? []).filter((p: any) => p.content_type === "list_content");
 
   // Group lead_magnet prompts: those without channel are "general", others grouped by channel
   const generalLeadMagnetPrompts = leadMagnetPrompts
