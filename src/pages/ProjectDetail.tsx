@@ -190,11 +190,22 @@ export default function ProjectDetail() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  <div><span className="font-medium">Визуальный формат:</span> {lm.visual_format}</div>
-                  <div><span className="font-medium">Визуальный контент:</span> {lm.visual_content}</div>
-                  <div><span className="font-medium">Мгновенная ценность:</span> {lm.instant_value}</div>
-                  <div><span className="font-medium">Причина сохранить:</span> {(lm as any).save_reason}</div>
-                  <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
+                  {project?.content_type === "expert_content" ? (
+                    <>
+                      <div><span className="font-medium">Категория:</span> {lm.visual_format}</div>
+                      <div><span className="font-medium">Угол подачи:</span> {lm.visual_content}</div>
+                      <div><span className="font-medium">Крючок:</span> {lm.instant_value}</div>
+                      <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div><span className="font-medium">Визуальный формат:</span> {lm.visual_format}</div>
+                      <div><span className="font-medium">Визуальный контент:</span> {lm.visual_content}</div>
+                      <div><span className="font-medium">Мгновенная ценность:</span> {lm.instant_value}</div>
+                      <div><span className="font-medium">Причина сохранить:</span> {(lm as any).save_reason}</div>
+                      <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
+                    </>
+                  )}
                   {!lm.is_selected && (project?.status === "leads_ready" || project?.status === "lead_selected") && (
                     <Button variant="outline" className="w-full" onClick={() => selectMutation.mutate(lm.id)} disabled={selectMutation.isPending}>
                       Выбрать этот вариант
