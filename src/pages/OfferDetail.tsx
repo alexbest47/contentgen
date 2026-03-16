@@ -151,8 +151,9 @@ export default function OfferDetail() {
             </div>
           )}
         </div>
-        <Button
-            onClick={() => generateMutation.mutate()}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => generateMutation.mutate("lead_magnet")}
             disabled={generatingProject}
           >
             {generatingProject ? (
@@ -162,6 +163,19 @@ export default function OfferDetail() {
             )}
             {progressText || "Сгенерировать лид-магниты"}
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => generateMutation.mutate("reference_material")}
+            disabled={generatingProject}
+          >
+            {generatingProject ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            Сгенерировать справочный материал
+          </Button>
+        </div>
       </div>
       {promptInfo?.[0] && (
         <p className="text-xs text-muted-foreground -mt-4">
