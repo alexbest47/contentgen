@@ -88,6 +88,11 @@ export default function ProjectDetail() {
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [jsonDialog, setJsonDialog] = useState<{ name: string; json: any } | null>(null);
   const [selectingCase, setSelectingCase] = useState(false);
+  const [filterType, setFilterType] = useState<string>("__all__");
+  const [filterProduct, setFilterProduct] = useState<string>("__all__");
+  const [filterTone, setFilterTone] = useState<string>("__all__");
+  const [filterQuality, setFilterQuality] = useState<string>("__all__");
+  const [filterTag, setFilterTag] = useState<string>("__all__");
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}`;
 
