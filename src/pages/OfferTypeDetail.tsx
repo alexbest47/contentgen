@@ -39,7 +39,7 @@ function OfferForm({ title, setTitle, docUrl, setDocUrl, selectedTags, toggleTag
       </div>
       <div className="space-y-2">
         <Label>Ссылка на Google Doc</Label>
-        <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
+        <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." required />
       </div>
       <div className="space-y-2">
         <Label>Теги аудитории</Label>

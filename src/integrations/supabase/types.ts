@@ -63,6 +63,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          doc_url: string | null
           generation_progress: Json | null
           id: string
           name: string
@@ -79,6 +80,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          doc_url?: string | null
           generation_progress?: Json | null
           id?: string
           name: string
@@ -95,6 +97,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          doc_url?: string | null
           generation_progress?: Json | null
           id?: string
           name?: string

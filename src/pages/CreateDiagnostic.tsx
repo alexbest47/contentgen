@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,7 +20,7 @@ export default function CreateDiagnostic() {
 
   const [programId, setProgramId] = useState(searchParams.get("programId") || "");
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [docUrl, setDocUrl] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -73,6 +73,10 @@ export default function CreateDiagnostic() {
       toast.error("Укажите название");
       return;
     }
+    if (!docUrl.trim()) {
+      toast.error("Укажите ссылку на Google Doc");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -86,7 +90,7 @@ export default function CreateDiagnostic() {
         .insert({
           program_id: programId,
           name: title,
-          description: description || null,
+          doc_url: docUrl || null,
           audience_tags: tagNames,
           prompt_id: null,
           status: "draft",
@@ -105,7 +109,8 @@ export default function CreateDiagnostic() {
           program_id: programId,
           offer_type: "diagnostic" as any,
           title,
-          description: description || null,
+          description: null,
+          doc_url: docUrl || null,
           created_by: user!.id,
         })
         .select("id")
@@ -177,12 +182,12 @@ export default function CreateDiagnostic() {
             </div>
 
             <div className="space-y-2">
-              <Label>Описание</Label>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Подробное описание..."
-                className="min-h-[100px]"
+              <Label>Ссылка на Google Doc</Label>
+              <Input
+                value={docUrl}
+                onChange={(e) => setDocUrl(e.target.value)}
+                placeholder="https://docs.google.com/document/d/..."
+                required
               />
             </div>
 

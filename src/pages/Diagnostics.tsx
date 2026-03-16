@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Label } from "@/components/ui/label";
 import { Plus, Loader2, Eye, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -32,14 +32,14 @@ export default function Diagnostics() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [editingDiag, setEditingDiag] = useState<{ id: string; name: string; description: string } | null>(null);
+  const [editingDiag, setEditingDiag] = useState<{ id: string; name: string; doc_url: string } | null>(null);
 
   const { data: diagnostics, isLoading } = useQuery({
     queryKey: ["diagnostics"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("diagnostics")
-        .select("id, name, status, created_at, program_id, prompt_id, description, audience_tags")
+        .select("id, name, status, created_at, program_id, prompt_id, doc_url, audience_tags")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -79,8 +79,8 @@ export default function Diagnostics() {
   const programMap = Object.fromEntries((programs || []).map((p) => [p.id, p.title]));
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, name, description }: { id: string; name: string; description: string }) => {
-      const { error } = await supabase.from("diagnostics").update({ name, description }).eq("id", id);
+    mutationFn: async ({ id, name, doc_url }: { id: string; name: string; doc_url: string }) => {
+      const { error } = await supabase.from("diagnostics").update({ name, doc_url: doc_url || null } as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -181,7 +181,7 @@ export default function Diagnostics() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setEditingDiag({ id: d.id, name: d.name, description: d.description || "" })}
+                        onClick={() => setEditingDiag({ id: d.id, name: d.name, doc_url: (d as any).doc_url || "" })}
                         title="Редактировать название/описание"
                       >
                         <Pencil className="h-4 w-4" />
@@ -250,11 +250,11 @@ export default function Diagnostics() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Описание</Label>
-              <Textarea
-                value={editingDiag?.description || ""}
-                onChange={(e) => setEditingDiag((prev) => prev ? { ...prev, description: e.target.value } : null)}
-                rows={4}
+              <Label>Ссылка на Google Doc</Label>
+              <Input
+                value={editingDiag?.doc_url || ""}
+                onChange={(e) => setEditingDiag((prev) => prev ? { ...prev, doc_url: e.target.value } : null)}
+                placeholder="https://docs.google.com/document/d/..."
               />
             </div>
           </div>

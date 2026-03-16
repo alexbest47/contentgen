@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +36,7 @@ export default function DiagnosticDetail() {
 
   // Draft editing state
   const [editName, setEditName] = useState("");
-  const [editDescription, setEditDescription] = useState("");
+  const [editDocUrl, setEditDocUrl] = useState("");
   const [editProgramId, setEditProgramId] = useState("");
   const [editTags, setEditTags] = useState<string[]>([]);
   const [draftInitialized, setDraftInitialized] = useState(false);
@@ -60,7 +60,7 @@ export default function DiagnosticDetail() {
   // Initialize draft edit fields once
   if (diagnostic && diagnostic.status === "draft" && !draftInitialized) {
     setEditName(diagnostic.name || "");
-    setEditDescription(diagnostic.description || "");
+    setEditDocUrl((diagnostic as any).doc_url || "");
     setEditProgramId(diagnostic.program_id || "");
     setEditTags((diagnostic.audience_tags as string[]) || []);
     setDraftInitialized(true);
@@ -274,7 +274,7 @@ export default function DiagnosticDetail() {
         .from("diagnostics")
         .update({
           name: editName.trim(),
-          description: editDescription || null,
+          doc_url: editDocUrl || null,
           program_id: editProgramId,
           audience_tags: editTags,
         } as any)
@@ -307,7 +307,7 @@ export default function DiagnosticDetail() {
         diagnostic_id: diagnostic.id,
         program_id: diagnostic.program_id,
         name: diagnostic.name,
-        description: diagnostic.description || "",
+        description: "",
         audience_tags: diagnostic.audience_tags || [],
       },
     }).catch((err) => console.error("Pipeline call failed:", err));
@@ -480,8 +480,8 @@ export default function DiagnosticDetail() {
             </div>
 
             <div className="space-y-2">
-              <Label>Описание</Label>
-              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Подробное описание..." className="min-h-[100px]" />
+              <Label>Ссылка на Google Doc</Label>
+              <Input value={editDocUrl} onChange={(e) => setEditDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
             </div>
 
             <div className="space-y-2">
