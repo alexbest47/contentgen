@@ -111,9 +111,8 @@ serve(async (req) => {
       program_title: program?.title || "",
       program_description: program?.description || "",
       audience_description: program?.audience_description || "",
-      test_name: name || "",
-      test_description: description || "",
-      audience_tags: (audience_tags || []).join(", "),
+      offer_title: name || "",
+      offer_description: description || "",
       program_doc_description: programDocDescription,
     };
 
