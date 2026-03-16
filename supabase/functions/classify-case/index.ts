@@ -338,6 +338,22 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ file_id: nextFile.id, job_id: nextFile.job_id }),
         }).catch(() => {});
       }
+
+      // Check job completion even on error
+      if (body.job_id) {
+        const { count: errRemaining } = await supabase
+          .from("case_files")
+          .select("id", { count: "exact", head: true })
+          .eq("job_id", body.job_id)
+          .in("status", ["pending", "downloading", "transcribing", "transcribed", "classifying"]);
+
+        if (!errRemaining || errRemaining === 0) {
+          await supabase
+            .from("case_jobs")
+            .update({ status: "completed" })
+            .eq("id", body.job_id);
+        }
+      }
     } catch (_) {}
 
     return new Response(
