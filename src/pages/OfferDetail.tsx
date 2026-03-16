@@ -108,7 +108,7 @@ export default function OfferDetail() {
   const generateMutation = useMutation({
     mutationFn: async (contentType: "lead_magnet" | "reference_material" | "expert_content" = "lead_magnet") => {
       setGeneratingProject(true);
-      const label = contentType === "reference_material" ? "справочных материалов" : "лид-магнитов";
+      const label = contentType === "reference_material" ? "справочных материалов" : contentType === "expert_content" ? "тем экспертного контента" : "лид-магнитов";
       setProgressText("Генерация названия...");
       const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
         body: { course_title: offer?.title || "", program_title: (offer as any)?.paid_programs?.title || "" },
