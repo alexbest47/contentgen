@@ -20,7 +20,7 @@ export default function CreateDiagnostic() {
 
   const [programId, setProgramId] = useState(searchParams.get("programId") || "");
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [docUrl, setDocUrl] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
