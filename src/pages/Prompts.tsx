@@ -99,6 +99,7 @@ export default function Prompts() {
 
   // Filter prompts by content_type for tabs
   const leadMagnetPrompts = (prompts ?? []).filter((p: any) => p.content_type === "lead_magnet");
+  const referenceMaterialPrompts = (prompts ?? []).filter((p: any) => p.content_type === "reference_material");
   const diagnosticPrompts = (prompts ?? []).filter((p: any) => p.content_type === "diagnostic");
 
   // Group lead_magnet prompts: those without channel are "general", others grouped by channel
