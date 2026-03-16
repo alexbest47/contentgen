@@ -26,7 +26,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 const STATUS_ICON: Record<string, React.ReactNode> = {
   pending: <Clock className="h-4 w-4" />,
   processing: <Loader2 className="h-4 w-4 animate-spin" />,
-  completed: <CheckCircle2 className="h-4 w-4 text-green-600" />,
+  completed: <CheckCircle2 className="h-4 w-4 text-primary" />,
   error: <XCircle className="h-4 w-4 text-destructive" />,
   downloading: <Download className="h-4 w-4 animate-pulse" />,
   transcribing: <Mic className="h-4 w-4 animate-pulse" />,
