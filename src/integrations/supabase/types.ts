@@ -122,6 +122,7 @@ export type Database = {
           error_message: string | null
           folder_url: string
           id: string
+          name: string | null
           status: string
         }
         Insert: {
@@ -130,6 +131,7 @@ export type Database = {
           error_message?: string | null
           folder_url: string
           id?: string
+          name?: string | null
           status?: string
         }
         Update: {
@@ -138,6 +140,7 @@ export type Database = {
           error_message?: string | null
           folder_url?: string
           id?: string
+          name?: string | null
           status?: string
         }
         Relationships: []
