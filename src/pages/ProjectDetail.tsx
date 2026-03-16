@@ -18,6 +18,14 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (refLabels[status]) return refLabels[status];
   }
+  if (contentType === "expert_content") {
+    const expertLabels: Record<string, string> = {
+      generating_leads: "Генерация тем экспертного контента...",
+      leads_ready: "Выберите тему экспертного контента",
+      lead_selected: "Тема экспертного контента выбрана",
+    };
+    if (expertLabels[status]) return expertLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов...",
@@ -121,7 +129,7 @@ export default function ProjectDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       queryClient.invalidateQueries({ queryKey: ["lead_magnets", projectId] });
-      toast.success(project?.content_type === "reference_material" ? "Справочный материал выбран" : "Лид-магнит выбран");
+      toast.success(project?.content_type === "reference_material" ? "Справочный материал выбран" : project?.content_type === "expert_content" ? "Тема экспертного контента выбрана" : "Лид-магнит выбран");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -171,7 +179,7 @@ export default function ProjectDetail() {
 
       {showLeadMagnets && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">{project?.content_type === "reference_material" ? "Варианты справочных материалов" : "Варианты лид-магнитов"}</h2>
+          <h2 className="text-lg font-semibold">{project?.content_type === "reference_material" ? "Варианты справочных материалов" : project?.content_type === "expert_content" ? "Темы экспертного контента" : "Варианты лид-магнитов"}</h2>
           <div className="grid gap-4 lg:grid-cols-3">
             {visibleLeadMagnets.map((lm) => (
               <Card key={lm.id} className={`transition-all ${lm.is_selected ? "ring-2 ring-primary" : ""}`}>

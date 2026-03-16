@@ -25,6 +25,14 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (refLabels[status]) return refLabels[status];
   }
+  if (contentType === "expert_content") {
+    const expertLabels: Record<string, string> = {
+      generating_leads: "Генерация тем экспертного контента",
+      leads_ready: "Темы экспертного контента готовы",
+      lead_selected: "Тема экспертного контента выбрана",
+    };
+    if (expertLabels[status]) return expertLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов",
@@ -98,9 +106,9 @@ export default function OfferDetail() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: async (contentType: "lead_magnet" | "reference_material" = "lead_magnet") => {
+    mutationFn: async (contentType: "lead_magnet" | "reference_material" | "expert_content" = "lead_magnet") => {
       setGeneratingProject(true);
-      const label = contentType === "reference_material" ? "справочных материалов" : "лид-магнитов";
+      const label = contentType === "reference_material" ? "справочных материалов" : contentType === "expert_content" ? "тем экспертного контента" : "лид-магнитов";
       setProgressText("Генерация названия...");
       const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
         body: { course_title: offer?.title || "", program_title: (offer as any)?.paid_programs?.title || "" },
@@ -185,7 +193,7 @@ export default function OfferDetail() {
               <div className="min-w-0 flex-1 flex items-center gap-2">
                 <div className="font-medium">{p.title}</div>
                 <Badge variant="outline" className="text-xs shrink-0">
-                  {(p as any).content_type === "reference_material" ? "Справочный материал" : "Лид-магнит"}
+                  {(p as any).content_type === "reference_material" ? "Справочный материал" : (p as any).content_type === "expert_content" ? "Экспертный контент" : "Лид-магнит"}
                 </Badge>
               </div>
               <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
@@ -227,6 +235,18 @@ export default function OfferDetail() {
             <Sparkles className="h-4 w-4 mr-2" />
           )}
           Сгенерировать справочный материал
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => generateMutation.mutate("expert_content")}
+          disabled={generatingProject}
+        >
+          {generatingProject ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4 mr-2" />
+          )}
+          Сгенерировать экспертный контент
         </Button>
       </div>
 
