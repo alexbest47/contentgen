@@ -232,6 +232,7 @@ export default function Prompts() {
             <TabsTrigger value="lead_magnet">Лидмагнит</TabsTrigger>
             <TabsTrigger value="reference_material">Справочный материал</TabsTrigger>
             <TabsTrigger value="diagnostic">Диагностики</TabsTrigger>
+            <TabsTrigger value="expert_content">Экспертный контент</TabsTrigger>
           </TabsList>
           <TabsContent value="lead_magnet">
             {renderLeadMagnetTab()}
@@ -241,6 +242,9 @@ export default function Prompts() {
           </TabsContent>
           <TabsContent value="diagnostic">
             {renderDiagnosticTab()}
+          </TabsContent>
+          <TabsContent value="expert_content">
+            {renderExpertContentTab()}
           </TabsContent>
         </Tabs>
       ) : (
