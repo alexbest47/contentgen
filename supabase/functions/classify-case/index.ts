@@ -24,14 +24,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Queue check: is there already another file being classified (status = "classifying")?
-    // We use a simple approach: count files in classifying status for this job excluding current file.
-    // If any exist with an earlier created_at, it means another worker is active — skip.
+    // Queue check: is there already a file actively being classified?
     const { data: activeFiles } = await supabase
       .from("case_files")
       .select("id")
       .eq("status", "classifying")
-      .neq("id", file_id)
       .limit(1);
 
     if (activeFiles && activeFiles.length > 0) {
@@ -42,6 +39,12 @@ Deno.serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Set this file to "classifying" (only one at a time)
+    await supabase
+      .from("case_files")
+      .update({ status: "classifying", status_updated_at: new Date().toISOString() })
+      .eq("id", file_id);
 
     // Get the file
     const { data: file, error: fileError } = await supabase
