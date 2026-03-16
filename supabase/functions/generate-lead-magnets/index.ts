@@ -147,11 +147,20 @@ serve(async (req) => {
 
     let leadMagnets;
     try {
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        leadMagnets = JSON.parse(jsonMatch[0]);
+      if (content_type === "reference_material") {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          leadMagnets = [JSON.parse(jsonMatch[0])];
+        } else {
+          throw new Error("No JSON object found in response");
+        }
       } else {
-        throw new Error("No JSON array found in response");
+        const jsonMatch = content.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          leadMagnets = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("No JSON array found in response");
+        }
       }
     } catch (parseErr) {
       console.error("Parse error:", parseErr, "Content:", content);
