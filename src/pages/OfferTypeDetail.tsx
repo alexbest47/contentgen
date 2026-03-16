@@ -19,8 +19,6 @@ import { usePromptInfo } from "@/hooks/usePromptInfo";
 interface OfferFormProps {
   title: string;
   setTitle: (v: string) => void;
-  description: string;
-  setDescription: (v: string) => void;
   docUrl: string;
   setDocUrl: (v: string) => void;
   selectedTags: string[];
