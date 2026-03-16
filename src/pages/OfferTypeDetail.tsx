@@ -215,7 +215,6 @@ export default function OfferTypeDetail() {
         .from("offers")
         .update({
           title: editTitle,
-          description: editDescription || null,
           doc_url: editDocUrl || null,
         })
         .eq("id", editingId);
