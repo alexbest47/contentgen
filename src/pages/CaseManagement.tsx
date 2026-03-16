@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import {
   FolderSearch, Play, ChevronDown, ChevronRight, FileText,
   Copy, CheckCircle2, XCircle, Loader2, Clock, Download, Mic,
-  BrainCircuit, Eye, Trash2, SkipForward,
+  BrainCircuit, Eye, Trash2, SkipForward, Pencil, Check, X,
 } from "lucide-react";
 import { ElapsedTime } from "@/components/case/ElapsedTime";
 
