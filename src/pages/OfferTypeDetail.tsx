@@ -332,7 +332,7 @@ export default function OfferTypeDetail() {
     e.stopPropagation();
     setEditingId(offer.id);
     setEditTitle(offer.title);
-    setEditDescription(offer.description ?? "");
+    
     setEditDocUrl(offer.doc_url ?? "");
     setEditSelectedTags(offer.offer_tags?.map((ot: any) => ot.tag_id) ?? []);
     setEditOpen(true);
