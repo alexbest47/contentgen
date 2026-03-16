@@ -4,6 +4,7 @@ export type PromptCategory = Database["public"]["Enums"]["prompt_category"];
 
 export const categoryLabels: Record<PromptCategory, string> = {
   lead_magnets: "Лид-магниты",
+  reference_materials: "Справочные материалы",
   slide_structure: "Структура слайдов",
   text_instagram: "Текст Instagram",
   text_vk: "Текст VK",
