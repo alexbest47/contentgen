@@ -127,7 +127,8 @@ export default function CaseManagement() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast.success(`Сканирование запущено. Найдено файлов: ${data.files_found}`);
+      const skippedMsg = data.skipped > 0 ? ` Пропущено дублей: ${data.skipped}` : "";
+      toast.success(`Сканирование запущено. Новых файлов: ${data.files_found}.${skippedMsg}`);
       setFolderUrl("");
       queryClient.invalidateQueries({ queryKey: ["case-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["case-files"] });
