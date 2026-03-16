@@ -46,6 +46,7 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   transcribing: <Mic className="h-4 w-4 animate-pulse" />,
   classifying: <BrainCircuit className="h-4 w-4 animate-pulse" />,
   classified: <CheckCircle2 className="h-4 w-4 text-primary" />,
+  skipped: <SkipForward className="h-4 w-4 text-muted-foreground" />,
 };
 
 export default function CaseManagement() {
