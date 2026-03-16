@@ -181,7 +181,7 @@ export default function Diagnostics() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setEditingDiag({ id: d.id, name: d.name, description: d.description || "" })}
+                        onClick={() => setEditingDiag({ id: d.id, name: d.name, doc_url: (d as any).doc_url || "" })}
                         title="Редактировать название/описание"
                       >
                         <Pencil className="h-4 w-4" />
