@@ -194,7 +194,7 @@ export default function OfferTypeDetail() {
       queryClient.invalidateQueries({ queryKey: ["offers", programId, offerType] });
       setCreateOpen(false);
       setCreateTitle("");
-      setCreateDescription("");
+      
       setCreateDocUrl("");
       setCreateSelectedTags([]);
       toast.success("Оффер создан");
