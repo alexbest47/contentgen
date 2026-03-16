@@ -147,6 +147,22 @@ export default function ProjectDetail() {
   const isTestimonial = project?.content_type === "testimonial_content";
   const needsCaseSelection = isTestimonial && project?.status === "draft" && !(project as any)?.selected_case_id;
 
+  // Fetch selected case classification
+  const selectedCaseId = (project as any)?.selected_case_id;
+  const { data: selectedCase } = useQuery({
+    queryKey: ["selected_case", selectedCaseId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("case_classifications")
+        .select("*")
+        .eq("id", selectedCaseId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: isTestimonial && !!selectedCaseId,
+  });
+
   const { data: classifications } = useQuery({
     queryKey: ["case_classifications_for_select"],
     queryFn: async () => {
