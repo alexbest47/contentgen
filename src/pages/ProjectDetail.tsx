@@ -9,14 +9,25 @@ import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Image, Send, Mail, Exte
 import { toast } from "sonner";
 import { usePromptInfo } from "@/hooks/usePromptInfo";
 
-const statusLabels: Record<string, string> = {
-  draft: "Черновик",
-  generating_leads: "Генерация лид-магнитов...",
-  leads_ready: "Выберите лид-магнит",
-  lead_selected: "Лид-магнит выбран",
-  generating_content: "Генерация контента...",
-  completed: "Завершено",
-  error: "Ошибка",
+const getStatusLabel = (status: string, contentType?: string): string => {
+  if (contentType === "reference_material") {
+    const refLabels: Record<string, string> = {
+      generating_leads: "Генерация справочного материала...",
+      leads_ready: "Выберите справочный материал",
+      lead_selected: "Справочный материал выбран",
+    };
+    if (refLabels[status]) return refLabels[status];
+  }
+  const defaultLabels: Record<string, string> = {
+    draft: "Черновик",
+    generating_leads: "Генерация лид-магнитов...",
+    leads_ready: "Выберите лид-магнит",
+    lead_selected: "Лид-магнит выбран",
+    generating_content: "Генерация контента...",
+    completed: "Завершено",
+    error: "Ошибка",
+  };
+  return defaultLabels[status] ?? status;
 };
 
 interface ContentType {
@@ -110,7 +121,7 @@ export default function ProjectDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       queryClient.invalidateQueries({ queryKey: ["lead_magnets", projectId] });
-      toast.success("Лид-магнит выбран");
+      toast.success(project?.content_type === "reference_material" ? "Справочный материал выбран" : "Лид-магнит выбран");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -154,13 +165,13 @@ export default function ProjectDetail() {
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{project?.title ?? "..."}</h1>
-          <p className="text-muted-foreground">{statusLabels[project?.status ?? "draft"]}</p>
+          <p className="text-muted-foreground">{getStatusLabel(project?.status ?? "draft", project?.content_type)}</p>
         </div>
       </div>
 
       {showLeadMagnets && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Варианты лид-магнитов</h2>
+          <h2 className="text-lg font-semibold">{project?.content_type === "reference_material" ? "Варианты справочных материалов" : "Варианты лид-магнитов"}</h2>
           <div className="grid gap-4 lg:grid-cols-3">
             {visibleLeadMagnets.map((lm) => (
               <Card key={lm.id} className={`transition-all ${lm.is_selected ? "ring-2 ring-primary" : ""}`}>
