@@ -79,8 +79,8 @@ export default function Diagnostics() {
   const programMap = Object.fromEntries((programs || []).map((p) => [p.id, p.title]));
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, name, description }: { id: string; name: string; description: string }) => {
-      const { error } = await supabase.from("diagnostics").update({ name, description }).eq("id", id);
+    mutationFn: async ({ id, name, doc_url }: { id: string; name: string; doc_url: string }) => {
+      const { error } = await supabase.from("diagnostics").update({ name, doc_url: doc_url || null } as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
