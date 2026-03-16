@@ -9,7 +9,6 @@ import { ArrowLeft, RefreshCw, Loader2, Image, Layers, Copy } from "lucide-react
 import PipelineResultView from "@/components/project/PipelineResultView";
 import { toast } from "sonner";
 import { usePromptInfo } from "@/hooks/usePromptInfo";
-import { getOfferTypeLabel } from "@/lib/offerTypes";
 
 const contentTypeLabels: Record<string, string> = {
   instagram: "Пост в Instagram",
@@ -35,8 +34,7 @@ export default function ContentDetail() {
 
   const { data: promptInfo } = usePromptInfo({
     content_type: contentType,
-    offer_type: offerType,
-    enabled: !!contentType && !!offerType,
+    enabled: !!contentType,
   });
 
   const { data: contentPieces } = useQuery({
@@ -190,7 +188,7 @@ export default function ContentDetail() {
           </h1>
           {promptInfo?.[0] && (
             <p className="text-xs text-muted-foreground">
-              Промпт: «{promptInfo[0].name}» ({getOfferTypeLabel(offerType ?? "")} / {contentType})
+              Промпт: «{promptInfo[0].name}»
             </p>
           )}
         </div>

@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Image, Send, Mail, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { usePromptInfo } from "@/hooks/usePromptInfo";
-import { getOfferTypeLabel } from "@/lib/offerTypes";
 
 const statusLabels: Record<string, string> = {
   draft: "Черновик",
@@ -44,8 +43,7 @@ export default function ProjectDetail() {
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}`;
 
   const { data: allPromptInfo } = usePromptInfo({
-    offer_type: offerType,
-    enabled: !!offerType,
+    enabled: true,
   });
 
   const { data: project } = useQuery({
@@ -247,7 +245,7 @@ export default function ProjectDetail() {
                       const prompt = allPromptInfo?.find(p => p.content_type === ct.key);
                       return prompt ? (
                         <p className="text-xs text-muted-foreground mt-1 text-center">
-                          Промпт: «{prompt.name}» ({getOfferTypeLabel(offerType ?? "")} / {ct.key})
+                          Промпт: «{prompt.name}»
                         </p>
                       ) : null;
                     })()}

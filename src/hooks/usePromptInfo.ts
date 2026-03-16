@@ -4,22 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 interface UsePromptInfoFilters {
   category?: string;
   content_type?: string;
-  offer_type?: string;
   enabled?: boolean;
 }
 
 export function usePromptInfo(filters: UsePromptInfoFilters) {
   return useQuery({
-    queryKey: ["prompt_info", filters.category, filters.content_type, filters.offer_type],
+    queryKey: ["prompt_info", filters.category, filters.content_type],
     queryFn: async () => {
       let query = supabase
         .from("prompts")
-        .select("name, content_type, offer_type")
+        .select("name, content_type")
         .eq("is_active", true);
 
       if (filters.category) query = query.eq("category", filters.category as any);
       if (filters.content_type) query = query.eq("content_type", filters.content_type);
-      if (filters.offer_type) query = query.eq("offer_type", filters.offer_type);
 
       const { data, error } = await query.order("step_order");
       if (error) throw error;

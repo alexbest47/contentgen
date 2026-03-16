@@ -11,8 +11,6 @@ import PipelineGroup from "@/components/prompts/PipelineGroup";
 import PromptStepCard from "@/components/prompts/PromptStepCard";
 import RefinePromptDialog from "@/components/prompts/RefinePromptDialog";
 import { contentTypeLabels, contentTypeKeys, emptyForm, deriveCategory, type PromptForm } from "@/lib/promptConstants";
-import { OFFER_TYPES, getOfferTypeLabel } from "@/lib/offerTypes";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CsvImportButton from "@/components/prompts/CsvImportButton";
 
 export default function Prompts() {
@@ -20,7 +18,6 @@ export default function Prompts() {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<PromptForm>(emptyForm);
-  const [activeTab, setActiveTab] = useState<string>("");
   const [refinePrompt, setRefinePrompt] = useState<any | null>(null);
 
   const { data: prompts, isLoading } = useQuery({
@@ -39,7 +36,6 @@ export default function Prompts() {
         category: deriveCategory(form.content_type),
         content_type: form.content_type || null,
         sub_type: null,
-        offer_type: form.offer_type || null,
       };
       if (editId) {
         const { error } = await supabase.from("prompts").update(payload).eq("id", editId);
@@ -76,7 +72,7 @@ export default function Prompts() {
       user_prompt_template: prompt.user_prompt_template,
       output_format_hint: prompt.output_format_hint ?? "", is_active: prompt.is_active,
       content_type: prompt.content_type ?? "",
-      step_order: prompt.step_order ?? 1, offer_type: prompt.offer_type ?? "",
+      step_order: prompt.step_order ?? 1,
     });
     setOpen(true);
   };
@@ -90,66 +86,22 @@ export default function Prompts() {
       user_prompt_template: prompt.user_prompt_template,
       output_format_hint: prompt.output_format_hint ?? "", is_active: prompt.is_active,
       content_type: prompt.content_type ?? "",
-      step_order: prompt.step_order ?? 1, offer_type: prompt.offer_type ?? "",
+      step_order: prompt.step_order ?? 1,
     });
     setOpen(true);
   };
 
   const setField = (key: keyof PromptForm, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
-  const offerTypesWithPrompts = OFFER_TYPES.filter((ot) =>
-    prompts?.some((p: any) => p.offer_type === ot.key)
-  );
+  // Group all prompts by content_type
+  const grouped = (prompts ?? []).reduce((acc, p) => {
+    const ct = (p as any).content_type || "_other";
+    if (!acc[ct]) acc[ct] = [];
+    acc[ct].push(p);
+    return acc;
+  }, {} as Record<string, any[]>);
 
-  const otherPrompts = prompts?.filter((p: any) => !p.offer_type) ?? [];
-
-  const renderPipelinesForOfferType = (offerTypeKey: string) => {
-    const offerPrompts = prompts?.filter((p: any) => p.offer_type === offerTypeKey) ?? [];
-
-    const grouped = offerPrompts.reduce((acc, p) => {
-      const ct = (p as any).content_type || "_other";
-      if (!acc[ct]) acc[ct] = [];
-      acc[ct].push(p);
-      return acc;
-    }, {} as Record<string, typeof offerPrompts>);
-
-    const otherInGroup = grouped["_other"] ?? [];
-
-    return (
-      <div className="space-y-10">
-        {contentTypeKeys.map((ctKey) => {
-          const groupPrompts = (grouped[ctKey] || []).sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
-          if (groupPrompts.length === 0) return null;
-          return (
-            <PipelineGroup
-              key={ctKey}
-              groupKey={ctKey}
-              label={`Пайплайн: ${contentTypeLabels[ctKey]}`}
-              prompts={groupPrompts}
-              onEdit={openEdit}
-              onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
-              onDuplicate={openDuplicate}
-              onRefine={setRefinePrompt}
-            />
-          );
-        })}
-
-        {otherInGroup.length > 0 && (
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <h3 className="text-lg font-semibold text-muted-foreground">Прочие промпты</h3>
-              <Badge variant="secondary">{otherInGroup.length}</Badge>
-            </div>
-            <div className="space-y-3">
-              {otherInGroup.map((p: any) => (
-                <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+  const otherPrompts = grouped["_other"] ?? [];
 
   return (
     <div className="space-y-6">
@@ -159,13 +111,10 @@ export default function Prompts() {
           <p className="text-muted-foreground">Настройка промптов для генерации контента</p>
         </div>
         <div className="flex items-center gap-2">
-          {activeTab && activeTab !== "_other" && (
-            <CsvImportButton
-              offerTypeKey={activeTab}
-              existingCount={prompts?.filter((p: any) => p.offer_type === activeTab).length ?? 0}
-              prompts={prompts?.filter((p: any) => p.offer_type === activeTab) ?? []}
-            />
-          )}
+          <CsvImportButton
+            existingCount={prompts?.length ?? 0}
+            prompts={prompts ?? []}
+          />
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
               <Button><Plus className="mr-2 h-4 w-4" />Создать промпт</Button>
@@ -177,31 +126,39 @@ export default function Prompts() {
 
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
-      ) : offerTypesWithPrompts.length > 0 ? (
-        <Tabs defaultValue={offerTypesWithPrompts[0]?.key} onValueChange={setActiveTab} value={activeTab || offerTypesWithPrompts[0]?.key}>
-          <TabsList>
-            {offerTypesWithPrompts.map((ot) => (
-              <TabsTrigger key={ot.key} value={ot.key}>{ot.label}</TabsTrigger>
-            ))}
-            {otherPrompts.length > 0 && <TabsTrigger value="_other">Прочие</TabsTrigger>}
-          </TabsList>
-
-          {offerTypesWithPrompts.map((ot) => (
-            <TabsContent key={ot.key} value={ot.key}>
-              {renderPipelinesForOfferType(ot.key)}
-            </TabsContent>
-          ))}
+      ) : (prompts ?? []).length > 0 ? (
+        <div className="space-y-10">
+          {contentTypeKeys.map((ctKey) => {
+            const groupPrompts = (grouped[ctKey] || []).sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+            if (groupPrompts.length === 0) return null;
+            return (
+              <PipelineGroup
+                key={ctKey}
+                groupKey={ctKey}
+                label={`Пайплайн: ${contentTypeLabels[ctKey]}`}
+                prompts={groupPrompts}
+                onEdit={openEdit}
+                onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
+                onDuplicate={openDuplicate}
+                onRefine={setRefinePrompt}
+              />
+            );
+          })}
 
           {otherPrompts.length > 0 && (
-            <TabsContent value="_other">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <h3 className="text-lg font-semibold text-muted-foreground">Прочие промпты</h3>
+                <Badge variant="secondary">{otherPrompts.length}</Badge>
+              </div>
               <div className="space-y-3">
                 {otherPrompts.map((p: any) => (
                   <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
                 ))}
               </div>
-            </TabsContent>
+            </div>
           )}
-        </Tabs>
+        </div>
       ) : (
         <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
       )}

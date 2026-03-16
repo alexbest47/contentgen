@@ -48,12 +48,11 @@ export interface PromptForm {
   is_active: boolean;
   content_type: string;
   step_order: number;
-  offer_type: string;
 }
 
 export const emptyForm: PromptForm = {
   name: "", slug: "", description: "",
   provider: "anthropic", model: "claude-sonnet-4-20250514",
   system_prompt: "", user_prompt_template: "", output_format_hint: "", is_active: true,
-  content_type: "", step_order: 1, offer_type: "mini_course",
+  content_type: "", step_order: 1,
 };
