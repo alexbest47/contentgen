@@ -20,30 +20,31 @@ export const categories = Object.keys(categoryLabels) as PromptCategory[];
 export const contentTypeLabels: Record<string, string> = {
   lead_magnet: "Лидмагнит",
   diagnostic: "Диагностика",
+};
+
+export const contentTypeKeys = Object.keys(contentTypeLabels);
+
+export const channelLabels: Record<string, string> = {
   instagram: "Instagram",
   telegram: "Telegram",
   vk: "ВКонтакте",
   email: "Email",
 };
 
-export const contentTypeKeys = Object.keys(contentTypeLabels);
+export const channelKeys = Object.keys(channelLabels);
 
-export const pipelineContentTypes = ["instagram", "telegram", "vk", "email"] as const;
-export const tabContentTypes = {
-  lead_magnet: ["lead_magnet", ...pipelineContentTypes],
-  diagnostic: ["diagnostic"],
-} as const;
-
-export const deriveCategory = (contentType: string): PromptCategory => {
-  const mapping: Record<string, PromptCategory> = {
-    instagram: "text_instagram",
-    telegram: "text_telegram",
-    vk: "text_vk",
-    email: "text_email",
-    diagnostic: "test_generation",
-    lead_magnet: "lead_magnets",
-  };
-  return mapping[contentType] || "lead_magnets";
+export const deriveCategory = (contentType: string, channel?: string): PromptCategory => {
+  if (contentType === "diagnostic") return "test_generation";
+  if (channel) {
+    const mapping: Record<string, PromptCategory> = {
+      instagram: "text_instagram",
+      telegram: "text_telegram",
+      vk: "text_vk",
+      email: "text_email",
+    };
+    return mapping[channel] || "lead_magnets";
+  }
+  return "lead_magnets";
 };
 
 export interface PromptForm {
@@ -57,6 +58,7 @@ export interface PromptForm {
   output_format_hint: string;
   is_active: boolean;
   content_type: string;
+  channel: string;
   step_order: number;
 }
 
@@ -64,5 +66,5 @@ export const emptyForm: PromptForm = {
   name: "", slug: "", description: "",
   provider: "anthropic", model: "claude-sonnet-4-20250514",
   system_prompt: "", user_prompt_template: "", output_format_hint: "", is_active: true,
-  content_type: "", step_order: 1,
+  content_type: "lead_magnet", channel: "", step_order: 1,
 };
