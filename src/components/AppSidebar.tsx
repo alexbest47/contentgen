@@ -18,9 +18,12 @@ const mainNav = [
   { title: "Архив", url: "/archive", icon: Archive },
 ];
 
-const adminNav = [
+const contentPrepNav = [
   { title: "Диагностики", url: "/diagnostics", icon: Stethoscope },
   { title: "Управление кейсами", url: "/cases", icon: FileVideo },
+];
+
+const adminNav = [
   { title: "Управление промптами", url: "/prompts", icon: MessageSquareText },
   { title: "Переменные промптов", url: "/prompt-variables", icon: Braces },
   { title: "Настройки Email", url: "/email-settings", icon: Mail },
