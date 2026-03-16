@@ -133,8 +133,7 @@ export default function OfferDetail() {
     },
     onSuccess: ({ projectId, label }) => {
       toast.success(`Генерация ${label} завершена!`);
-      setGeneratingProject(false);
-      setProgressText("");
+      setGeneratingType(null);
       queryClient.invalidateQueries({ queryKey: ["projects_by_offer", offerId] });
       navigate(`/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`);
     },
