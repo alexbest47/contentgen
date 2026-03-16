@@ -130,9 +130,9 @@ export default function OfferDetail() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: async (contentType: "lead_magnet" | "reference_material" | "expert_content" | "provocative_content" | "list_content" = "lead_magnet") => {
+    mutationFn: async (contentType: "lead_magnet" | "reference_material" | "expert_content" | "provocative_content" | "list_content" | "testimonial_content" = "lead_magnet") => {
       setGeneratingType(contentType);
-      const labelMap: Record<string, string> = { reference_material: "справочных материалов", expert_content: "тем экспертного контента", provocative_content: "тем провокационного контента", list_content: "тем списка" };
+      const labelMap: Record<string, string> = { reference_material: "справочных материалов", expert_content: "тем экспертного контента", provocative_content: "тем провокационного контента", list_content: "тем списка", testimonial_content: "контент-отзыва" };
       const label = labelMap[contentType] || "лид-магнитов";
       const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
         body: { course_title: offer?.title || "", program_title: (offer as any)?.paid_programs?.title || "" },
@@ -140,7 +140,6 @@ export default function OfferDetail() {
       if (nameError) throw new Error(nameError.message || "Ошибка генерации названия");
       if (nameData?.error) throw new Error(nameData.error);
 
-      
       const { data: project, error: projError } = await supabase
         .from("projects")
         .insert({ offer_id: offerId!, title: nameData.name, created_by: user!.id, content_type: contentType } as any)
@@ -148,7 +147,11 @@ export default function OfferDetail() {
         .single();
       if (projError) throw projError;
 
-      
+      // For testimonial_content, skip lead magnets generation — user picks case first
+      if (contentType === "testimonial_content") {
+        return { projectId: project.id, label };
+      }
+
       const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
         body: { project_id: project.id, content_type: contentType },
       });
