@@ -49,6 +49,15 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (listLabels[status]) return listLabels[status];
   }
+  if (contentType === "testimonial_content") {
+    const testimonialLabels: Record<string, string> = {
+      draft: "Выбор кейса",
+      generating_leads: "Генерация углов подачи",
+      leads_ready: "Углы подачи готовы",
+      lead_selected: "Угол подачи выбран",
+    };
+    if (testimonialLabels[status]) return testimonialLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов",
