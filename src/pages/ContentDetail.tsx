@@ -32,6 +32,21 @@ export default function ContentDetail() {
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`;
   const isEmail = isEmailType(contentType!);
 
+  const { data: project } = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("content_type")
+        .eq("id", projectId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const supportsCarousel = !["expert_content", "provocative_content"].includes(project?.content_type ?? "");
+
   const { data: promptInfo } = usePromptInfo({
     content_type: contentType,
     enabled: !!contentType,
