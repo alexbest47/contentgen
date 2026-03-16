@@ -411,6 +411,7 @@ export type Database = {
       prompts: {
         Row: {
           category: Database["public"]["Enums"]["prompt_category"]
+          channel: string | null
           content_type: string | null
           created_at: string
           description: string | null
@@ -430,6 +431,7 @@ export type Database = {
         }
         Insert: {
           category: Database["public"]["Enums"]["prompt_category"]
+          channel?: string | null
           content_type?: string | null
           created_at?: string
           description?: string | null
@@ -449,6 +451,7 @@ export type Database = {
         }
         Update: {
           category?: Database["public"]["Enums"]["prompt_category"]
+          channel?: string | null
           content_type?: string | null
           created_at?: string
           description?: string | null

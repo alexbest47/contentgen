@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { contentTypeLabels, contentTypeKeys, type PromptForm } from "@/lib/promptConstants";
+import { contentTypeLabels, contentTypeKeys, channelLabels, channelKeys, type PromptForm } from "@/lib/promptConstants";
 
 interface PromptFormDialogProps {
   form: PromptForm;
@@ -35,13 +35,26 @@ export default function PromptFormDialog({ form, setField, editId, saveMutation 
             <Select value={form.content_type} onValueChange={(v) => setField("content_type", v)}>
               <SelectTrigger><SelectValue placeholder="Выберите тип" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="_none">— Без типа —</SelectItem>
                 {contentTypeKeys.map((ct) => (
                   <SelectItem key={ct} value={ct}>{contentTypeLabels[ct]}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+          {form.content_type === "lead_magnet" && (
+            <div className="space-y-2">
+              <Label>Канал</Label>
+              <Select value={form.channel || "_none"} onValueChange={(v) => setField("channel", v === "_none" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Выберите канал" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">— Без канала —</SelectItem>
+                  {channelKeys.map((ch) => (
+                    <SelectItem key={ch} value={ch}>{channelLabels[ch]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Порядок шага</Label>
             <Input type="number" min={1} value={form.step_order} onChange={(e) => setField("step_order", parseInt(e.target.value) || 1)} />

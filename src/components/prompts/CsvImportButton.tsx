@@ -181,8 +181,9 @@ export default function CsvImportButton({ existingCount, prompts: currentPrompts
       const toInsert = parsedRows.map((r) => ({
         name: r.name,
         slug: r.slug,
-        category: deriveCategory(r.content_type || ""),
+        category: deriveCategory(r.content_type || "", (r as any).channel || ""),
         content_type: r.content_type,
+        channel: (r as any).channel || null,
         sub_type: null,
         step_order: r.step_order,
         provider: r.provider,
