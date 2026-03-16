@@ -382,7 +382,58 @@ export default function ProjectDetail() {
                   Нет результатов классификации. Сначала обработайте кейсы в разделе «Управление кейсами».
                 </p>
               ) : (
-                <div className="overflow-auto">
+                <div className="space-y-4">
+                  {/* Filters */}
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <Select value={filterType} onValueChange={setFilterType}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="Тип" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Все типы</SelectItem>
+                        {filterOptions.types.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={filterProduct} onValueChange={setFilterProduct}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="Продукт" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Все продукты</SelectItem>
+                        {filterOptions.products.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={filterTone} onValueChange={setFilterTone}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="Тон" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Все тона</SelectItem>
+                        {filterOptions.tones.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={filterQuality} onValueChange={setFilterQuality}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="Качество" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Все качества</SelectItem>
+                        {filterOptions.qualities.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={filterTag} onValueChange={setFilterTag}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="Тег" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Все теги</SelectItem>
+                        {filterOptions.tags.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -393,12 +444,14 @@ export default function ProjectDetail() {
                         <TableHead>Тон</TableHead>
                         <TableHead>Качество</TableHead>
                         <TableHead>Теги</TableHead>
+                        <TableHead>Использован</TableHead>
                         <TableHead className="w-[140px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {classifications.map((c) => {
+                      {(filteredClassifications || []).map((c) => {
                         const j = (c.classification_json || {}) as any;
+                        const count = usageCounts?.[c.id] || 0;
                         return (
                           <TableRow key={c.id}>
                             <TableCell>
@@ -438,6 +491,13 @@ export default function ProjectDetail() {
                               </div>
                             </TableCell>
                             <TableCell>
+                              {count > 0 ? (
+                                <Badge variant="secondary" className="text-xs">{count}</Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
                               <div className="flex gap-1">
                                 <Button size="sm" variant="ghost" onClick={() => setJsonDialog({ name: c.file_name, json: j })}>
                                   <Eye className="h-4 w-4" />
@@ -456,6 +516,7 @@ export default function ProjectDetail() {
                       })}
                     </TableBody>
                   </Table>
+                  </div>
                 </div>
               )}
             </CardContent>
