@@ -30,16 +30,12 @@ interface OfferFormProps {
   pendingLabel: string;
 }
 
-function OfferForm({ title, setTitle, description, setDescription, docUrl, setDocUrl, selectedTags, toggleTag, allTags, onSubmit, isPending, submitLabel, pendingLabel }: OfferFormProps) {
+function OfferForm({ title, setTitle, docUrl, setDocUrl, selectedTags, toggleTag, allTags, onSubmit, isPending, submitLabel, pendingLabel }: OfferFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label>Название</Label>
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название оффера" required />
-      </div>
-      <div className="space-y-2">
-        <Label>Описание</Label>
-        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Подробное описание..." className="min-h-[100px]" />
       </div>
       <div className="space-y-2">
         <Label>Ссылка на Google Doc</Label>
