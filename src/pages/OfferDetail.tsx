@@ -122,7 +122,7 @@ export default function OfferDetail() {
         .single();
       if (projError) throw projError;
 
-      setProgressText(`Генерация ${label}...`);
+      
       const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
         body: { project_id: project.id, content_type: contentType },
       });
