@@ -147,6 +147,22 @@ export default function ProjectDetail() {
   const isTestimonial = project?.content_type === "testimonial_content";
   const needsCaseSelection = isTestimonial && project?.status === "draft" && !(project as any)?.selected_case_id;
 
+  // Fetch selected case classification
+  const selectedCaseId = (project as any)?.selected_case_id;
+  const { data: selectedCase } = useQuery({
+    queryKey: ["selected_case", selectedCaseId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("case_classifications")
+        .select("*")
+        .eq("id", selectedCaseId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: isTestimonial && !!selectedCaseId,
+  });
+
   const { data: classifications } = useQuery({
     queryKey: ["case_classifications_for_select"],
     queryFn: async () => {
@@ -251,6 +267,43 @@ export default function ProjectDetail() {
           <p className="text-muted-foreground">{getStatusLabel(project?.status ?? "draft", project?.content_type)}</p>
         </div>
       </div>
+
+      {/* Selected case info for testimonial_content */}
+      {isTestimonial && selectedCase && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Выбранный кейс</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-medium text-sm">{selectedCase.file_name}</span>
+              {selectedCase.source_url && (
+                <a href={selectedCase.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                  <ExternalLink className="h-3 w-3" /> Видео
+                </a>
+              )}
+            </div>
+            {(() => {
+              const cj = (selectedCase.classification_json || {}) as any;
+              return (
+                <>
+                  {cj.summary && <p className="text-sm text-muted-foreground">{cj.summary}</p>}
+                  <div className="flex flex-wrap gap-1">
+                    {cj.video_type && <Badge variant="outline">{cj.video_type}</Badge>}
+                    {cj.student_name && <Badge variant="secondary">{cj.student_name}</Badge>}
+                    {(cj.products || []).map((p: string, i: number) => (
+                      <Badge key={i} variant="secondary" className="text-xs">{p}</Badge>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+            <Button size="sm" variant="ghost" onClick={() => setJsonDialog({ name: selectedCase.file_name, json: selectedCase.classification_json })}>
+              <Eye className="h-4 w-4 mr-1" /> Посмотреть JSON
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Case selection for testimonial_content */}
       {needsCaseSelection && (
