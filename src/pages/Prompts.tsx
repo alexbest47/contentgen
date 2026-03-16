@@ -291,6 +291,49 @@ export default function Prompts() {
     );
   };
 
+  const renderListContentTab = () => {
+    const generalPrompts = listContentPrompts
+      .filter((p: any) => !p.channel)
+      .sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+
+    return (
+      <div className="space-y-10">
+        {generalPrompts.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="text-lg font-semibold">{contentTypeLabels.list_content}</h3>
+              <Badge variant="secondary">{generalPrompts.length}</Badge>
+            </div>
+            <div className="space-y-3">
+              {generalPrompts.map((p: any) => (
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {channelKeys.map((ch) => {
+          const channelPrompts = listContentPrompts
+            .filter((p: any) => p.channel === ch)
+            .sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+          if (channelPrompts.length === 0) return null;
+          return (
+            <PipelineGroup
+              key={ch}
+              groupKey={ch}
+              label={`Пайплайн: ${channelLabels[ch]}`}
+              prompts={channelPrompts}
+              onEdit={openEdit}
+              onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
+              onDuplicate={openDuplicate}
+              onRefine={setRefinePrompt}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
