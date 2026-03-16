@@ -16,6 +16,7 @@ export const categoryLabels: Record<PromptCategory, string> = {
   image_email: "Изображение Email",
   expert_content: "Экспертный контент",
   provocative_content: "Провокационный контент",
+  list_content: "Список",
 };
 
 export const categories = Object.keys(categoryLabels) as PromptCategory[];
@@ -26,6 +27,7 @@ export const contentTypeLabels: Record<string, string> = {
   diagnostic: "Диагностика",
   expert_content: "Экспертный контент",
   provocative_content: "Провокационный контент",
+  list_content: "Список",
 };
 
 export const contentTypeKeys = Object.keys(contentTypeLabels);
@@ -44,6 +46,7 @@ export const deriveCategory = (contentType: string, channel?: string): PromptCat
   if (contentType === "reference_material") return "reference_materials";
   if (contentType === "expert_content") return "expert_content";
   if (contentType === "provocative_content") return "provocative_content";
+  if (contentType === "list_content") return "list_content";
   if (channel) {
     const mapping: Record<string, PromptCategory> = {
       instagram: "text_instagram",

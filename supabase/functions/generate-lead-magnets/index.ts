@@ -12,7 +12,7 @@ serve(async (req) => {
   try {
     const { project_id, content_type = "lead_magnet" } = await req.json();
     if (!project_id) throw new Error("project_id is required");
-    const promptCategory = content_type === "reference_material" ? "reference_materials" : content_type === "expert_content" ? "expert_content" : content_type === "provocative_content" ? "provocative_content" : "lead_magnets";
+    const promptCategory = content_type === "reference_material" ? "reference_materials" : content_type === "expert_content" ? "expert_content" : content_type === "provocative_content" ? "provocative_content" : content_type === "list_content" ? "list_content" : "lead_magnets";
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -170,8 +170,20 @@ serve(async (req) => {
 
     await supabase.from("lead_magnets").delete().eq("project_id", project_id);
 
-    const items = (content_type === "reference_material" || content_type === "expert_content" || content_type === "provocative_content") ? leadMagnets : leadMagnets.slice(0, 3);
+    const items = (content_type === "reference_material" || content_type === "expert_content" || content_type === "provocative_content" || content_type === "list_content") ? leadMagnets : leadMagnets.slice(0, 3);
     const inserts = items.map((lm: any) => {
+      if (content_type === "list_content") {
+        return {
+          project_id,
+          title: lm.list_title || lm.title || "Без названия",
+          visual_format: lm.subtype || "",
+          visual_content: JSON.stringify(lm.items || []),
+          instant_value: lm.hook || "",
+          save_reason: "",
+          transition_to_course: lm.transition_to_offer || "",
+          cta_text: "",
+        };
+      }
       if (content_type === "expert_content") {
         return {
           project_id,

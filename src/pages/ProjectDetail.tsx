@@ -34,6 +34,14 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (provocativeLabels[status]) return provocativeLabels[status];
   }
+  if (contentType === "list_content") {
+    const listLabels: Record<string, string> = {
+      generating_leads: "Генерация тем списка...",
+      leads_ready: "Выберите тему списка",
+      lead_selected: "Тема списка выбрана",
+    };
+    if (listLabels[status]) return listLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов...",
@@ -137,7 +145,7 @@ export default function ProjectDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       queryClient.invalidateQueries({ queryKey: ["lead_magnets", projectId] });
-      toast.success(project?.content_type === "reference_material" ? "Справочный материал выбран" : project?.content_type === "expert_content" ? "Тема экспертного контента выбрана" : project?.content_type === "provocative_content" ? "Тема провокационного контента выбрана" : "Лид-магнит выбран");
+      toast.success(project?.content_type === "reference_material" ? "Справочный материал выбран" : project?.content_type === "expert_content" ? "Тема экспертного контента выбрана" : project?.content_type === "provocative_content" ? "Тема провокационного контента выбрана" : project?.content_type === "list_content" ? "Тема списка выбрана" : "Лид-магнит выбран");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -187,7 +195,7 @@ export default function ProjectDetail() {
 
       {showLeadMagnets && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">{project?.content_type === "reference_material" ? "Варианты справочных материалов" : (project?.content_type === "expert_content" || project?.content_type === "provocative_content") ? "Темы контента" : "Варианты лид-магнитов"}</h2>
+          <h2 className="text-lg font-semibold">{project?.content_type === "reference_material" ? "Варианты справочных материалов" : (project?.content_type === "expert_content" || project?.content_type === "provocative_content") ? "Темы контента" : project?.content_type === "list_content" ? "Варианты списков" : "Варианты лид-магнитов"}</h2>
           <div className="grid gap-4 lg:grid-cols-3">
             {visibleLeadMagnets.map((lm) => (
               <Card key={lm.id} className={`transition-all ${lm.is_selected ? "ring-2 ring-primary" : ""}`}>
@@ -211,6 +219,12 @@ export default function ProjectDetail() {
                        <div><span className="font-medium">Угол подачи:</span> {lm.visual_content}</div>
                        <div><span className="font-medium">Крючок:</span> {lm.instant_value}</div>
                        <div><span className="font-medium">Триггер дискуссии:</span> {(lm as any).save_reason}</div>
+                       <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
+                     </>
+                   ) : project?.content_type === "list_content" ? (
+                     <>
+                       <div><span className="font-medium">Подтип:</span> {lm.visual_format}</div>
+                       <div><span className="font-medium">Крючок:</span> {lm.instant_value}</div>
                        <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
                      </>
                   ) : (

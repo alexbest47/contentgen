@@ -41,7 +41,7 @@ export default function PromptFormDialog({ form, setField, editId, saveMutation 
               </SelectContent>
             </Select>
           </div>
-          {(form.content_type === "lead_magnet" || form.content_type === "expert_content" || form.content_type === "provocative_content") && (
+          {(form.content_type === "lead_magnet" || form.content_type === "expert_content" || form.content_type === "provocative_content" || form.content_type === "list_content") && (
             <div className="space-y-2">
               <Label>Канал</Label>
               <Select value={form.channel || "_none"} onValueChange={(v) => setField("channel", v === "_none" ? "" : v)}>
@@ -79,7 +79,7 @@ export default function PromptFormDialog({ form, setField, editId, saveMutation 
         <div className="space-y-2">
           <Label>Шаблон пользовательского промпта</Label>
           <Textarea value={form.user_prompt_template} onChange={(e) => setField("user_prompt_template", e.target.value)} className="min-h-[120px] font-mono text-sm" />
-          <p className="text-xs text-muted-foreground">Переменные: {"{{program_title}}, {{audience_description}}, {{offer_type}}, {{offer_title}}, {{offer_description}}, {{lead_magnet}}, {{reference_material}}, {{program_doc_description}}"}</p>
+          <p className="text-xs text-muted-foreground">Переменные: {"{{program_title}}, {{audience_description}}, {{offer_type}}, {{offer_title}}, {{offer_description}}, {{lead_magnet}}, {{reference_material}}, {{list_topic}}, {{program_doc_description}}"}</p>
         </div>
         <div className="space-y-2">
           <Label>Подсказка формата вывода</Label>
