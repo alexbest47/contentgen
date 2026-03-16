@@ -106,7 +106,7 @@ export default function OfferDetail() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: async (contentType: "lead_magnet" | "reference_material" = "lead_magnet") => {
+    mutationFn: async (contentType: "lead_magnet" | "reference_material" | "expert_content" = "lead_magnet") => {
       setGeneratingProject(true);
       const label = contentType === "reference_material" ? "справочных материалов" : "лид-магнитов";
       setProgressText("Генерация названия...");
