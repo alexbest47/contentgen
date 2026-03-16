@@ -250,11 +250,11 @@ export default function Diagnostics() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Описание</Label>
-              <Textarea
-                value={editingDiag?.description || ""}
-                onChange={(e) => setEditingDiag((prev) => prev ? { ...prev, description: e.target.value } : null)}
-                rows={4}
+              <Label>Ссылка на Google Doc</Label>
+              <Input
+                value={editingDiag?.doc_url || ""}
+                onChange={(e) => setEditingDiag((prev) => prev ? { ...prev, doc_url: e.target.value } : null)}
+                placeholder="https://docs.google.com/document/d/..."
               />
             </div>
           </div>
