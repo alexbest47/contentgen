@@ -111,7 +111,7 @@ export default function OfferTypeDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
-  const [editDescription, setEditDescription] = useState("");
+  
   const [editDocUrl, setEditDocUrl] = useState("");
   const [editSelectedTags, setEditSelectedTags] = useState<string[]>([]);
 
