@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
         .from("case_files")
         .select("id", { count: "exact", head: true })
         .eq("job_id", job_id)
-        .in("status", ["pending", "downloading", "transcribing", "classifying"]);
+        .in("status", ["pending", "downloading", "transcribing", "transcribed", "classifying"]);
 
       if (!remainingCount || remainingCount === 0) {
         await supabase
