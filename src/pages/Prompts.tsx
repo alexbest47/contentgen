@@ -229,10 +229,14 @@ export default function Prompts() {
         <Tabs defaultValue="lead_magnet">
           <TabsList>
             <TabsTrigger value="lead_magnet">Лидмагнит</TabsTrigger>
+            <TabsTrigger value="reference_material">Справочный материал</TabsTrigger>
             <TabsTrigger value="diagnostic">Диагностики</TabsTrigger>
           </TabsList>
           <TabsContent value="lead_magnet">
             {renderLeadMagnetTab()}
+          </TabsContent>
+          <TabsContent value="reference_material">
+            {renderReferenceMaterialTab()}
           </TabsContent>
           <TabsContent value="diagnostic">
             {renderDiagnosticTab()}
