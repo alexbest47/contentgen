@@ -131,10 +131,15 @@ export default function CaseManagement() {
       }
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       const skippedMsg = data.skipped > 0 ? ` Пропущено дублей: ${data.skipped}` : "";
       toast.success(`Сканирование запущено. Новых файлов: ${data.files_found}.${skippedMsg}`);
+      // Save job name if provided
+      if (jobName.trim() && data.job_id) {
+        await supabase.from("case_jobs").update({ name: jobName.trim() } as any).eq("id", data.job_id);
+      }
       setFolderUrl("");
+      setJobName("");
       queryClient.invalidateQueries({ queryKey: ["case-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["case-files"] });
     },
