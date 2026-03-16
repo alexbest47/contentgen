@@ -462,40 +462,42 @@ function SocialView({
       )}
 
       {/* Single Image Post Card */}
-      <PostCard
-        title="Пост с изображением"
-        icon={<Image className="h-4 w-4" />}
-        imageSection={
-          <div
-            className={`${contentType === "instagram" ? "aspect-[4/5]" : "aspect-square"} bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer`}
-            onClick={() => staticImage && openPreview(staticImage, "Изображение поста")}
-          >
-            {staticImage ? (
-              <img src={staticImage} alt="Пост" className="w-full h-full object-contain" />
-            ) : (
-              <span className="text-sm text-muted-foreground/50">Изображение не сгенерировано</span>
-            )}
-          </div>
-        }
-        text={singleText}
-        onTextChange={setSingleText}
-        onSave={saveAll}
-        promptsSection={
-          data.static_image_prompt ? (
-            <Collapsible>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-full justify-between text-xs text-muted-foreground gap-1">
-                  Промпт изображения
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-2">
-                <p className="text-xs italic text-muted-foreground/70 bg-muted/30 rounded-md p-2">{data.static_image_prompt}</p>
-              </CollapsibleContent>
-            </Collapsible>
-          ) : undefined
-        }
-      />
+      {projectContentType !== "list_content" && (
+        <PostCard
+          title="Пост с изображением"
+          icon={<Image className="h-4 w-4" />}
+          imageSection={
+            <div
+              className={`${contentType === "instagram" ? "aspect-[4/5]" : "aspect-square"} bg-muted/30 flex items-center justify-center overflow-hidden cursor-pointer`}
+              onClick={() => staticImage && openPreview(staticImage, "Изображение поста")}
+            >
+              {staticImage ? (
+                <img src={staticImage} alt="Пост" className="w-full h-full object-contain" />
+              ) : (
+                <span className="text-sm text-muted-foreground/50">Изображение не сгенерировано</span>
+              )}
+            </div>
+          }
+          text={singleText}
+          onTextChange={setSingleText}
+          onSave={saveAll}
+          promptsSection={
+            data.static_image_prompt ? (
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-full justify-between text-xs text-muted-foreground gap-1">
+                    Промпт изображения
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <p className="text-xs italic text-muted-foreground/70 bg-muted/30 rounded-md p-2">{data.static_image_prompt}</p>
+                </CollapsibleContent>
+              </Collapsible>
+            ) : undefined
+          }
+        />
+      )}
 
       <ImagePreviewDialog src={previewSrc} alt={previewAlt} open={!!previewSrc} onOpenChange={(o) => !o && setPreviewSrc(null)} />
     </div>
