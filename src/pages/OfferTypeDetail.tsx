@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,8 +19,6 @@ import { usePromptInfo } from "@/hooks/usePromptInfo";
 interface OfferFormProps {
   title: string;
   setTitle: (v: string) => void;
-  description: string;
-  setDescription: (v: string) => void;
   docUrl: string;
   setDocUrl: (v: string) => void;
   selectedTags: string[];
@@ -32,16 +30,12 @@ interface OfferFormProps {
   pendingLabel: string;
 }
 
-function OfferForm({ title, setTitle, description, setDescription, docUrl, setDocUrl, selectedTags, toggleTag, allTags, onSubmit, isPending, submitLabel, pendingLabel }: OfferFormProps) {
+function OfferForm({ title, setTitle, docUrl, setDocUrl, selectedTags, toggleTag, allTags, onSubmit, isPending, submitLabel, pendingLabel }: OfferFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label>Название</Label>
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название оффера" required />
-      </div>
-      <div className="space-y-2">
-        <Label>Описание</Label>
-        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Подробное описание..." className="min-h-[100px]" />
       </div>
       <div className="space-y-2">
         <Label>Ссылка на Google Doc</Label>
@@ -109,7 +103,7 @@ export default function OfferTypeDetail() {
   // Create dialog state
   const [createOpen, setCreateOpen] = useState(false);
   const [createTitle, setCreateTitle] = useState("");
-  const [createDescription, setCreateDescription] = useState("");
+  
   const [createDocUrl, setCreateDocUrl] = useState("");
   const [createSelectedTags, setCreateSelectedTags] = useState<string[]>([]);
 
@@ -117,7 +111,7 @@ export default function OfferTypeDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
-  const [editDescription, setEditDescription] = useState("");
+  
   const [editDocUrl, setEditDocUrl] = useState("");
   const [editSelectedTags, setEditSelectedTags] = useState<string[]>([]);
 
@@ -179,7 +173,7 @@ export default function OfferTypeDetail() {
         .from("offers")
         .insert({
           title: createTitle,
-          description: createDescription || null,
+          description: null,
           doc_url: createDocUrl || null,
           offer_type: offerType! as any,
           program_id: programId!,
@@ -200,7 +194,7 @@ export default function OfferTypeDetail() {
       queryClient.invalidateQueries({ queryKey: ["offers", programId, offerType] });
       setCreateOpen(false);
       setCreateTitle("");
-      setCreateDescription("");
+      
       setCreateDocUrl("");
       setCreateSelectedTags([]);
       toast.success("Оффер создан");
@@ -221,7 +215,6 @@ export default function OfferTypeDetail() {
         .from("offers")
         .update({
           title: editTitle,
-          description: editDescription || null,
           doc_url: editDocUrl || null,
         })
         .eq("id", editingId);
@@ -339,7 +332,7 @@ export default function OfferTypeDetail() {
     e.stopPropagation();
     setEditingId(offer.id);
     setEditTitle(offer.title);
-    setEditDescription(offer.description ?? "");
+    
     setEditDocUrl(offer.doc_url ?? "");
     setEditSelectedTags(offer.offer_tags?.map((ot: any) => ot.tag_id) ?? []);
     setEditOpen(true);
@@ -389,7 +382,6 @@ export default function OfferTypeDetail() {
             </DialogHeader>
             <OfferForm
               title={createTitle} setTitle={setCreateTitle}
-              description={createDescription} setDescription={setCreateDescription}
               docUrl={createDocUrl} setDocUrl={setCreateDocUrl}
               selectedTags={createSelectedTags} toggleTag={toggleCreateTag}
               allTags={allTags} isPending={createMutation.isPending}
@@ -409,7 +401,6 @@ export default function OfferTypeDetail() {
             </DialogHeader>
             <OfferForm
               title={editTitle} setTitle={setEditTitle}
-              description={editDescription} setDescription={setEditDescription}
               docUrl={editDocUrl} setDocUrl={setEditDocUrl}
               selectedTags={editSelectedTags} toggleTag={toggleEditTag}
               allTags={allTags} isPending={updateMutation.isPending}
