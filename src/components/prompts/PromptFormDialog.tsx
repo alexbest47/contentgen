@@ -31,11 +31,11 @@ export default function PromptFormDialog({ form, setField, editId, saveMutation 
             <Input value={form.slug} onChange={(e) => setField("slug", e.target.value)} required />
           </div>
           <div className="space-y-2">
-            <Label>Канал (пайплайн)</Label>
+            <Label>Тип контента</Label>
             <Select value={form.content_type} onValueChange={(v) => setField("content_type", v)}>
-              <SelectTrigger><SelectValue placeholder="Выберите канал" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Выберите тип" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="_none">— Без канала —</SelectItem>
+                <SelectItem value="_none">— Без типа —</SelectItem>
                 {contentTypeKeys.map((ct) => (
                   <SelectItem key={ct} value={ct}>{contentTypeLabels[ct]}</SelectItem>
                 ))}

@@ -4,13 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import PromptFormDialog from "@/components/prompts/PromptFormDialog";
 import PipelineGroup from "@/components/prompts/PipelineGroup";
 import PromptStepCard from "@/components/prompts/PromptStepCard";
 import RefinePromptDialog from "@/components/prompts/RefinePromptDialog";
-import { contentTypeLabels, contentTypeKeys, emptyForm, deriveCategory, type PromptForm } from "@/lib/promptConstants";
+import { contentTypeLabels, emptyForm, deriveCategory, tabContentTypes, pipelineContentTypes, type PromptForm } from "@/lib/promptConstants";
 import CsvImportButton from "@/components/prompts/CsvImportButton";
 
 export default function Prompts() {
@@ -101,7 +102,51 @@ export default function Prompts() {
     return acc;
   }, {} as Record<string, any[]>);
 
-  const otherPrompts = grouped["_other"] ?? [];
+  const renderTabContent = (contentTypes: readonly string[]) => {
+    const pipelineTypes = contentTypes.filter(ct => (pipelineContentTypes as readonly string[]).includes(ct));
+    const nonPipelineTypes = contentTypes.filter(ct => !(pipelineContentTypes as readonly string[]).includes(ct));
+
+    return (
+      <div className="space-y-10">
+        {/* Non-pipeline prompts (lead_magnet, diagnostic) */}
+        {nonPipelineTypes.map((ctKey) => {
+          const groupPrompts = (grouped[ctKey] || []).sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+          if (groupPrompts.length === 0) return null;
+          return (
+            <div key={ctKey}>
+              <div className="flex items-center gap-3 mb-4">
+                <h3 className="text-lg font-semibold">{contentTypeLabels[ctKey]}</h3>
+                <Badge variant="secondary">{groupPrompts.length}</Badge>
+              </div>
+              <div className="space-y-3">
+                {groupPrompts.map((p: any) => (
+                  <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Pipeline prompts (instagram, telegram, vk, email) */}
+        {pipelineTypes.map((ctKey) => {
+          const groupPrompts = (grouped[ctKey] || []).sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+          if (groupPrompts.length === 0) return null;
+          return (
+            <PipelineGroup
+              key={ctKey}
+              groupKey={ctKey}
+              label={`Пайплайн: ${contentTypeLabels[ctKey]}`}
+              prompts={groupPrompts}
+              onEdit={openEdit}
+              onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
+              onDuplicate={openDuplicate}
+              onRefine={setRefinePrompt}
+            />
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -127,38 +172,18 @@ export default function Prompts() {
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
       ) : (prompts ?? []).length > 0 ? (
-        <div className="space-y-10">
-          {contentTypeKeys.map((ctKey) => {
-            const groupPrompts = (grouped[ctKey] || []).sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
-            if (groupPrompts.length === 0) return null;
-            return (
-              <PipelineGroup
-                key={ctKey}
-                groupKey={ctKey}
-                label={`Пайплайн: ${contentTypeLabels[ctKey]}`}
-                prompts={groupPrompts}
-                onEdit={openEdit}
-                onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
-                onDuplicate={openDuplicate}
-                onRefine={setRefinePrompt}
-              />
-            );
-          })}
-
-          {otherPrompts.length > 0 && (
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <h3 className="text-lg font-semibold text-muted-foreground">Прочие промпты</h3>
-                <Badge variant="secondary">{otherPrompts.length}</Badge>
-              </div>
-              <div className="space-y-3">
-                {otherPrompts.map((p: any) => (
-                  <PromptStepCard key={p.id} prompt={p} showStepNumber={false} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <Tabs defaultValue="lead_magnet">
+          <TabsList>
+            <TabsTrigger value="lead_magnet">Лидмагнит</TabsTrigger>
+            <TabsTrigger value="diagnostic">Диагностики</TabsTrigger>
+          </TabsList>
+          <TabsContent value="lead_magnet">
+            {renderTabContent(tabContentTypes.lead_magnet)}
+          </TabsContent>
+          <TabsContent value="diagnostic">
+            {renderTabContent(tabContentTypes.diagnostic)}
+          </TabsContent>
+        </Tabs>
       ) : (
         <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
       )}
