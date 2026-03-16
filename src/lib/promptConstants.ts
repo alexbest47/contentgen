@@ -40,6 +40,8 @@ export const deriveCategory = (contentType: string): PromptCategory => {
     telegram: "text_telegram",
     vk: "text_vk",
     email: "text_email",
+    diagnostic: "test_generation",
+    lead_magnet: "lead_magnets",
   };
   return mapping[contentType] || "lead_magnets";
 };
