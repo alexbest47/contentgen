@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     // Update file status to downloading
     await supabase
       .from("case_files")
-      .update({ status: "downloading" })
+      .update({ status: "downloading", status_updated_at: new Date().toISOString() })
       .eq("id", file_id);
 
     // Get download URL from Yandex
