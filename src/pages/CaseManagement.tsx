@@ -279,7 +279,7 @@ export default function CaseManagement() {
                 return (
                   <Card key={job.id}>
                     <Collapsible open={isOpen} onOpenChange={() => toggleJob(job.id)}>
-                      <CollapsibleTrigger className="w-full">
+                      <CollapsibleTrigger className="w-full group">
                         <CardContent className="flex items-center gap-4 py-4">
                           {isOpen ? (
                             <ChevronDown className="h-4 w-4 shrink-0" />
