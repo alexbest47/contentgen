@@ -17,7 +17,17 @@ const categories = [
       { name: "{{offer_type}}", description: "Тип оффера (мини-курс, вебинар, диагностика и т.д.)", source: "offers.offer_type" },
       { name: "{{offer_title}}", description: "Название оффера", source: "offers.title" },
       { name: "{{offer_description}}", description: "Описание оффера (загружается из Google Docs)", source: "Google Docs → offers.doc_url" },
+    ],
+  },
+  {
+    title: "Лид-магниты",
+    variables: [
       { name: "{{lead_magnet}}", description: "Полный контекст выбранного лид-магнита (визуальный формат, контент, ценность, переход)", source: "Сгенерированные данные (lead_magnets)" },
+    ],
+  },
+  {
+    title: "Диагностики",
+    variables: [
       { name: "{{USER_ANSWERS}}", description: "JSON с ответами пользователя (для диагностик / тестов)", source: "Сгенерированные данные (quiz_json)" },
     ],
   },
