@@ -248,18 +248,20 @@ export default function ContentDetail() {
           </>
         ) : (
           <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={generateCarouselProgressively}
-              disabled={isAnyImageGenerating}
-            >
-              {generatingImagesKey === "carousel" ? (
-                <><Loader2 className="mr-1 h-3 w-3 animate-spin" />{carouselButtonLabel}</>
-              ) : (
-                <><Layers className="mr-1 h-3 w-3" />{carouselButtonLabel}</>
-              )}
-            </Button>
+            {supportsCarousel && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={generateCarouselProgressively}
+                disabled={isAnyImageGenerating}
+              >
+                {generatingImagesKey === "carousel" ? (
+                  <><Loader2 className="mr-1 h-3 w-3 animate-spin" />{carouselButtonLabel}</>
+                ) : (
+                  <><Layers className="mr-1 h-3 w-3" />{carouselButtonLabel}</>
+                )}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
