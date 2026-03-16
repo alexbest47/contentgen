@@ -55,6 +55,12 @@ const categories = [
       { name: "{{USER_ANSWERS}}", description: "JSON с ответами пользователя (для диагностик / тестов)", source: "Сгенерированные данные (quiz_json)" },
     ],
   },
+  {
+    title: "Контент-отзыв",
+    variables: [
+      { name: "{{case_data}}", description: "Полный JSON классификации выбранного кейса (тип видео, студент, цитаты, инсайты, ДО/ПОСЛЕ, теги)", source: "case_classifications.classification_json" },
+    ],
+  },
 ];
 
 function VariableTable({ variables }: { variables: typeof categories[0]["variables"] }) {

@@ -52,6 +52,7 @@ export const deriveCategory = (contentType: string, channel?: string): PromptCat
   if (contentType === "provocative_content") return "provocative_content";
   if (contentType === "list_content") return "list_content";
   if (contentType === "case_analysis") return "case_analysis";
+  if (contentType === "testimonial_content") return "testimonial_content";
   if (channel) {
     const mapping: Record<string, PromptCategory> = {
       instagram: "text_instagram",
