@@ -140,6 +140,18 @@ serve(async (req) => {
       .replace(/\{\{list_topic\}\}/g, listContext)
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
 
+    // Inject case_data for testimonial_content projects
+    if (project.selected_case_id) {
+      const { data: caseData } = await supabase
+        .from("case_classifications")
+        .select("classification_json")
+        .eq("id", project.selected_case_id)
+        .single();
+      if (caseData) {
+        userPrompt = userPrompt.replace(/\{\{case_data\}\}/g, JSON.stringify(caseData.classification_json, null, 2));
+      }
+    }
+
     // Call Claude
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
