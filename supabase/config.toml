@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.transcribe-case-file]
 verify_jwt = false
+
+[functions.deepgram-callback]
+verify_jwt = false
