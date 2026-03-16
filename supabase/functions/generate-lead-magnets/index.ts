@@ -184,6 +184,18 @@ serve(async (req) => {
 
     const items = (content_type === "reference_material" || content_type === "expert_content" || content_type === "provocative_content" || content_type === "list_content" || content_type === "testimonial_content") ? leadMagnets : leadMagnets.slice(0, 3);
     const inserts = items.map((lm: any) => {
+      if (content_type === "testimonial_content") {
+        return {
+          project_id,
+          title: lm.angle_title || lm.title || "Без названия",
+          visual_format: lm.angle_type || "",
+          visual_content: lm.key_idea || "",
+          instant_value: lm.hook || "",
+          save_reason: "",
+          transition_to_course: lm.transition_to_offer || "",
+          cta_text: "",
+        };
+      }
       if (content_type === "list_content") {
         return {
           project_id,
