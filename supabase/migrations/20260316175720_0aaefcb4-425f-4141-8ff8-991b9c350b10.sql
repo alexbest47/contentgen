@@ -1,0 +1,1 @@
+ALTER TABLE public.case_jobs ADD COLUMN name text;

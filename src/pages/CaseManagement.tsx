@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import {
   FolderSearch, Play, ChevronDown, ChevronRight, FileText,
   Copy, CheckCircle2, XCircle, Loader2, Clock, Download, Mic,
-  BrainCircuit, Eye, Trash2, SkipForward,
+  BrainCircuit, Eye, Trash2, SkipForward, Pencil, Check, X,
 } from "lucide-react";
 import { ElapsedTime } from "@/components/case/ElapsedTime";
 
@@ -53,9 +53,12 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
 
 export default function CaseManagement() {
   const [folderUrl, setFolderUrl] = useState("");
+  const [jobName, setJobName] = useState("");
   const [openJobs, setOpenJobs] = useState<Set<string>>(new Set());
   const [transcriptDialog, setTranscriptDialog] = useState<{ name: string; text: string } | null>(null);
   const [jsonDialog, setJsonDialog] = useState<{ name: string; json: any } | null>(null);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
   const queryClient = useQueryClient();
 
   const { data: jobs, isLoading } = useQuery({
@@ -128,10 +131,15 @@ export default function CaseManagement() {
       }
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       const skippedMsg = data.skipped > 0 ? ` Пропущено дублей: ${data.skipped}` : "";
       toast.success(`Сканирование запущено. Новых файлов: ${data.files_found}.${skippedMsg}`);
+      // Save job name if provided
+      if (jobName.trim() && data.job_id) {
+        await supabase.from("case_jobs").update({ name: jobName.trim() } as any).eq("id", data.job_id);
+      }
       setFolderUrl("");
+      setJobName("");
       queryClient.invalidateQueries({ queryKey: ["case-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["case-files"] });
     },
@@ -178,6 +186,18 @@ export default function CaseManagement() {
     onError: (err: Error) => toast.error(`Ошибка удаления: ${err.message}`),
   });
 
+  const updateNameMutation = useMutation({
+    mutationFn: async ({ jobId, name }: { jobId: string; name: string }) => {
+      const { error } = await supabase.from("case_jobs").update({ name: name.trim() || null } as any).eq("id", jobId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setEditingJobId(null);
+      queryClient.invalidateQueries({ queryKey: ["case-jobs"] });
+    },
+    onError: (err: Error) => toast.error(`Ошибка: ${err.message}`),
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -208,24 +228,31 @@ export default function CaseManagement() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-3">
+                <div className="space-y-3">
                   <Input
-                    placeholder="Вставьте публичную ссылку на папку Яндекс.Диска"
-                    value={folderUrl}
-                    onChange={(e) => setFolderUrl(e.target.value)}
-                    className="flex-1"
+                    placeholder="Название задачи (необязательно)"
+                    value={jobName}
+                    onChange={(e) => setJobName(e.target.value)}
                   />
-                  <Button
-                    onClick={() => startMutation.mutate(folderUrl)}
-                    disabled={!folderUrl.trim() || startMutation.isPending}
-                  >
-                    {startMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Play className="h-4 w-4" />
-                    )}
-                    Начать обработку
-                  </Button>
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Вставьте публичную ссылку на папку Яндекс.Диска"
+                      value={folderUrl}
+                      onChange={(e) => setFolderUrl(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={() => startMutation.mutate(folderUrl)}
+                      disabled={!folderUrl.trim() || startMutation.isPending}
+                    >
+                      {startMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                      Начать обработку
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -252,7 +279,7 @@ export default function CaseManagement() {
                 return (
                   <Card key={job.id}>
                     <Collapsible open={isOpen} onOpenChange={() => toggleJob(job.id)}>
-                      <CollapsibleTrigger className="w-full">
+                      <CollapsibleTrigger className="w-full group">
                         <CardContent className="flex items-center gap-4 py-4">
                           {isOpen ? (
                             <ChevronDown className="h-4 w-4 shrink-0" />
@@ -260,10 +287,53 @@ export default function CaseManagement() {
                             <ChevronRight className="h-4 w-4 shrink-0" />
                           )}
                           <div className="flex-1 text-left min-w-0">
-                            <p className="text-sm font-medium truncate">{job.folder_url}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(job.created_at).toLocaleString("ru-RU")}
-                            </p>
+                            {editingJobId === job.id ? (
+                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                <Input
+                                  value={editingName}
+                                  onChange={(e) => setEditingName(e.target.value)}
+                                  placeholder="Название задачи"
+                                  className="h-7 text-sm"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") updateNameMutation.mutate({ jobId: job.id, name: editingName });
+                                    if (e.key === "Escape") setEditingJobId(null);
+                                  }}
+                                />
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => updateNameMutation.mutate({ jobId: job.id, name: editingName })}>
+                                  <Check className="h-3 w-3" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditingJobId(null)}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-medium truncate">{(job as any).name || job.folder_url}</p>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingJobId(job.id);
+                                    setEditingName((job as any).name || "");
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                            {editingJobId !== job.id && (
+                              <>
+                                {(job as any).name && (
+                                  <p className="text-xs text-muted-foreground truncate">{job.folder_url}</p>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(job.created_at).toLocaleString("ru-RU")}
+                                </p>
+                              </>
+                            )}
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
                             {progress.total > 0 && (
