@@ -193,7 +193,7 @@ export default function OfferDetail() {
               <div className="min-w-0 flex-1 flex items-center gap-2">
                 <div className="font-medium">{p.title}</div>
                 <Badge variant="outline" className="text-xs shrink-0">
-                  {(p as any).content_type === "reference_material" ? "Справочный материал" : "Лид-магнит"}
+                  {(p as any).content_type === "reference_material" ? "Справочный материал" : (p as any).content_type === "expert_content" ? "Экспертный контент" : "Лид-магнит"}
                 </Badge>
               </div>
               <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
