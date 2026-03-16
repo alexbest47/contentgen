@@ -20,6 +20,7 @@ export const categories = Object.keys(categoryLabels) as PromptCategory[];
 
 export const contentTypeLabels: Record<string, string> = {
   lead_magnet: "Лидмагнит",
+  reference_material: "Справочный материал",
   diagnostic: "Диагностика",
 };
 
