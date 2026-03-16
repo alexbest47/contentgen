@@ -276,11 +276,12 @@ export default function ProjectDetail() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium text-sm">{selectedCase.file_name}</span>
-              {selectedCase.source_url && (
-                <a href={selectedCase.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                  <ExternalLink className="h-3 w-3" /> Видео
+              {selectedCase.source_url ? (
+                <a href={selectedCase.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-sm text-primary hover:underline">
+                  {selectedCase.file_name} <ExternalLink className="h-3 w-3" />
                 </a>
+              ) : (
+                <span className="font-medium text-sm">{selectedCase.file_name}</span>
               )}
             </div>
             {(() => {
