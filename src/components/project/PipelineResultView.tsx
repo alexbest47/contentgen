@@ -384,6 +384,7 @@ function SocialView({
   staticImage?: string;
   onSave?: (json: string) => void;
   contentType?: string;
+  projectContentType?: string;
 }) {
   const hasSplitTexts = !!(data.post_text_single || data.post_text_carousel);
   const [postText, setPostText] = useState(data.post_text || "");
