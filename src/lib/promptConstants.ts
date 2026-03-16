@@ -37,6 +37,7 @@ export const channelKeys = Object.keys(channelLabels);
 
 export const deriveCategory = (contentType: string, channel?: string): PromptCategory => {
   if (contentType === "diagnostic") return "test_generation";
+  if (contentType === "reference_material") return "reference_materials";
   if (channel) {
     const mapping: Record<string, PromptCategory> = {
       instagram: "text_instagram",
