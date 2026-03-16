@@ -173,7 +173,7 @@ export default function OfferTypeDetail() {
         .from("offers")
         .insert({
           title: createTitle,
-          description: createDescription || null,
+          description: null,
           doc_url: createDocUrl || null,
           offer_type: offerType! as any,
           program_id: programId!,
