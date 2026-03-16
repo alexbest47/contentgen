@@ -273,6 +273,18 @@ export default function OfferDetail() {
           )}
           Сгенерировать провокационный контент
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => generateMutation.mutate("list_content")}
+          disabled={!!generatingType}
+        >
+          {generatingType === "list_content" ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4 mr-2" />
+          )}
+          Сгенерировать список
+        </Button>
       </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
