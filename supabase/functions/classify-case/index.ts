@@ -281,7 +281,7 @@ Deno.serve(async (req) => {
       const { data: nextFile } = await supabase
         .from("case_files")
         .select("id, job_id")
-        .eq("status", "classifying")
+        .eq("status", "transcribed")
         .order("created_at", { ascending: true })
         .limit(1)
         .single();
