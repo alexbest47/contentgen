@@ -55,11 +55,11 @@ Deno.serve(async (req) => {
     const transcript =
       deepgramData.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? "";
 
-    // Save transcript and set status to "classifying" (queued for Claude classification)
+    // Save transcript and set status to "transcribed" (waiting for classification)
     await supabase
       .from("case_files")
       .update({
-        status: "classifying",
+        status: "transcribed",
         transcript_text: transcript,
         transcript_json: deepgramData,
         status_updated_at: new Date().toISOString(),
