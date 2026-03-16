@@ -26,6 +26,7 @@ export type Database = {
           job_id: string
           resource_id: string | null
           status: string
+          status_updated_at: string | null
           transcript_json: Json | null
           transcript_text: string | null
         }
@@ -40,6 +41,7 @@ export type Database = {
           job_id: string
           resource_id?: string | null
           status?: string
+          status_updated_at?: string | null
           transcript_json?: Json | null
           transcript_text?: string | null
         }
@@ -54,6 +56,7 @@ export type Database = {
           job_id?: string
           resource_id?: string | null
           status?: string
+          status_updated_at?: string | null
           transcript_json?: Json | null
           transcript_text?: string | null
         }

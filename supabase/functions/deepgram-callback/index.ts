@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
         status: "completed",
         transcript_text: transcript,
         transcript_json: deepgramData,
+        status_updated_at: new Date().toISOString(),
       })
       .eq("id", fileId);
 

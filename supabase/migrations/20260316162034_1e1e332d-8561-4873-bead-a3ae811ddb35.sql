@@ -1,0 +1,1 @@
+ALTER TABLE public.case_files ADD COLUMN status_updated_at timestamptz DEFAULT now();

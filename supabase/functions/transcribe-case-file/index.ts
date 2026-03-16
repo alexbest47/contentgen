@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     // Update file status to downloading
     await supabase
       .from("case_files")
-      .update({ status: "downloading" })
+      .update({ status: "downloading", status_updated_at: new Date().toISOString() })
       .eq("id", file_id);
 
     // Get download URL from Yandex
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     // Update status to transcribing
     await supabase
       .from("case_files")
-      .update({ status: "transcribing", download_url: downloadUrl })
+      .update({ status: "transcribing", download_url: downloadUrl, status_updated_at: new Date().toISOString() })
       .eq("id", file_id);
 
     // Build callback URL for Deepgram to send results to
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
       if (file_id) {
         await supabase
           .from("case_files")
-          .update({ status: "error", error_message: error.message })
+          .update({ status: "error", error_message: error.message, status_updated_at: new Date().toISOString() })
           .eq("id", file_id);
       }
 
