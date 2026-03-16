@@ -182,6 +182,60 @@ export default function ProjectDetail() {
     enabled: needsCaseSelection,
   });
 
+  // Usage count: how many projects reference each case_classification
+  const { data: usageCounts } = useQuery({
+    queryKey: ["case_usage_counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("selected_case_id")
+        .not("selected_case_id", "is", null);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      data?.forEach((p: any) => {
+        counts[p.selected_case_id] = (counts[p.selected_case_id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: needsCaseSelection,
+  });
+
+  // Compute filter options from classifications
+  const filterOptions = (() => {
+    if (!classifications) return { types: [], products: [], tones: [], qualities: [], tags: [] };
+    const types = new Set<string>();
+    const products = new Set<string>();
+    const tones = new Set<string>();
+    const qualities = new Set<string>();
+    const tags = new Set<string>();
+    classifications.forEach((c) => {
+      const j = (c.classification_json || {}) as any;
+      if (j.video_type) types.add(j.video_type);
+      (j.products || []).forEach((p: string) => products.add(p));
+      if (j.emotional_tone) tones.add(j.emotional_tone);
+      if (j.content_quality) qualities.add(j.content_quality);
+      (j.tags || []).forEach((t: string) => tags.add(t));
+    });
+    return {
+      types: Array.from(types).sort(),
+      products: Array.from(products).sort(),
+      tones: Array.from(tones).sort(),
+      qualities: Array.from(qualities).sort(),
+      tags: Array.from(tags).sort(),
+    };
+  })();
+
+  // Filter classifications
+  const filteredClassifications = classifications?.filter((c) => {
+    const j = (c.classification_json || {}) as any;
+    if (filterType !== "__all__" && j.video_type !== filterType) return false;
+    if (filterProduct !== "__all__" && !(j.products || []).includes(filterProduct)) return false;
+    if (filterTone !== "__all__" && j.emotional_tone !== filterTone) return false;
+    if (filterQuality !== "__all__" && j.content_quality !== filterQuality) return false;
+    if (filterTag !== "__all__" && !(j.tags || []).includes(filterTag)) return false;
+    return true;
+  });
+
   const selectCaseMutation = useMutation({
     mutationFn: async (caseId: string) => {
       setSelectingCase(true);
