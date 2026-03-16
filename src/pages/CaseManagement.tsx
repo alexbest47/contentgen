@@ -152,7 +152,7 @@ export default function CaseManagement() {
   const getJobProgress = (jobId: string) => {
     const files = getJobFiles(jobId);
     if (files.length === 0) return { total: 0, done: 0, percent: 0 };
-    const done = files.filter((f) => f.status === "classified" || f.status === "completed" || f.status === "error").length;
+    const done = files.filter((f) => ["classified", "completed", "error", "skipped"].includes(f.status)).length;
     return { total: files.length, done, percent: Math.round((done / files.length) * 100) };
   };
 
