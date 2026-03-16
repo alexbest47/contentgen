@@ -114,7 +114,7 @@ export default function OfferDetail() {
       if (nameError) throw new Error(nameError.message || "Ошибка генерации названия");
       if (nameData?.error) throw new Error(nameData.error);
 
-      setProgressText("Создание проекта...");
+      
       const { data: project, error: projError } = await supabase
         .from("projects")
         .insert({ offer_id: offerId!, title: nameData.name, created_by: user!.id, content_type: contentType } as any)
