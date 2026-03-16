@@ -228,24 +228,31 @@ export default function CaseManagement() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-3">
+                <div className="space-y-3">
                   <Input
-                    placeholder="Вставьте публичную ссылку на папку Яндекс.Диска"
-                    value={folderUrl}
-                    onChange={(e) => setFolderUrl(e.target.value)}
-                    className="flex-1"
+                    placeholder="Название задачи (необязательно)"
+                    value={jobName}
+                    onChange={(e) => setJobName(e.target.value)}
                   />
-                  <Button
-                    onClick={() => startMutation.mutate(folderUrl)}
-                    disabled={!folderUrl.trim() || startMutation.isPending}
-                  >
-                    {startMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Play className="h-4 w-4" />
-                    )}
-                    Начать обработку
-                  </Button>
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Вставьте публичную ссылку на папку Яндекс.Диска"
+                      value={folderUrl}
+                      onChange={(e) => setFolderUrl(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={() => startMutation.mutate(folderUrl)}
+                      disabled={!folderUrl.trim() || startMutation.isPending}
+                    >
+                      {startMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                      Начать обработку
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
