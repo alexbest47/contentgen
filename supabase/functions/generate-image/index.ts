@@ -72,11 +72,13 @@ serve(async (req) => {
       }
     }
 
-    // Get active prompt for this category
+    // Get active prompt for this category, filtered by project's content_type
+    const projectContentType = project.content_type || "lead_magnet";
     const { data: prompt } = await supabase
       .from("prompts")
       .select("*")
       .eq("category", category)
+      .eq("content_type", projectContentType)
       .eq("is_active", true)
       .limit(1)
       .single();

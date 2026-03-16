@@ -80,11 +80,13 @@ serve(async (req) => {
       } catch (e) { console.error("Error fetching offer doc:", e); }
     }
 
-    // Get active prompt for this pipeline (universal, no offer_type filter)
+    // Get active prompt for this pipeline, filtered by project's content_type
+    const projectContentType = project.content_type || "lead_magnet";
     const { data: pipelineSteps, error: stepsErr } = await supabase
       .from("prompts")
       .select("*")
       .eq("channel", content_type)
+      .eq("content_type", projectContentType)
       .eq("is_active", true)
       .order("step_order", { ascending: true })
       .limit(1);
