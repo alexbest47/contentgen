@@ -546,8 +546,10 @@ export default function ProjectDetail() {
                    {project?.content_type === "testimonial_content" ? (
                      <>
                        <div><span className="font-medium">Тип угла:</span> {lm.visual_format}</div>
-                       <div><span className="font-medium">Ключевая идея:</span> {lm.visual_content}</div>
+                       <div><span className="font-medium">Ключевая цитата:</span> {lm.visual_content || "—"}</div>
                        <div><span className="font-medium">Крючок:</span> {lm.instant_value}</div>
+                       {lm.save_reason && (() => { try { const arc = JSON.parse(lm.save_reason); return arc ? <div className="space-y-1"><span className="font-medium">Сюжетная арка:</span><div className="pl-3 text-muted-foreground"><div>До: {arc.before}</div><div>Поворот: {arc.turning_point}</div><div>После: {arc.after}</div></div></div> : null; } catch { return null; } })()}
+                       {lm.cta_text && <div><span className="font-medium">Что чувствует читатель:</span> {lm.cta_text}</div>}
                        <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
                      </>
                    ) : project?.content_type === "expert_content" ? (

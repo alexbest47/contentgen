@@ -152,6 +152,22 @@ serve(async (req) => {
       }
     }
 
+    // Inject case_angle for testimonial_content channel prompts
+    if (selectedLead && projectContentType === "testimonial_content") {
+      let storyArc = null;
+      try { storyArc = JSON.parse(selectedLead.save_reason || "null"); } catch {}
+      const caseAngleContext = JSON.stringify({
+        angle_type: selectedLead.visual_format || "",
+        angle_title: selectedLead.title || "",
+        hook: selectedLead.instant_value || "",
+        key_quote: selectedLead.visual_content || null,
+        story_arc: storyArc,
+        what_reader_feels: selectedLead.cta_text || "",
+        transition_to_offer: selectedLead.transition_to_course || "",
+      }, null, 2);
+      userPrompt = userPrompt.replace(/\{\{case_angle\}\}/g, caseAngleContext);
+    }
+
     // Call Claude
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
