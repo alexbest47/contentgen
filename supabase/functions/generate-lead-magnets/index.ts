@@ -112,13 +112,24 @@ serve(async (req) => {
     }
 
     const systemPrompt = prompt.system_prompt;
-    const userPrompt = prompt.user_prompt_template
+    let userPrompt = prompt.user_prompt_template
       .replace(/\{\{program_title\}\}/g, program.title)
       .replace(/\{\{offer_type\}\}/g, offer.offer_type)
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_description\}\}/g, offerDescription)
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
+
+    // For testimonial_content, fetch case data and substitute
+    if (content_type === "testimonial_content" && case_classification_id) {
+      const { data: caseData, error: caseErr } = await supabase
+        .from("case_classifications")
+        .select("classification_json")
+        .eq("id", case_classification_id)
+        .single();
+      if (caseErr) throw caseErr;
+      userPrompt = userPrompt.replace(/\{\{case_data\}\}/g, JSON.stringify(caseData.classification_json, null, 2));
+    }
 
     // Call Claude API
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
