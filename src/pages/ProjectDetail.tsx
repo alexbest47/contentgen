@@ -18,6 +18,14 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (refLabels[status]) return refLabels[status];
   }
+  if (contentType === "expert_content") {
+    const expertLabels: Record<string, string> = {
+      generating_leads: "Генерация тем экспертного контента...",
+      leads_ready: "Выберите тему экспертного контента",
+      lead_selected: "Тема экспертного контента выбрана",
+    };
+    if (expertLabels[status]) return expertLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов...",
