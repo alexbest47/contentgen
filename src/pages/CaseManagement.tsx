@@ -32,6 +32,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   error: { label: "Ошибка", variant: "destructive" },
   downloading: { label: "Скачивание...", variant: "default" },
   transcribing: { label: "Транскрибация...", variant: "default" },
+  transcribed: { label: "Ожидает классификации", variant: "secondary" },
   classifying: { label: "Классификация...", variant: "default" },
   classified: { label: "Классифицировано", variant: "outline" },
   skipped: { label: "Пропущен (дубль)", variant: "secondary" },
