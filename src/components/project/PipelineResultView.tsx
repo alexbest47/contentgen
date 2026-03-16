@@ -190,7 +190,7 @@ export default function PipelineResultView({ jsonContent, isEmail, contentType, 
     return <EmailView data={parsed as EmailJson} bannerImage={bannerImage} onSave={onSave} copyHtmlRef={copyHtmlRef} />;
   }
 
-  return <SocialView data={parsed as SocialJson} carouselImages={carouselImages} staticImage={staticImage} onSave={onSave} contentType={contentType} />;
+  return <SocialView data={parsed as SocialJson} carouselImages={carouselImages} staticImage={staticImage} onSave={onSave} contentType={contentType} projectContentType={projectContentType} />;
 }
 
 function useEmailSettings() {
