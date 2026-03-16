@@ -129,13 +129,29 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to create job: ${jobError?.message}`);
     }
 
-    // Extract public key from URL
-    const publicKey = folder_url;
+    // Extract public key and optional inner path from URL
+    // URL may be like: https://disk.360.yandex.ru/d/HASH/inner/path
+    let publicKey = folder_url;
+    let startPath = "/";
+    
+    try {
+      const urlObj = new URL(folder_url);
+      // Path format: /d/HASH or /d/HASH/inner/path
+      const pathParts = urlObj.pathname.split("/").filter(Boolean); // ["d", "HASH", "inner", "path"]
+      if (pathParts.length > 2) {
+        // Reconstruct base URL with just /d/HASH
+        publicKey = `${urlObj.origin}/${pathParts[0]}/${pathParts[1]}`;
+        // Inner path is everything after /d/HASH, URL-decoded
+        startPath = "/" + decodeURIComponent(pathParts.slice(2).join("/"));
+      }
+    } catch {
+      // If URL parsing fails, use as-is
+    }
 
     // Scan folder for videos
     let videos: { name: string; path: string; size: number; resource_id: string }[];
     try {
-      videos = await collectVideos(publicKey);
+      videos = await collectVideos(publicKey, startPath);
     } catch (e) {
       await supabase
         .from("case_jobs")
