@@ -27,6 +27,7 @@ export const contentTypeLabels: Record<string, string> = {
   diagnostic: "Диагностика",
   expert_content: "Экспертный контент",
   provocative_content: "Провокационный контент",
+  list_content: "Список",
 };
 
 export const contentTypeKeys = Object.keys(contentTypeLabels);
