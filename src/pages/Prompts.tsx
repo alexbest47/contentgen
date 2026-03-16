@@ -400,6 +400,9 @@ export default function Prompts() {
            <TabsContent value="list_content">
              {renderListContentTab()}
            </TabsContent>
+           <TabsContent value="case_analysis">
+             {renderCaseAnalysisTab()}
+           </TabsContent>
         </Tabs>
       ) : (
         <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
