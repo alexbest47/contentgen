@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Image, Send, Mail, ExternalLink, Eye } from "lucide-react";
+import { ArrowLeft, Sparkles, Check, Loader2, RefreshCw, Image, Send, Mail, ExternalLink, Eye, Filter } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { usePromptInfo } from "@/hooks/usePromptInfo";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -87,6 +88,11 @@ export default function ProjectDetail() {
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [jsonDialog, setJsonDialog] = useState<{ name: string; json: any } | null>(null);
   const [selectingCase, setSelectingCase] = useState(false);
+  const [filterType, setFilterType] = useState<string>("__all__");
+  const [filterProduct, setFilterProduct] = useState<string>("__all__");
+  const [filterTone, setFilterTone] = useState<string>("__all__");
+  const [filterQuality, setFilterQuality] = useState<string>("__all__");
+  const [filterTag, setFilterTag] = useState<string>("__all__");
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}`;
 
@@ -174,6 +180,60 @@ export default function ProjectDetail() {
       return data;
     },
     enabled: needsCaseSelection,
+  });
+
+  // Usage count: how many projects reference each case_classification
+  const { data: usageCounts } = useQuery({
+    queryKey: ["case_usage_counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("selected_case_id")
+        .not("selected_case_id", "is", null);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      data?.forEach((p: any) => {
+        counts[p.selected_case_id] = (counts[p.selected_case_id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: needsCaseSelection,
+  });
+
+  // Compute filter options from classifications
+  const filterOptions = (() => {
+    if (!classifications) return { types: [], products: [], tones: [], qualities: [], tags: [] };
+    const types = new Set<string>();
+    const products = new Set<string>();
+    const tones = new Set<string>();
+    const qualities = new Set<string>();
+    const tags = new Set<string>();
+    classifications.forEach((c) => {
+      const j = (c.classification_json || {}) as any;
+      if (j.video_type) types.add(j.video_type);
+      (j.products || []).forEach((p: string) => products.add(p));
+      if (j.emotional_tone) tones.add(j.emotional_tone);
+      if (j.content_quality) qualities.add(j.content_quality);
+      (j.tags || []).forEach((t: string) => tags.add(t));
+    });
+    return {
+      types: Array.from(types).sort(),
+      products: Array.from(products).sort(),
+      tones: Array.from(tones).sort(),
+      qualities: Array.from(qualities).sort(),
+      tags: Array.from(tags).sort(),
+    };
+  })();
+
+  // Filter classifications
+  const filteredClassifications = classifications?.filter((c) => {
+    const j = (c.classification_json || {}) as any;
+    if (filterType !== "__all__" && j.video_type !== filterType) return false;
+    if (filterProduct !== "__all__" && !(j.products || []).includes(filterProduct)) return false;
+    if (filterTone !== "__all__" && j.emotional_tone !== filterTone) return false;
+    if (filterQuality !== "__all__" && j.content_quality !== filterQuality) return false;
+    if (filterTag !== "__all__" && !(j.tags || []).includes(filterTag)) return false;
+    return true;
   });
 
   const selectCaseMutation = useMutation({
@@ -322,7 +382,58 @@ export default function ProjectDetail() {
                   Нет результатов классификации. Сначала обработайте кейсы в разделе «Управление кейсами».
                 </p>
               ) : (
-                <div className="overflow-auto">
+                <div className="space-y-4">
+                  {/* Filters */}
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <Select value={filterType} onValueChange={setFilterType}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="Тип" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Все типы</SelectItem>
+                        {filterOptions.types.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={filterProduct} onValueChange={setFilterProduct}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="Продукт" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Все продукты</SelectItem>
+                        {filterOptions.products.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={filterTone} onValueChange={setFilterTone}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="Тон" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Все тона</SelectItem>
+                        {filterOptions.tones.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={filterQuality} onValueChange={setFilterQuality}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="Качество" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Все качества</SelectItem>
+                        {filterOptions.qualities.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={filterTag} onValueChange={setFilterTag}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="Тег" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Все теги</SelectItem>
+                        {filterOptions.tags.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -333,12 +444,14 @@ export default function ProjectDetail() {
                         <TableHead>Тон</TableHead>
                         <TableHead>Качество</TableHead>
                         <TableHead>Теги</TableHead>
+                        <TableHead>Использован</TableHead>
                         <TableHead className="w-[140px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {classifications.map((c) => {
+                      {(filteredClassifications || []).map((c) => {
                         const j = (c.classification_json || {}) as any;
+                        const count = usageCounts?.[c.id] || 0;
                         return (
                           <TableRow key={c.id}>
                             <TableCell>
@@ -378,6 +491,13 @@ export default function ProjectDetail() {
                               </div>
                             </TableCell>
                             <TableCell>
+                              {count > 0 ? (
+                                <Badge variant="secondary" className="text-xs">{count}</Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
                               <div className="flex gap-1">
                                 <Button size="sm" variant="ghost" onClick={() => setJsonDialog({ name: c.file_name, json: j })}>
                                   <Eye className="h-4 w-4" />
@@ -396,6 +516,7 @@ export default function ProjectDetail() {
                       })}
                     </TableBody>
                   </Table>
+                  </div>
                 </div>
               )}
             </CardContent>
