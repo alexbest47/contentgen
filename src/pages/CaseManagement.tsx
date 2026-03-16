@@ -161,6 +161,20 @@ export default function CaseManagement() {
     toast.success("Текст скопирован");
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      const { error } = await supabase.from("case_jobs").delete().eq("id", jobId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Задание удалено");
+      queryClient.invalidateQueries({ queryKey: ["case-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["case-files"] });
+      queryClient.invalidateQueries({ queryKey: ["case-classifications"] });
+    },
+    onError: (err: Error) => toast.error(`Ошибка удаления: ${err.message}`),
+  });
+
   return (
     <div className="space-y-6">
       <div>
