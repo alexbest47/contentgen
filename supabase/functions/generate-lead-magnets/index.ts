@@ -10,8 +10,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { project_id } = await req.json();
+    const { project_id, content_type = "lead_magnet" } = await req.json();
     if (!project_id) throw new Error("project_id is required");
+    const promptCategory = content_type === "reference_material" ? "reference_materials" : "lead_magnets";
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -94,18 +95,19 @@ serve(async (req) => {
     // Update status
     await supabase.from("projects").update({ status: "generating_leads" }).eq("id", project_id);
 
-    // Get active prompt for lead_magnets (universal, no offer_type filter)
+    // Get active prompt for the given category
     const { data: prompt, error: promptErr } = await supabase
       .from("prompts")
       .select("*")
-      .eq("category", "lead_magnets")
+      .eq("category", promptCategory)
       .eq("is_active", true)
+      .is("channel", null)
       .limit(1)
       .maybeSingle();
 
     if (promptErr || !prompt) {
       await supabase.from("projects").update({ status: "error" }).eq("id", project_id);
-      throw new Error(`No active prompt found for category 'lead_magnets'. Please create one in the Prompts section.`);
+      throw new Error(`No active prompt found for category '${promptCategory}'. Please create one in the Prompts section.`);
     }
 
     const systemPrompt = prompt.system_prompt;
@@ -176,9 +178,9 @@ serve(async (req) => {
     await supabase.from("generation_runs").insert({
       project_id,
       prompt_id: prompt.id,
-      type: "lead_magnets",
+      type: promptCategory,
       status: "completed",
-      input_data: { program_title: program.title, offer_title: offer.title },
+      input_data: { program_title: program.title, offer_title: offer.title, content_type },
       output_data: leadMagnets,
       completed_at: new Date().toISOString(),
     });

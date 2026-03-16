@@ -274,7 +274,7 @@ export default function OfferTypeDetail() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: async (offerId: string) => {
+    mutationFn: async ({ offerId, contentType = "lead_magnet" }: { offerId: string; contentType?: string }) => {
       setGeneratingOfferId(offerId);
       const offer = offers?.find((o: any) => o.id === offerId);
       if (!offer) throw new Error("Оффер не найден");
@@ -294,9 +294,10 @@ export default function OfferTypeDetail() {
         .single();
       if (projError) throw projError;
 
-      setProgressText("Генерация лид-магнитов...");
+      const label = contentType === "reference_material" ? "справочных материалов" : "лид-магнитов";
+      setProgressText(`Генерация ${label}...`);
       const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
-        body: { project_id: project.id },
+        body: { project_id: project.id, content_type: contentType },
       });
       if (genError) throw new Error(genError.message || "Ошибка генерации");
       if (genData?.error) throw new Error(genData.error);
@@ -304,7 +305,7 @@ export default function OfferTypeDetail() {
       return { offerId, projectId: project.id };
     },
     onSuccess: ({ offerId: oId, projectId }) => {
-      toast.success("Лид-магниты сгенерированы!");
+      toast.success("Генерация завершена!");
       setGeneratingOfferId(null);
       setProgressText("");
       navigate(`/programs/${programId}/offers/${offerType}/${oId}/projects/${projectId}`);
@@ -491,11 +492,19 @@ export default function OfferTypeDetail() {
                   <span>{new Date(o.created_at).toLocaleDateString("ru-RU")}</span>
                   <Button
                     variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary"
-                    onClick={(e) => { e.stopPropagation(); generateMutation.mutate(o.id); }}
+                    onClick={(e) => { e.stopPropagation(); generateMutation.mutate({ offerId: o.id, contentType: "lead_magnet" }); }}
                     disabled={generatingOfferId === o.id}
                     title="Сгенерировать лид-магниты"
                   >
                     {generatingOfferId === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant="ghost" size="icon" className="h-8 w-8 text-accent-foreground hover:text-accent-foreground"
+                    onClick={(e) => { e.stopPropagation(); generateMutation.mutate({ offerId: o.id, contentType: "reference_material" }); }}
+                    disabled={generatingOfferId === o.id}
+                    title="Сгенерировать справочный материал"
+                  >
+                    {generatingOfferId === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-xs font-bold">СМ</span>}
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => openEdit(o, e)}>
                     <Pencil className="h-4 w-4" />

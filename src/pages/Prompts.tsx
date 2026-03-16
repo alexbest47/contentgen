@@ -99,6 +99,7 @@ export default function Prompts() {
 
   // Filter prompts by content_type for tabs
   const leadMagnetPrompts = (prompts ?? []).filter((p: any) => p.content_type === "lead_magnet");
+  const referenceMaterialPrompts = (prompts ?? []).filter((p: any) => p.content_type === "reference_material");
   const diagnosticPrompts = (prompts ?? []).filter((p: any) => p.content_type === "diagnostic");
 
   // Group lead_magnet prompts: those without channel are "general", others grouped by channel
@@ -145,6 +146,49 @@ export default function Prompts() {
     </div>
   );
 
+  const renderReferenceMaterialTab = () => {
+    const generalRefPrompts = referenceMaterialPrompts
+      .filter((p: any) => !p.channel)
+      .sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+
+    return (
+      <div className="space-y-10">
+        {generalRefPrompts.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="text-lg font-semibold">{contentTypeLabels.reference_material}</h3>
+              <Badge variant="secondary">{generalRefPrompts.length}</Badge>
+            </div>
+            <div className="space-y-3">
+              {generalRefPrompts.map((p: any) => (
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {channelKeys.map((ch) => {
+          const channelPrompts = referenceMaterialPrompts
+            .filter((p: any) => p.channel === ch)
+            .sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+          if (channelPrompts.length === 0) return null;
+          return (
+            <PipelineGroup
+              key={ch}
+              groupKey={ch}
+              label={`Пайплайн: ${channelLabels[ch]}`}
+              prompts={channelPrompts}
+              onEdit={openEdit}
+              onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
+              onDuplicate={openDuplicate}
+              onRefine={setRefinePrompt}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderDiagnosticTab = () => {
     const sorted = diagnosticPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
     return (
@@ -185,10 +229,14 @@ export default function Prompts() {
         <Tabs defaultValue="lead_magnet">
           <TabsList>
             <TabsTrigger value="lead_magnet">Лидмагнит</TabsTrigger>
+            <TabsTrigger value="reference_material">Справочный материал</TabsTrigger>
             <TabsTrigger value="diagnostic">Диагностики</TabsTrigger>
           </TabsList>
           <TabsContent value="lead_magnet">
             {renderLeadMagnetTab()}
+          </TabsContent>
+          <TabsContent value="reference_material">
+            {renderReferenceMaterialTab()}
           </TabsContent>
           <TabsContent value="diagnostic">
             {renderDiagnosticTab()}

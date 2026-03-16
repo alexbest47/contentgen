@@ -4,6 +4,7 @@ export type PromptCategory = Database["public"]["Enums"]["prompt_category"];
 
 export const categoryLabels: Record<PromptCategory, string> = {
   lead_magnets: "Лид-магниты",
+  reference_materials: "Справочные материалы",
   slide_structure: "Структура слайдов",
   text_instagram: "Текст Instagram",
   text_vk: "Текст VK",
@@ -19,6 +20,7 @@ export const categories = Object.keys(categoryLabels) as PromptCategory[];
 
 export const contentTypeLabels: Record<string, string> = {
   lead_magnet: "Лидмагнит",
+  reference_material: "Справочный материал",
   diagnostic: "Диагностика",
 };
 
@@ -35,6 +37,7 @@ export const channelKeys = Object.keys(channelLabels);
 
 export const deriveCategory = (contentType: string, channel?: string): PromptCategory => {
   if (contentType === "diagnostic") return "test_generation";
+  if (contentType === "reference_material") return "reference_materials";
   if (channel) {
     const mapping: Record<string, PromptCategory> = {
       instagram: "text_instagram",
