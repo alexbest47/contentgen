@@ -78,18 +78,21 @@ export default function Descriptions() {
                     <TableCell>{getOfferTypeLabel(o.offer_type)}</TableCell>
                     <TableCell>{o.title}</TableCell>
                     <TableCell>
-                      {o.doc_url ? (
-                        <a
-                          href={o.doc_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-primary hover:underline"
-                        >
-                          Открыть <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                      {(() => {
+                        const docUrl = o.doc_url || ((o as any).diagnostics as any[])?.[0]?.doc_url;
+                        return docUrl ? (
+                          <a
+                            href={docUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-primary hover:underline"
+                          >
+                            Открыть <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        );
+                      })()}
                     </TableCell>
                   </TableRow>
                 );
