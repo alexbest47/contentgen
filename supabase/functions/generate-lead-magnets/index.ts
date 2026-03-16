@@ -170,17 +170,31 @@ serve(async (req) => {
 
     await supabase.from("lead_magnets").delete().eq("project_id", project_id);
 
-    const items = content_type === "reference_material" ? leadMagnets : leadMagnets.slice(0, 3);
-    const inserts = items.map((lm: any) => ({
-      project_id,
-      title: lm.title || "Без названия",
-      visual_format: lm.visual_format || "",
-      visual_content: lm.visual_content || "",
-      instant_value: lm.instant_value || "",
-      save_reason: lm.save_reason || "",
-      transition_to_course: lm.transition_to_test || lm.transition_to_course || "",
-      cta_text: lm.cta_text || "",
-    }));
+    const items = (content_type === "reference_material" || content_type === "expert_content") ? leadMagnets : leadMagnets.slice(0, 3);
+    const inserts = items.map((lm: any) => {
+      if (content_type === "expert_content") {
+        return {
+          project_id,
+          title: lm.topic_title || lm.title || "Без названия",
+          visual_format: lm.category || "",
+          visual_content: lm.topic_angle || "",
+          instant_value: lm.hook || "",
+          save_reason: "",
+          transition_to_course: lm.transition_to_offer || "",
+          cta_text: "",
+        };
+      }
+      return {
+        project_id,
+        title: lm.title || "Без названия",
+        visual_format: lm.visual_format || "",
+        visual_content: lm.visual_content || "",
+        instant_value: lm.instant_value || "",
+        save_reason: lm.save_reason || "",
+        transition_to_course: lm.transition_to_test || lm.transition_to_course || "",
+        cta_text: lm.cta_text || "",
+      };
+    });
 
     const { error: insertErr } = await supabase.from("lead_magnets").insert(inserts);
     if (insertErr) throw insertErr;
