@@ -178,9 +178,9 @@ serve(async (req) => {
     await supabase.from("generation_runs").insert({
       project_id,
       prompt_id: prompt.id,
-      type: "lead_magnets",
+      type: promptCategory,
       status: "completed",
-      input_data: { program_title: program.title, offer_title: offer.title },
+      input_data: { program_title: program.title, offer_title: offer.title, content_type },
       output_data: leadMagnets,
       completed_at: new Date().toISOString(),
     });
