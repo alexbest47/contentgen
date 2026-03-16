@@ -53,9 +53,12 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
 
 export default function CaseManagement() {
   const [folderUrl, setFolderUrl] = useState("");
+  const [jobName, setJobName] = useState("");
   const [openJobs, setOpenJobs] = useState<Set<string>>(new Set());
   const [transcriptDialog, setTranscriptDialog] = useState<{ name: string; text: string } | null>(null);
   const [jsonDialog, setJsonDialog] = useState<{ name: string; json: any } | null>(null);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
   const queryClient = useQueryClient();
 
   const { data: jobs, isLoading } = useQuery({
