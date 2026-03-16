@@ -61,8 +61,7 @@ export default function OfferDetail() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [generatingProject, setGeneratingProject] = useState(false);
-  const [progressText, setProgressText] = useState("");
+  const [generatingType, setGeneratingType] = useState<string | null>(null);
 
   const { data: offer } = useQuery({
     queryKey: ["offer", offerId],
@@ -107,16 +106,15 @@ export default function OfferDetail() {
 
   const generateMutation = useMutation({
     mutationFn: async (contentType: "lead_magnet" | "reference_material" | "expert_content" = "lead_magnet") => {
-      setGeneratingProject(true);
+      setGeneratingType(contentType);
       const label = contentType === "reference_material" ? "справочных материалов" : contentType === "expert_content" ? "тем экспертного контента" : "лид-магнитов";
-      setProgressText("Генерация названия...");
       const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
         body: { course_title: offer?.title || "", program_title: (offer as any)?.paid_programs?.title || "" },
       });
       if (nameError) throw new Error(nameError.message || "Ошибка генерации названия");
       if (nameData?.error) throw new Error(nameData.error);
 
-      setProgressText("Создание проекта...");
+      
       const { data: project, error: projError } = await supabase
         .from("projects")
         .insert({ offer_id: offerId!, title: nameData.name, created_by: user!.id, content_type: contentType } as any)
@@ -124,7 +122,7 @@ export default function OfferDetail() {
         .single();
       if (projError) throw projError;
 
-      setProgressText(`Генерация ${label}...`);
+      
       const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
         body: { project_id: project.id, content_type: contentType },
       });
@@ -135,15 +133,13 @@ export default function OfferDetail() {
     },
     onSuccess: ({ projectId, label }) => {
       toast.success(`Генерация ${label} завершена!`);
-      setGeneratingProject(false);
-      setProgressText("");
+      setGeneratingType(null);
       queryClient.invalidateQueries({ queryKey: ["projects_by_offer", offerId] });
       navigate(`/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`);
     },
     onError: (e: Error) => {
       toast.error(e.message);
-      setGeneratingProject(false);
-      setProgressText("");
+      setGeneratingType(null);
     },
   });
 
@@ -215,21 +211,21 @@ export default function OfferDetail() {
       <div className="flex flex-wrap justify-center gap-3 pt-2">
         <Button
           onClick={() => generateMutation.mutate("lead_magnet")}
-          disabled={generatingProject}
+          disabled={!!generatingType}
         >
-          {generatingProject ? (
+          {generatingType === "lead_magnet" ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4 mr-2" />
           )}
-          {progressText || "Сгенерировать лид-магниты"}
+          Сгенерировать лид-магниты
         </Button>
         <Button
           variant="outline"
           onClick={() => generateMutation.mutate("reference_material")}
-          disabled={generatingProject}
+          disabled={!!generatingType}
         >
-          {generatingProject ? (
+          {generatingType === "reference_material" ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4 mr-2" />
@@ -239,9 +235,9 @@ export default function OfferDetail() {
         <Button
           variant="outline"
           onClick={() => generateMutation.mutate("expert_content")}
-          disabled={generatingProject}
+          disabled={!!generatingType}
         >
-          {generatingProject ? (
+          {generatingType === "expert_content" ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4 mr-2" />
