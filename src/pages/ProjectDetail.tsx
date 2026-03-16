@@ -198,13 +198,21 @@ export default function ProjectDetail() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  {(project?.content_type === "expert_content" || project?.content_type === "provocative_content") ? (
-                    <>
-                      <div><span className="font-medium">Категория:</span> {lm.visual_format}</div>
-                      <div><span className="font-medium">Угол подачи:</span> {lm.visual_content}</div>
-                      <div><span className="font-medium">Крючок:</span> {lm.instant_value}</div>
-                      <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
-                    </>
+                   {project?.content_type === "expert_content" ? (
+                     <>
+                       <div><span className="font-medium">Категория:</span> {lm.visual_format}</div>
+                       <div><span className="font-medium">Угол подачи:</span> {lm.visual_content}</div>
+                       <div><span className="font-medium">Крючок:</span> {lm.instant_value}</div>
+                       <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
+                     </>
+                   ) : project?.content_type === "provocative_content" ? (
+                     <>
+                       <div><span className="font-medium">Формат:</span> {lm.visual_format}</div>
+                       <div><span className="font-medium">Угол подачи:</span> {lm.visual_content}</div>
+                       <div><span className="font-medium">Крючок:</span> {lm.instant_value}</div>
+                       <div><span className="font-medium">Триггер дискуссии:</span> {(lm as any).save_reason}</div>
+                       <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
+                     </>
                   ) : (
                     <>
                       <div><span className="font-medium">Визуальный формат:</span> {lm.visual_format}</div>
