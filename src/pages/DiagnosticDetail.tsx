@@ -36,7 +36,7 @@ export default function DiagnosticDetail() {
 
   // Draft editing state
   const [editName, setEditName] = useState("");
-  const [editDescription, setEditDescription] = useState("");
+  const [editDocUrl, setEditDocUrl] = useState("");
   const [editProgramId, setEditProgramId] = useState("");
   const [editTags, setEditTags] = useState<string[]>([]);
   const [draftInitialized, setDraftInitialized] = useState(false);
