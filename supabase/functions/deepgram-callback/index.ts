@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify file exists and is in transcribing status (security check)
+    // Verify file exists and is in transcribing status
     const { data: file, error: fileError } = await supabase
       .from("case_files")
       .select("id, status")
@@ -55,18 +55,28 @@ Deno.serve(async (req) => {
     const transcript =
       deepgramData.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? "";
 
-    // Save transcript
+    // Save transcript and set status to "classifying" (queued for Claude classification)
     await supabase
       .from("case_files")
       .update({
-        status: "completed",
+        status: "classifying",
         transcript_text: transcript,
         transcript_json: deepgramData,
         status_updated_at: new Date().toISOString(),
       })
       .eq("id", fileId);
 
-    // Chain: find next pending file and trigger transcription
+    // Trigger classification for this file
+    fetch(`${supabaseUrl}/functions/v1/classify-case`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${supabaseServiceKey}`,
+      },
+      body: JSON.stringify({ file_id: fileId, job_id: jobId }),
+    }).catch(() => {});
+
+    // Continue transcription chain: find next pending file and trigger transcription
     const { data: nextFile } = await supabase
       .from("case_files")
       .select("id")
@@ -86,20 +96,6 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({ job_id: jobId, file_id: nextFile.id }),
       }).catch(() => {});
-    } else {
-      // Check if all files are done
-      const { count: pendingCount } = await supabase
-        .from("case_files")
-        .select("id", { count: "exact", head: true })
-        .eq("job_id", jobId)
-        .in("status", ["pending", "downloading", "transcribing"]);
-
-      if (!pendingCount || pendingCount === 0) {
-        await supabase
-          .from("case_jobs")
-          .update({ status: "completed" })
-          .eq("id", jobId);
-      }
     }
 
     return new Response(
