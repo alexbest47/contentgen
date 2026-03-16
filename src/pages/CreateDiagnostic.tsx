@@ -177,12 +177,12 @@ export default function CreateDiagnostic() {
             </div>
 
             <div className="space-y-2">
-              <Label>Описание</Label>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Подробное описание..."
-                className="min-h-[100px]"
+              <Label>Ссылка на Google Doc</Label>
+              <Input
+                value={docUrl}
+                onChange={(e) => setDocUrl(e.target.value)}
+                placeholder="https://docs.google.com/document/d/..."
+                required
               />
             </div>
 
