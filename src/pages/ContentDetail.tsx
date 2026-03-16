@@ -45,7 +45,8 @@ export default function ContentDetail() {
     },
   });
 
-  const supportsCarousel = !["expert_content", "provocative_content", "list_content"].includes(project?.content_type ?? "");
+  const supportsCarousel = !["expert_content", "provocative_content"].includes(project?.content_type ?? "");
+  const supportsStaticImage = !["list_content"].includes(project?.content_type ?? "");
 
   const { data: promptInfo } = usePromptInfo({
     content_type: contentType,
