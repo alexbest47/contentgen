@@ -335,6 +335,19 @@ export default function Prompts() {
     );
   };
 
+  const renderCaseAnalysisTab = () => {
+    const sorted = caseAnalysisPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+    return (
+      <div className="space-y-3">
+        {sorted.length > 0 ? sorted.map((p: any) => (
+          <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+        )) : (
+          <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
