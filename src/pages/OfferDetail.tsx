@@ -171,8 +171,11 @@ export default function OfferDetail() {
               className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => navigate(`/programs/${programId}/offers/${offerType}/${offerId}/projects/${p.id}`)}
             >
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 flex items-center gap-2">
                 <div className="font-medium">{p.title}</div>
+                <Badge variant="outline" className="text-xs shrink-0">
+                  {(p as any).content_type === "reference_material" ? "Справочный материал" : "Лид-магнит"}
+                </Badge>
               </div>
               <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
                 <Badge className={statusColors[p.status] ?? ""}>{statusLabels[p.status] ?? p.status}</Badge>

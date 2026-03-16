@@ -289,7 +289,7 @@ export default function OfferTypeDetail() {
       setProgressText("Создание проекта...");
       const { data: project, error: projError } = await supabase
         .from("projects")
-        .insert({ offer_id: offerId, title: nameData.name, created_by: user!.id })
+        .insert({ offer_id: offerId, title: nameData.name, created_by: user!.id, content_type: contentType } as any)
         .select("id")
         .single();
       if (projError) throw projError;
