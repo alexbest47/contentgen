@@ -6,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Sparkles, ImageIcon } from "lucide-react";
 import { type EmailBlock } from "./BlockCanvas";
-import { offerTypeLabels } from "@/lib/offerTypes";
+import { OFFER_TYPES } from "@/lib/offerTypes";
 
 interface Props {
   block: EmailBlock;
