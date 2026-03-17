@@ -5,6 +5,7 @@ import { contentTypeLabels } from "@/lib/promptConstants";
 
 interface ExportTxtButtonProps {
   prompts: any[];
+  contentType?: string;
 }
 
 const CONTENT_TYPE_ORDER = [
