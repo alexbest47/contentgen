@@ -13,6 +13,7 @@ import {
 const mainNav = [
   { title: "Панель управления", url: "/", icon: LayoutDashboard },
   { title: "Платные программы", url: "/programs", icon: GraduationCap },
+  { title: "Конструктор писем", url: "/email-builder", icon: MailPlus },
   { title: "Теги", url: "/tags", icon: Tag },
   { title: "Таблица описаний", url: "/descriptions", icon: TableProperties },
   { title: "Архив", url: "/archive", icon: Archive },
