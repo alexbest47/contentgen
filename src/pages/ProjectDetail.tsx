@@ -54,6 +54,14 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (testimonialLabels[status]) return testimonialLabels[status];
   }
+  if (contentType === "myth_busting") {
+    const mythLabels: Record<string, string> = {
+      generating_leads: "Генерация тем разбора мифа...",
+      leads_ready: "Выберите тему разбора мифа",
+      lead_selected: "Тема разбора мифа выбрана",
+    };
+    if (mythLabels[status]) return mythLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов...",
@@ -312,7 +320,7 @@ export default function ProjectDetail() {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       queryClient.invalidateQueries({ queryKey: ["lead_magnets", projectId] });
       const ct = project?.content_type;
-      toast.success(ct === "reference_material" ? "Справочный материал выбран" : ct === "expert_content" ? "Тема экспертного контента выбрана" : ct === "provocative_content" ? "Тема провокационного контента выбрана" : ct === "list_content" ? "Тема списка выбрана" : ct === "testimonial_content" ? "Угол подачи выбран" : "Лид-магнит выбран");
+      toast.success(ct === "reference_material" ? "Справочный материал выбран" : ct === "expert_content" ? "Тема экспертного контента выбрана" : ct === "provocative_content" ? "Тема провокационного контента выбрана" : ct === "list_content" ? "Тема списка выбрана" : ct === "testimonial_content" ? "Угол подачи выбран" : ct === "myth_busting" ? "Тема разбора мифа выбрана" : "Лид-магнит выбран");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -560,7 +568,7 @@ export default function ProjectDetail() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">
             {project?.content_type === "reference_material" ? "Варианты справочных материалов" 
-              : (project?.content_type === "expert_content" || project?.content_type === "provocative_content") ? "Темы контента" 
+              : (project?.content_type === "expert_content" || project?.content_type === "provocative_content" || project?.content_type === "myth_busting") ? "Темы контента" 
               : project?.content_type === "list_content" ? "Варианты списков" 
               : project?.content_type === "testimonial_content" ? "Углы подачи кейса"
               : "Варианты лид-магнитов"}
@@ -584,7 +592,7 @@ export default function ProjectDetail() {
                        {lm.cta_text && <div><span className="font-medium">Что чувствует читатель:</span> {lm.cta_text}</div>}
                        <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
                      </>
-                   ) : project?.content_type === "expert_content" ? (
+                   ) : project?.content_type === "expert_content" || project?.content_type === "myth_busting" ? (
                      <>
                        <div><span className="font-medium">Категория:</span> {lm.visual_format}</div>
                        <div><span className="font-medium">Угол подачи:</span> {lm.visual_content}</div>

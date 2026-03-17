@@ -128,6 +128,13 @@ serve(async (req) => {
 - Мгновенная ценность: ${selectedLead.instant_value || ""}
 - Переход к курсу: ${selectedLead.transition_to_course || ""}`;
 
+    const mythContext = `Выбранная тема разбора мифа:
+- Название: ${selectedLead.title}
+- Категория: ${selectedLead.visual_format || ""}
+- Угол подачи: ${selectedLead.visual_content || ""}
+- Крючок: ${selectedLead.instant_value || ""}
+- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
+
     const userPrompt = prompt.user_prompt_template
       .replace(/\{\{program_title\}\}/g, program.title)
       .replace(/\{\{offer_type\}\}/g, OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type)
@@ -136,6 +143,7 @@ serve(async (req) => {
       .replace(/\{\{offer_description\}\}/g, offerDescription)
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
       .replace(/\{\{reference_material\}\}/g, leadMagnetContext)
+      .replace(/\{\{myth_topic\}\}/g, mythContext)
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription)
       .replace(/\{\{brand_style\}\}/g, brandStyle)
       .replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "")
