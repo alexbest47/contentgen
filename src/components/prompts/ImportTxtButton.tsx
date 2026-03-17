@@ -25,21 +25,17 @@ export default function ImportTxtButton() {
 
       const updated = data.updated?.length ?? 0;
       const notFound = data.notFound?.length ?? 0;
-      const unmapped = data.unmapped?.length ?? 0;
 
       queryClient.invalidateQueries({ queryKey: ["prompts"] });
 
       toast.success(`Импорт завершён: ${updated} обновлено`, {
-        description: notFound > 0 || unmapped > 0
-          ? `Не найдено: ${notFound}, не распознано: ${unmapped}`
+        description: notFound > 0
+          ? `Не найдено: ${notFound}`
           : undefined,
       });
 
       if (notFound > 0) {
         console.log("Not found sections:", data.notFound);
-      }
-      if (unmapped > 0) {
-        console.log("Unmapped sections:", data.unmapped);
       }
     } catch (err: any) {
       toast.error("Ошибка импорта", { description: err.message });
