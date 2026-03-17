@@ -7,12 +7,13 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, GraduationCap, Tag, TableProperties,
-  MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion,
+  MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion, MailPlus,
 } from "lucide-react";
 
 const mainNav = [
   { title: "Панель управления", url: "/", icon: LayoutDashboard },
   { title: "Платные программы", url: "/programs", icon: GraduationCap },
+  { title: "Конструктор писем", url: "/email-builder", icon: MailPlus },
   { title: "Теги", url: "/tags", icon: Tag },
   { title: "Таблица описаний", url: "/descriptions", icon: TableProperties },
   { title: "Архив", url: "/archive", icon: Archive },
