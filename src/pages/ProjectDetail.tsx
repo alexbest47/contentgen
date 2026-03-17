@@ -626,6 +626,36 @@ export default function ProjectDetail() {
         </div>
       )}
 
+      {showContentGeneration && colorSchemes && colorSchemes.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Цветовая гамма</h2>
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {colorSchemes.map((scheme) => {
+              const isSelected = selectedSchemeId === scheme.id;
+              return (
+                <button
+                  key={scheme.id}
+                  className={`relative rounded-lg border-2 p-3 text-left transition-all hover:border-primary/50 ${isSelected ? "border-primary ring-2 ring-primary/20" : "border-border"}`}
+                  onClick={() => saveColorScheme(scheme.id)}
+                >
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 rounded-full bg-primary p-0.5">
+                      <Check className="h-3 w-3 text-primary-foreground" />
+                    </div>
+                  )}
+                  <div className="flex gap-0.5 mb-2 h-10 rounded overflow-hidden">
+                    {scheme.preview_colors.map((color: string, i: number) => (
+                      <div key={i} className="flex-1" style={{ backgroundColor: color }} />
+                    ))}
+                  </div>
+                  <p className="text-sm font-medium truncate">{scheme.name}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {showContentGeneration && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Создание контента</h2>
