@@ -202,7 +202,9 @@ export default function ProjectDetail() {
 
   // Fetch case classifications for testimonial_content
   const isTestimonial = project?.content_type === "testimonial_content";
+  const isObjectionHandling = project?.content_type === "objection_handling";
   const needsCaseSelection = isTestimonial && project?.status === "draft" && !(project as any)?.selected_case_id;
+  const needsObjectionSelection = isObjectionHandling && project?.status === "draft" && !(project as any)?.selected_objection_id;
 
   // Fetch selected case classification
   const selectedCaseId = (project as any)?.selected_case_id;
@@ -218,6 +220,37 @@ export default function ProjectDetail() {
       return data;
     },
     enabled: isTestimonial && !!selectedCaseId,
+  });
+
+  // Fetch selected objection
+  const selectedObjectionId = (project as any)?.selected_objection_id;
+  const { data: selectedObjection } = useQuery({
+    queryKey: ["selected_objection", selectedObjectionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("objections" as any)
+        .select("*")
+        .eq("id", selectedObjectionId)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: isObjectionHandling && !!selectedObjectionId,
+  });
+
+  // Fetch objections for objection_handling - need programId from offer
+  const { data: objections } = useQuery({
+    queryKey: ["objections_for_select", programId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("objections" as any)
+        .select("*")
+        .eq("program_id", programId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: needsObjectionSelection,
   });
 
   const { data: classifications } = useQuery({
