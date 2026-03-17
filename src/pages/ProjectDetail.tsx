@@ -105,6 +105,8 @@ export default function ProjectDetail() {
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [jsonDialog, setJsonDialog] = useState<{ name: string; json: any } | null>(null);
   const [selectingCase, setSelectingCase] = useState(false);
+  const [selectingObjection, setSelectingObjection] = useState(false);
+  const [objectionSearch, setObjectionSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("__all__");
   const [filterProduct, setFilterProduct] = useState<string>("__all__");
   const [filterTone, setFilterTone] = useState<string>("__all__");
