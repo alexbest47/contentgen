@@ -12,7 +12,7 @@ import PipelineGroup from "@/components/prompts/PipelineGroup";
 import PromptStepCard from "@/components/prompts/PromptStepCard";
 import RefinePromptDialog from "@/components/prompts/RefinePromptDialog";
 import { contentTypeLabels, channelLabels, channelKeys, emptyForm, deriveCategory, type PromptForm } from "@/lib/promptConstants";
-import CsvImportButton from "@/components/prompts/CsvImportButton";
+import ExportTxtButton from "@/components/prompts/ExportTxtButton";
 
 export default function Prompts() {
   const queryClient = useQueryClient();
@@ -400,10 +400,7 @@ export default function Prompts() {
           <p className="text-muted-foreground">Настройка промптов для генерации контента</p>
         </div>
         <div className="flex items-center gap-2">
-          <CsvImportButton
-            existingCount={prompts?.length ?? 0}
-            prompts={prompts ?? []}
-          />
+          <ExportTxtButton prompts={prompts ?? []} />
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
               <Button><Plus className="mr-2 h-4 w-4" />Создать промпт</Button>
