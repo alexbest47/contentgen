@@ -364,7 +364,7 @@ export default function ProjectDetail() {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       queryClient.invalidateQueries({ queryKey: ["lead_magnets", projectId] });
       const ct = project?.content_type;
-      toast.success(ct === "reference_material" ? "Справочный материал выбран" : ct === "expert_content" ? "Тема экспертного контента выбрана" : ct === "provocative_content" ? "Тема провокационного контента выбрана" : ct === "list_content" ? "Тема списка выбрана" : ct === "testimonial_content" ? "Угол подачи выбран" : ct === "myth_busting" ? "Тема разбора мифа выбрана" : "Лид-магнит выбран");
+      toast.success(ct === "reference_material" ? "Справочный материал выбран" : ct === "expert_content" ? "Тема экспертного контента выбрана" : ct === "provocative_content" ? "Тема провокационного контента выбрана" : ct === "list_content" ? "Тема списка выбрана" : ct === "testimonial_content" ? "Угол подачи выбран" : ct === "myth_busting" ? "Тема разбора мифа выбрана" : ct === "objection_handling" ? "Угол подачи выбран" : "Лид-магнит выбран");
     },
     onError: (e: Error) => toast.error(e.message),
   });
