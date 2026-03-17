@@ -75,10 +75,11 @@ serve(async (req) => {
     const notFound: string[] = [];
 
     for (const section of sections) {
+      const lookupName = NAME_ALIASES[section.name] || section.name;
       const { data: prompt, error } = await supabase
         .from("prompts")
         .select("id, name")
-        .eq("name", section.name)
+        .eq("name", lookupName)
         .limit(1)
         .maybeSingle();
 
