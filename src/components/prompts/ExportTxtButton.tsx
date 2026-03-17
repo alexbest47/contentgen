@@ -18,7 +18,7 @@ const CONTENT_TYPE_ORDER = [
   "testimonial_content",
 ];
 
-export default function ExportTxtButton({ prompts }: ExportTxtButtonProps) {
+export default function ExportTxtButton({ prompts, contentType }: ExportTxtButtonProps) {
   const exportTxt = () => {
     if (prompts.length === 0) {
       toast.error("Нет промптов для экспорта");
