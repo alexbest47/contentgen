@@ -52,7 +52,6 @@ const NAME_ALIASES: Record<string, string> = {
   "Пост-провокация: VK": "Провокационный контент: VK",
   "Пост-провокация: Email": "Провокационный контент: Email",
 };
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
