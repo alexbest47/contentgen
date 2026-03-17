@@ -181,20 +181,11 @@ serve(async (req) => {
 
     let leadMagnets;
     try {
-      if (content_type === "reference_material") {
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          leadMagnets = [JSON.parse(jsonMatch[0])];
-        } else {
-          throw new Error("No JSON object found in response");
-        }
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        leadMagnets = JSON.parse(jsonMatch[0]);
       } else {
-        const jsonMatch = content.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          leadMagnets = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error("No JSON array found in response");
-        }
+        throw new Error("No JSON array found in response");
       }
     } catch (parseErr) {
       console.error("Parse error:", parseErr, "Content:", content);
@@ -204,7 +195,7 @@ serve(async (req) => {
 
     await supabase.from("lead_magnets").delete().eq("project_id", project_id);
 
-    const items = (content_type === "reference_material" || content_type === "expert_content" || content_type === "provocative_content" || content_type === "list_content" || content_type === "testimonial_content") ? leadMagnets : leadMagnets.slice(0, 3);
+    const items = (content_type === "lead_magnet") ? leadMagnets.slice(0, 5) : leadMagnets;
     const inserts = items.map((lm: any) => {
       if (content_type === "testimonial_content") {
         return {
