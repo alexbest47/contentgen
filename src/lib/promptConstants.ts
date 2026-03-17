@@ -20,6 +20,7 @@ export const categoryLabels: Record<PromptCategory, string> = {
   case_analysis: "Анализ кейсов",
   testimonial_content: "Контент-отзыв",
   myth_busting: "Разбор мифа",
+  objection_handling: "Отработка возражения",
 };
 
 export const categories = Object.keys(categoryLabels) as PromptCategory[];
