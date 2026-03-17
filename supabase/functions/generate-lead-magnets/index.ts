@@ -245,6 +245,18 @@ serve(async (req) => {
           target_segment: lm.target_segment || "",
         };
       }
+      if (content_type === "objection_handling") {
+        return {
+          project_id,
+          title: lm.angle_title || lm.title || "Без названия",
+          visual_format: lm.angle_type || "",
+          visual_content: lm.description || "",
+          instant_value: lm.hook || "",
+          transition_to_course: lm.transition_to_offer || "",
+          cta_text: "",
+          save_reason: "",
+        };
+      }
       if (content_type === "expert_content") {
         return {
           project_id,

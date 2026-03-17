@@ -721,7 +721,6 @@ export default function ProjectDetail() {
               : project?.content_type === "list_content" ? "Варианты списков" 
               : (project?.content_type === "testimonial_content" || project?.content_type === "objection_handling") ? "Углы подачи"
               : "Варианты лид-магнитов"}
-              : "Варианты лид-магнитов"}
           </h2>
           <div className="grid gap-4 lg:grid-cols-3">
             {visibleLeadMagnets.map((lm) => (
