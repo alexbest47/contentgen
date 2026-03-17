@@ -254,6 +254,7 @@ serve(async (req) => {
         save_reason: lm.save_reason || "",
         transition_to_course: lm.transition_to_test || lm.transition_to_course || "",
         cta_text: lm.cta_text || "",
+        target_segment: lm.target_segment || "",
       };
     });
 
