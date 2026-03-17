@@ -81,7 +81,7 @@ export default function GeneratedBlockSettings({
     onUpdateConfig({ ...config, [key]: value });
   };
 
-  const offerTypes = Object.entries(offerTypeLabels);
+  const offerTypes = OFFER_TYPES.map((t) => [t.key, t.label] as const);
 
   return (
     <div className="space-y-4">
