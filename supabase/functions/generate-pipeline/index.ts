@@ -129,6 +129,13 @@ serve(async (req) => {
 - Крючок: ${selectedLead.instant_value || ""}
 - Переход к офферу: ${selectedLead.transition_to_course || ""}`;
 
+    const mythContext = `Выбранная тема разбора мифа:
+- Название: ${selectedLead.title}
+- Категория: ${selectedLead.visual_format || ""}
+- Угол подачи: ${selectedLead.visual_content || ""}
+- Крючок: ${selectedLead.instant_value || ""}
+- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
+
     const provocativeContext = `Выбранная тема провокационного поста:
 - Название: ${selectedLead.title}
 - Категория: ${selectedLead.visual_format || ""}
@@ -154,6 +161,7 @@ serve(async (req) => {
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
       .replace(/\{\{reference_material\}\}/g, leadMagnetContext)
       .replace(/\{\{expert_post_topic\}\}/g, expertContext)
+      .replace(/\{\{myth_topic\}\}/g, mythContext)
       .replace(/\{\{provocation_topic\}\}/g, provocativeContext)
       .replace(/\{\{list_topic\}\}/g, listContext)
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription)

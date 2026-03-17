@@ -221,7 +221,7 @@ serve(async (req) => {
           cta_text: "",
         };
       }
-      if (content_type === "expert_content") {
+      if (content_type === "expert_content" || content_type === "myth_busting") {
         return {
           project_id,
           title: lm.topic_title || lm.title || "Без названия",
