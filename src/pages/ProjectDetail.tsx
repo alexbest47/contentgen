@@ -93,6 +93,7 @@ export default function ProjectDetail() {
   const [filterTone, setFilterTone] = useState<string>("__all__");
   const [filterQuality, setFilterQuality] = useState<string>("__all__");
   const [filterTag, setFilterTag] = useState<string>("__all__");
+  const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(null);
 
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}`;
 
