@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { letter_id, blocks_summary } = await req.json();
+    const { letter_id, letter_blocks_summary } = await req.json();
     if (!letter_id) throw new Error("letter_id required");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -33,11 +33,11 @@ serve(async (req) => {
     gvRows?.forEach((r: any) => { gv[r.key] = r.value; });
 
     // Build summary of blocks
-    const summary = JSON.stringify(blocks_summary || [], null, 2);
+    const summary = JSON.stringify(letter_blocks_summary || [], null, 2);
 
     let userPrompt = prompt.user_prompt_template || "";
     userPrompt = userPrompt
-      .replace(/\{\{blocks_summary\}\}/g, summary)
+      .replace(/\{\{letter_blocks_summary\}\}/g, summary)
       .replace(/\{\{offer_rules\}\}/g, gv.offer_rules || "")
       .replace(/\{\{antiAI_rules\}\}/g, gv.antiAI_rules || "")
       .replace(/\{\{brand_voice\}\}/g, gv.brand_voice || "");

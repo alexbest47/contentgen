@@ -250,7 +250,7 @@ export default function EmailBuilder() {
     setGeneratingSubject(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-email-subject", {
-        body: { letter_id: letterId, blocks_summary: blocks.map((b) => ({ type: b.block_type, config: b.config })) },
+        body: { letter_id: letterId, letter_blocks_summary: blocks.map((b) => ({ type: b.block_type, config: b.config })) },
       });
       if (error) throw error;
       if (data?.subject) setSubject(data.subject);
