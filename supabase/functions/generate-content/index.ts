@@ -112,7 +112,7 @@ serve(async (req) => {
 
     const userPrompt = prompt.user_prompt_template
       .replace(/\{\{program_title\}\}/g, program.title)
-      .replace(/\{\{offer_type\}\}/g, offer.offer_type)
+      .replace(/\{\{offer_type\}\}/g, OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type)
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_description\}\}/g, offerDescription)
