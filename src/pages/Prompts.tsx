@@ -415,7 +415,7 @@ export default function Prompts() {
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
       ) : (prompts ?? []).length > 0 ? (
-        <Tabs defaultValue="lead_magnet">
+        <Tabs defaultValue="lead_magnet" onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="lead_magnet">Лидмагнит</TabsTrigger>
             <TabsTrigger value="reference_material">Справочный материал</TabsTrigger>
