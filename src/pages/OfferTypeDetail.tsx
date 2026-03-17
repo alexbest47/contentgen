@@ -443,22 +443,6 @@ export default function OfferTypeDetail() {
                 </div>
                 <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
                   <span>{new Date(o.created_at).toLocaleDateString("ru-RU")}</span>
-                  <Button
-                    variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary"
-                    onClick={(e) => { e.stopPropagation(); generateMutation.mutate({ offerId: o.id, contentType: "lead_magnet" }); }}
-                    disabled={generatingOfferId === o.id}
-                    title="Сгенерировать лид-магниты"
-                  >
-                    {generatingOfferId === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  </Button>
-                  <Button
-                    variant="ghost" size="icon" className="h-8 w-8 text-accent-foreground hover:text-accent-foreground"
-                    onClick={(e) => { e.stopPropagation(); generateMutation.mutate({ offerId: o.id, contentType: "reference_material" }); }}
-                    disabled={generatingOfferId === o.id}
-                    title="Сгенерировать справочный материал"
-                  >
-                    {generatingOfferId === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-xs font-bold">СМ</span>}
-                  </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => openEdit(o, e)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
