@@ -45,7 +45,7 @@ export default function ContentDetail() {
     },
   });
 
-  const supportsCarousel = !["expert_content", "provocative_content", "testimonial_content", "myth_busting"].includes(project?.content_type ?? "");
+  const supportsCarousel = !["expert_content", "provocative_content", "testimonial_content", "myth_busting", "objection_handling"].includes(project?.content_type ?? "");
   const supportsStaticImage = !["list_content"].includes(project?.content_type ?? "");
 
   const { data: promptInfo } = usePromptInfo({

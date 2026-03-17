@@ -544,6 +544,9 @@ export default function Prompts() {
            <TabsContent value="myth_busting">
              {renderMythBustingTab()}
            </TabsContent>
+           <TabsContent value="objection_handling">
+             {renderObjectionHandlingTab()}
+           </TabsContent>
         </Tabs>
       ) : (
         <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>

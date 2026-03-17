@@ -733,7 +733,7 @@ export default function ProjectDetail() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                   {project?.content_type === "testimonial_content" ? (
+                   {(project?.content_type === "testimonial_content" || project?.content_type === "objection_handling") ? (
                      <>
                        <div><span className="font-medium">Тип угла:</span> {lm.visual_format}</div>
                        <div><span className="font-medium">Ключевая цитата:</span> {lm.visual_content || "—"}</div>
