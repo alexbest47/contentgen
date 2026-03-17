@@ -20,6 +20,8 @@ import Descriptions from "@/pages/Descriptions";
 import PromptVariables from "@/pages/PromptVariables";
 import Archive from "@/pages/Archive";
 import EmailSettings from "@/pages/EmailSettings";
+import EmailBuilderList from "@/pages/EmailBuilderList";
+import EmailBuilder from "@/pages/EmailBuilder";
 import CreateDiagnostic from "@/pages/CreateDiagnostic";
 import DiagnosticDetail from "@/pages/DiagnosticDetail";
 import Diagnostics from "@/pages/Diagnostics";
