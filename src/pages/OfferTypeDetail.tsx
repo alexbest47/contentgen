@@ -269,49 +269,6 @@ export default function OfferTypeDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const generateMutation = useMutation({
-    mutationFn: async ({ offerId, contentType = "lead_magnet" }: { offerId: string; contentType?: string }) => {
-      setGeneratingOfferId(offerId);
-      const offer = offers?.find((o: any) => o.id === offerId);
-      if (!offer) throw new Error("Оффер не найден");
-
-      setProgressText("Генерация названия...");
-      const { data: nameData, error: nameError } = await supabase.functions.invoke("generate-project-name", {
-        body: { course_title: offer.title, program_title: program?.title || "" },
-      });
-      if (nameError) throw new Error(nameError.message || "Ошибка генерации названия");
-      if (nameData?.error) throw new Error(nameData.error);
-
-      setProgressText("Создание проекта...");
-      const { data: project, error: projError } = await supabase
-        .from("projects")
-        .insert({ offer_id: offerId, title: nameData.name, created_by: user!.id, content_type: contentType } as any)
-        .select("id")
-        .single();
-      if (projError) throw projError;
-
-      const label = contentType === "reference_material" ? "справочных материалов" : "лид-магнитов";
-      setProgressText(`Генерация ${label}...`);
-      const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
-        body: { project_id: project.id, content_type: contentType },
-      });
-      if (genError) throw new Error(genError.message || "Ошибка генерации");
-      if (genData?.error) throw new Error(genData.error);
-
-      return { offerId, projectId: project.id };
-    },
-    onSuccess: ({ offerId: oId, projectId }) => {
-      toast.success("Генерация завершена!");
-      setGeneratingOfferId(null);
-      setProgressText("");
-      navigate(`/programs/${programId}/offers/${offerType}/${oId}/projects/${projectId}`);
-    },
-    onError: (e: Error) => {
-      toast.error(e.message);
-      setGeneratingOfferId(null);
-      setProgressText("");
-    },
-  });
 
   const openArchive = (offerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
