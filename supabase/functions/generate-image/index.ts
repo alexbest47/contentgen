@@ -37,6 +37,18 @@ serve(async (req) => {
       .single();
     if (projErr) throw projErr;
 
+    // Get brand_style from selected color scheme
+    let brandStyle = "";
+    if (project.selected_color_scheme_id) {
+      const { data: scheme } = await supabase.from("color_schemes").select("description").eq("id", project.selected_color_scheme_id).single();
+      if (scheme) brandStyle = scheme.description || "";
+    }
+
+    // Get global variables
+    const { data: globalVars } = await supabase.from("prompt_global_variables").select("key, value");
+    const gv: Record<string, string> = {};
+    (globalVars || []).forEach((v: any) => { gv[v.key] = v.value || ""; });
+
     const offer = project.offers;
     if (!offer) throw new Error("Project has no associated offer");
     const program = offer.paid_programs;
