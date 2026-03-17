@@ -5,6 +5,7 @@ import { contentTypeLabels } from "@/lib/promptConstants";
 
 interface ExportTxtButtonProps {
   prompts: any[];
+  contentType?: string;
 }
 
 const CONTENT_TYPE_ORDER = [
@@ -17,7 +18,7 @@ const CONTENT_TYPE_ORDER = [
   "testimonial_content",
 ];
 
-export default function ExportTxtButton({ prompts }: ExportTxtButtonProps) {
+export default function ExportTxtButton({ prompts, contentType }: ExportTxtButtonProps) {
   const exportTxt = () => {
     if (prompts.length === 0) {
       toast.error("Нет промптов для экспорта");
@@ -65,7 +66,7 @@ export default function ExportTxtButton({ prompts }: ExportTxtButtonProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "prompts_export.txt";
+    a.download = `prompts_export_${contentType || "all"}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`Экспортировано ${prompts.length} промптов`);

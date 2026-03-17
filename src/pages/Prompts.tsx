@@ -21,6 +21,7 @@ export default function Prompts() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<PromptForm>(emptyForm);
   const [refinePrompt, setRefinePrompt] = useState<any | null>(null);
+  const [activeTab, setActiveTab] = useState("lead_magnet");
 
   const { data: prompts, isLoading } = useQuery({
     queryKey: ["prompts"],
@@ -402,7 +403,7 @@ export default function Prompts() {
         </div>
         <div className="flex items-center gap-2">
           <ImportTxtButton />
-          <ExportTxtButton prompts={prompts ?? []} />
+          <ExportTxtButton prompts={(prompts ?? []).filter(p => p.content_type === activeTab)} contentType={activeTab} />
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
               <Button><Plus className="mr-2 h-4 w-4" />Создать промпт</Button>
@@ -415,7 +416,7 @@ export default function Prompts() {
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
       ) : (prompts ?? []).length > 0 ? (
-        <Tabs defaultValue="lead_magnet">
+        <Tabs defaultValue="lead_magnet" onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="lead_magnet">Лидмагнит</TabsTrigger>
             <TabsTrigger value="reference_material">Справочный материал</TabsTrigger>
