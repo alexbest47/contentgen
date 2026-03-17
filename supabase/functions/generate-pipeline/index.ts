@@ -129,11 +129,20 @@ serve(async (req) => {
 - Крючок: ${selectedLead.instant_value || ""}
 - Переход к офферу: ${selectedLead.transition_to_course || ""}`;
 
+    let mythHarm = "";
+    let mythTruth = "";
+    try {
+      const parsed = JSON.parse(selectedLead.save_reason || "{}");
+      mythHarm = parsed.harm || "";
+      mythTruth = parsed.truth || "";
+    } catch {}
     const mythContext = `Выбранная тема разбора мифа:
-- Название: ${selectedLead.title}
+- Формулировка мифа: ${selectedLead.title}
 - Категория: ${selectedLead.visual_format || ""}
-- Угол подачи: ${selectedLead.visual_content || ""}
+- Почему миф вреден: ${selectedLead.visual_content || ""}
 - Крючок: ${selectedLead.instant_value || ""}
+- Вред мифа: ${mythHarm}
+- Правда: ${mythTruth}
 - Переход к офферу: ${selectedLead.transition_to_course || ""}`;
 
     const provocativeContext = `Выбранная тема провокационного поста:

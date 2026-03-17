@@ -221,7 +221,20 @@ serve(async (req) => {
           cta_text: "",
         };
       }
-      if (content_type === "expert_content" || content_type === "myth_busting") {
+      if (content_type === "myth_busting") {
+        return {
+          project_id,
+          title: lm.myth_statement || lm.title || "Без названия",
+          visual_format: lm.category || "",
+          visual_content: lm.myth_angle || "",
+          instant_value: lm.hook || "",
+          save_reason: JSON.stringify({ harm: lm.harm || "", truth: lm.truth || "" }),
+          transition_to_course: lm.transition_to_offer || "",
+          cta_text: "",
+          target_segment: lm.target_segment || "",
+        };
+      }
+      if (content_type === "expert_content") {
         return {
           project_id,
           title: lm.topic_title || lm.title || "Без названия",
