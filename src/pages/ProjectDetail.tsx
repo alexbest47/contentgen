@@ -150,6 +150,37 @@ export default function ProjectDetail() {
     },
   });
 
+  // Color schemes
+  const { data: colorSchemes } = useQuery({
+    queryKey: ["color_schemes_active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("color_schemes")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at");
+      if (error) throw error;
+      return data as { id: string; name: string; description: string; preview_colors: string[]; is_active: boolean }[];
+    },
+  });
+
+  // Initialize selectedSchemeId from project or first active scheme
+  useEffect(() => {
+    if (project && colorSchemes) {
+      const saved = (project as any).selected_color_scheme_id;
+      if (saved && colorSchemes.some(s => s.id === saved)) {
+        setSelectedSchemeId(saved);
+      } else if (colorSchemes.length > 0 && !selectedSchemeId) {
+        setSelectedSchemeId(colorSchemes[0].id);
+      }
+    }
+  }, [project, colorSchemes]);
+
+  const saveColorScheme = async (schemeId: string) => {
+    setSelectedSchemeId(schemeId);
+    await supabase.from("projects").update({ selected_color_scheme_id: schemeId } as any).eq("id", projectId!);
+  };
+
   // Fetch case classifications for testimonial_content
   const isTestimonial = project?.content_type === "testimonial_content";
   const needsCaseSelection = isTestimonial && project?.status === "draft" && !(project as any)?.selected_case_id;
