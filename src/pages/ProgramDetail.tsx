@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, ShieldQuestion } from "lucide-react";
 import { toast } from "sonner";
 import { OFFER_TYPES } from "@/lib/offerTypes";
 
@@ -116,6 +116,12 @@ export default function ProgramDetail() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <div className="flex flex-wrap gap-3 mb-2">
+        <Button variant="outline" onClick={() => navigate(`/programs/${programId}/objections`)}>
+          <ShieldQuestion className="h-4 w-4 mr-2" />Работа с возражениями
+        </Button>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {OFFER_TYPES.map((type) => (

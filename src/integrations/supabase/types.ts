@@ -407,6 +407,41 @@ export type Database = {
           },
         ]
       }
+      objections: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          objection_text: string
+          program_id: string
+          tags: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          objection_text: string
+          program_id: string
+          tags?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          objection_text?: string
+          program_id?: string
+          tags?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objections_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "paid_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_tags: {
         Row: {
           id: string
@@ -545,6 +580,7 @@ export type Database = {
           selected_case_id: string | null
           selected_color_scheme_id: string | null
           selected_lead_magnet_id: string | null
+          selected_objection_id: string | null
           status: Database["public"]["Enums"]["project_status"]
           title: string
         }
@@ -557,6 +593,7 @@ export type Database = {
           selected_case_id?: string | null
           selected_color_scheme_id?: string | null
           selected_lead_magnet_id?: string | null
+          selected_objection_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           title: string
         }
@@ -569,6 +606,7 @@ export type Database = {
           selected_case_id?: string | null
           selected_color_scheme_id?: string | null
           selected_lead_magnet_id?: string | null
+          selected_objection_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           title?: string
         }
@@ -599,6 +637,13 @@ export type Database = {
             columns: ["selected_color_scheme_id"]
             isOneToOne: false
             referencedRelation: "color_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_selected_objection_id_fkey"
+            columns: ["selected_objection_id"]
+            isOneToOne: false
+            referencedRelation: "objections"
             referencedColumns: ["id"]
           },
         ]
@@ -780,6 +825,7 @@ export type Database = {
         | "case_analysis"
         | "testimonial_content"
         | "myth_busting"
+        | "objection_handling"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -946,6 +992,7 @@ export const Constants = {
         "case_analysis",
         "testimonial_content",
         "myth_busting",
+        "objection_handling",
       ],
     },
   },

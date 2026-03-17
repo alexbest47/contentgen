@@ -148,7 +148,9 @@ serve(async (req) => {
       .replace(/\{\{brand_style\}\}/g, brandStyle)
       .replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "")
       .replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "")
-      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "");
+      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "")
+      .replace(/\{\{objection_data\}\}/g, "")
+      .replace(/\{\{objection_angle\}\}/g, "");
 
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

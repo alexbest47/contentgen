@@ -62,6 +62,15 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (mythLabels[status]) return mythLabels[status];
   }
+  if (contentType === "objection_handling") {
+    const objLabels: Record<string, string> = {
+      draft: "Выберите возражение",
+      generating_leads: "Генерация углов подачи...",
+      leads_ready: "Выберите угол подачи",
+      lead_selected: "Угол подачи выбран",
+    };
+    if (objLabels[status]) return objLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов...",
@@ -96,6 +105,8 @@ export default function ProjectDetail() {
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [jsonDialog, setJsonDialog] = useState<{ name: string; json: any } | null>(null);
   const [selectingCase, setSelectingCase] = useState(false);
+  const [selectingObjection, setSelectingObjection] = useState(false);
+  const [objectionSearch, setObjectionSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("__all__");
   const [filterProduct, setFilterProduct] = useState<string>("__all__");
   const [filterTone, setFilterTone] = useState<string>("__all__");
@@ -191,7 +202,9 @@ export default function ProjectDetail() {
 
   // Fetch case classifications for testimonial_content
   const isTestimonial = project?.content_type === "testimonial_content";
+  const isObjectionHandling = project?.content_type === "objection_handling";
   const needsCaseSelection = isTestimonial && project?.status === "draft" && !(project as any)?.selected_case_id;
+  const needsObjectionSelection = isObjectionHandling && project?.status === "draft" && !(project as any)?.selected_objection_id;
 
   // Fetch selected case classification
   const selectedCaseId = (project as any)?.selected_case_id;
@@ -207,6 +220,37 @@ export default function ProjectDetail() {
       return data;
     },
     enabled: isTestimonial && !!selectedCaseId,
+  });
+
+  // Fetch selected objection
+  const selectedObjectionId = (project as any)?.selected_objection_id;
+  const { data: selectedObjection } = useQuery({
+    queryKey: ["selected_objection", selectedObjectionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("objections" as any)
+        .select("*")
+        .eq("id", selectedObjectionId)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: isObjectionHandling && !!selectedObjectionId,
+  });
+
+  // Fetch objections for objection_handling - need programId from offer
+  const { data: objections } = useQuery({
+    queryKey: ["objections_for_select", programId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("objections" as any)
+        .select("*")
+        .eq("program_id", programId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: needsObjectionSelection,
   });
 
   const { data: classifications } = useQuery({
@@ -304,6 +348,31 @@ export default function ProjectDetail() {
     },
   });
 
+  const selectObjectionMutation = useMutation({
+    mutationFn: async (objectionId: string) => {
+      setSelectingObjection(true);
+      const { error: updateErr } = await supabase.from("projects").update({
+        selected_objection_id: objectionId,
+      } as any).eq("id", projectId!);
+      if (updateErr) throw updateErr;
+      const { data, error } = await supabase.functions.invoke("generate-lead-magnets", {
+        body: { project_id: projectId, content_type: "objection_handling", selected_objection_id: objectionId },
+      });
+      if (error) throw new Error(error.message || "Ошибка генерации углов");
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["lead_magnets", projectId] });
+      toast.success("Углы подачи сгенерированы!");
+      setSelectingObjection(false);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setSelectingObjection(false);
+    },
+  });
+
   const selectMutation = useMutation({
     mutationFn: async (leadMagnetId: string) => {
       const selectedLm = leadMagnets?.find(lm => lm.id === leadMagnetId);
@@ -320,7 +389,7 @@ export default function ProjectDetail() {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       queryClient.invalidateQueries({ queryKey: ["lead_magnets", projectId] });
       const ct = project?.content_type;
-      toast.success(ct === "reference_material" ? "Справочный материал выбран" : ct === "expert_content" ? "Тема экспертного контента выбрана" : ct === "provocative_content" ? "Тема провокационного контента выбрана" : ct === "list_content" ? "Тема списка выбрана" : ct === "testimonial_content" ? "Угол подачи выбран" : ct === "myth_busting" ? "Тема разбора мифа выбрана" : "Лид-магнит выбран");
+      toast.success(ct === "reference_material" ? "Справочный материал выбран" : ct === "expert_content" ? "Тема экспертного контента выбрана" : ct === "provocative_content" ? "Тема провокационного контента выбрана" : ct === "list_content" ? "Тема списка выбрана" : ct === "testimonial_content" ? "Угол подачи выбран" : ct === "myth_busting" ? "Тема разбора мифа выбрана" : ct === "objection_handling" ? "Угол подачи выбран" : "Лид-магнит выбран");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -404,6 +473,86 @@ export default function ProjectDetail() {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Selected objection info for objection_handling */}
+      {isObjectionHandling && selectedObjection && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Выбранное возражение</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm">{selectedObjection.objection_text}</p>
+            <div className="flex flex-wrap gap-1">
+              {(selectedObjection.tags || []).map((t: string, i: number) => (
+                <Badge key={i} variant="secondary" className="text-xs">{t}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Objection selection for objection_handling */}
+      {needsObjectionSelection && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Выберите возражение</h2>
+          {selectingObjection && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Генерация углов подачи...
+            </div>
+          )}
+          <Card>
+            <CardContent className="pt-6">
+              {!objections || objections.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Нет возражений. Сначала добавьте их в разделе «Работа с возражениями».
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-9 py-1 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={objectionSearch}
+                      onChange={(e) => setObjectionSearch(e.target.value)}
+                      placeholder="Поиск по тексту возражения..."
+                    />
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Текст возражения</TableHead>
+                        <TableHead>Теги</TableHead>
+                        <TableHead className="w-[100px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {objections
+                        .filter((o: any) => o.objection_text.toLowerCase().includes(objectionSearch.toLowerCase()))
+                        .map((o: any) => (
+                          <TableRow key={o.id}>
+                            <TableCell className="text-sm">{o.objection_text}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {(o.tags || []).map((t: string, i: number) => (
+                                  <Badge key={i} variant="secondary" className="text-xs">{t}</Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Button size="sm" onClick={() => selectObjectionMutation.mutate(o.id)} disabled={selectingObjection}>
+                                Выбрать
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Case selection for testimonial_content */}
@@ -570,7 +719,7 @@ export default function ProjectDetail() {
             {project?.content_type === "reference_material" ? "Варианты справочных материалов" 
               : (project?.content_type === "expert_content" || project?.content_type === "provocative_content" || project?.content_type === "myth_busting") ? "Темы контента" 
               : project?.content_type === "list_content" ? "Варианты списков" 
-              : project?.content_type === "testimonial_content" ? "Углы подачи кейса"
+              : (project?.content_type === "testimonial_content" || project?.content_type === "objection_handling") ? "Углы подачи"
               : "Варианты лид-магнитов"}
           </h2>
           <div className="grid gap-4 lg:grid-cols-3">
@@ -583,7 +732,7 @@ export default function ProjectDetail() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                   {project?.content_type === "testimonial_content" ? (
+                   {(project?.content_type === "testimonial_content" || project?.content_type === "objection_handling") ? (
                      <>
                        <div><span className="font-medium">Тип угла:</span> {lm.visual_format}</div>
                        <div><span className="font-medium">Ключевая цитата:</span> {lm.visual_content || "—"}</div>

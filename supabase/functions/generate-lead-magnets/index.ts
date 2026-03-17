@@ -17,9 +17,9 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { project_id, content_type = "lead_magnet", case_classification_id } = body;
+    const { project_id, content_type = "lead_magnet", case_classification_id, selected_objection_id } = body;
     if (!project_id) throw new Error("project_id is required");
-    const promptCategory = content_type === "reference_material" ? "reference_materials" : content_type === "expert_content" ? "expert_content" : content_type === "provocative_content" ? "provocative_content" : content_type === "list_content" ? "list_content" : content_type === "testimonial_content" ? "testimonial_content" : content_type === "myth_busting" ? "myth_busting" : "lead_magnets";
+    const promptCategory = content_type === "reference_material" ? "reference_materials" : content_type === "expert_content" ? "expert_content" : content_type === "provocative_content" ? "provocative_content" : content_type === "list_content" ? "list_content" : content_type === "testimonial_content" ? "testimonial_content" : content_type === "myth_busting" ? "myth_busting" : content_type === "objection_handling" ? "objection_handling" : "lead_magnets";
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -153,6 +153,17 @@ serve(async (req) => {
       userPrompt = userPrompt.replace(/\{\{case_data\}\}/g, JSON.stringify(caseData.classification_json, null, 2));
     }
 
+    // For objection_handling, fetch objection data and substitute
+    if (content_type === "objection_handling" && selected_objection_id) {
+      const { data: objData, error: objErr } = await supabase
+        .from("objections")
+        .select("id, objection_text, tags")
+        .eq("id", selected_objection_id)
+        .single();
+      if (objErr) throw objErr;
+      userPrompt = userPrompt.replace(/\{\{objection_data\}\}/g, JSON.stringify(objData, null, 2));
+    }
+
     // Call Claude API
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -232,6 +243,18 @@ serve(async (req) => {
           transition_to_course: lm.transition_to_offer || "",
           cta_text: "",
           target_segment: lm.target_segment || "",
+        };
+      }
+      if (content_type === "objection_handling") {
+        return {
+          project_id,
+          title: lm.angle_title || lm.title || "Без названия",
+          visual_format: lm.angle_type || "",
+          visual_content: lm.description || "",
+          instant_value: lm.hook || "",
+          transition_to_course: lm.transition_to_offer || "",
+          cta_text: "",
+          save_reason: "",
         };
       }
       if (content_type === "expert_content") {

@@ -109,6 +109,7 @@ export default function Prompts() {
   const caseAnalysisPrompts = (prompts ?? []).filter((p: any) => p.content_type === "case_analysis");
   const testimonialContentPrompts = (prompts ?? []).filter((p: any) => p.content_type === "testimonial_content");
   const mythBustingPrompts = (prompts ?? []).filter((p: any) => p.content_type === "myth_busting");
+  const objectionHandlingPrompts = (prompts ?? []).filter((p: any) => p.content_type === "objection_handling");
 
   // Group lead_magnet prompts: those without channel are "general", others grouped by channel
   const generalLeadMagnetPrompts = leadMagnetPrompts
@@ -438,6 +439,49 @@ export default function Prompts() {
     );
   };
 
+  const renderObjectionHandlingTab = () => {
+    const generalPrompts = objectionHandlingPrompts
+      .filter((p: any) => !p.channel)
+      .sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+
+    return (
+      <div className="space-y-10">
+        {generalPrompts.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="text-lg font-semibold">{contentTypeLabels.objection_handling}</h3>
+              <Badge variant="secondary">{generalPrompts.length}</Badge>
+            </div>
+            <div className="space-y-3">
+              {generalPrompts.map((p: any) => (
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {channelKeys.map((ch) => {
+          const channelPrompts = objectionHandlingPrompts
+            .filter((p: any) => p.channel === ch)
+            .sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+          if (channelPrompts.length === 0) return null;
+          return (
+            <PipelineGroup
+              key={ch}
+              groupKey={ch}
+              label={`Пайплайн: ${channelLabels[ch]}`}
+              prompts={channelPrompts}
+              onEdit={openEdit}
+              onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
+              onDuplicate={openDuplicate}
+              onRefine={setRefinePrompt}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -471,6 +515,7 @@ export default function Prompts() {
              <TabsTrigger value="case_analysis">Кейсы</TabsTrigger>
              <TabsTrigger value="testimonial_content">Контент-отзыв</TabsTrigger>
              <TabsTrigger value="myth_busting">Разбор мифа</TabsTrigger>
+             <TabsTrigger value="objection_handling">Отработка возражения</TabsTrigger>
            </TabsList>
            <TabsContent value="lead_magnet">
              {renderLeadMagnetTab()}
@@ -498,6 +543,9 @@ export default function Prompts() {
            </TabsContent>
            <TabsContent value="myth_busting">
              {renderMythBustingTab()}
+           </TabsContent>
+           <TabsContent value="objection_handling">
+             {renderObjectionHandlingTab()}
            </TabsContent>
         </Tabs>
       ) : (

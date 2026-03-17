@@ -177,7 +177,9 @@ serve(async (req) => {
       .replace(/\{\{brand_style\}\}/g, brandStyle)
       .replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "")
       .replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "")
-      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "");
+      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "")
+      .replace(/\{\{objection_data\}\}/g, "")
+      .replace(/\{\{objection_angle\}\}/g, "");
 
     // Inject case_data for testimonial_content projects
     if (project.selected_case_id) {
@@ -205,6 +207,30 @@ serve(async (req) => {
         transition_to_offer: selectedLead.transition_to_course || "",
       }, null, 2);
       userPrompt = userPrompt.replace(/\{\{case_angle\}\}/g, caseAngleContext);
+    }
+
+    // Inject objection_data and objection_angle for objection_handling
+    if (projectContentType === "objection_handling") {
+      if (project.selected_objection_id) {
+        const { data: objData } = await supabase
+          .from("objections")
+          .select("id, objection_text, tags")
+          .eq("id", project.selected_objection_id)
+          .single();
+        if (objData) {
+          userPrompt = userPrompt.replace(/\{\{objection_data\}\}/g, JSON.stringify(objData, null, 2));
+        }
+      }
+      if (selectedLead) {
+        const objAngleContext = JSON.stringify({
+          angle_type: selectedLead.visual_format || "",
+          angle_title: selectedLead.title || "",
+          description: selectedLead.visual_content || "",
+          hook: selectedLead.instant_value || "",
+          transition_to_offer: selectedLead.transition_to_course || "",
+        }, null, 2);
+        userPrompt = userPrompt.replace(/\{\{objection_angle\}\}/g, objAngleContext);
+      }
     }
 
     // Call Claude
