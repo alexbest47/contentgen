@@ -568,7 +568,7 @@ export default function ProjectDetail() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">
             {project?.content_type === "reference_material" ? "Варианты справочных материалов" 
-              : (project?.content_type === "expert_content" || project?.content_type === "provocative_content") ? "Темы контента" 
+              : (project?.content_type === "expert_content" || project?.content_type === "provocative_content" || project?.content_type === "myth_busting") ? "Темы контента" 
               : project?.content_type === "list_content" ? "Варианты списков" 
               : project?.content_type === "testimonial_content" ? "Углы подачи кейса"
               : "Варианты лид-магнитов"}
