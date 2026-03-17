@@ -62,6 +62,15 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (mythLabels[status]) return mythLabels[status];
   }
+  if (contentType === "objection_handling") {
+    const objLabels: Record<string, string> = {
+      draft: "Выберите возражение",
+      generating_leads: "Генерация углов подачи...",
+      leads_ready: "Выберите угол подачи",
+      lead_selected: "Угол подачи выбран",
+    };
+    if (objLabels[status]) return objLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов...",
