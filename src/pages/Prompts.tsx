@@ -400,6 +400,7 @@ export default function Prompts() {
           <p className="text-muted-foreground">Настройка промптов для генерации контента</p>
         </div>
         <div className="flex items-center gap-2">
+          <ImportTxtButton />
           <ExportTxtButton prompts={prompts ?? []} />
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
