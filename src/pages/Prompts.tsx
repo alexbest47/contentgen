@@ -21,6 +21,7 @@ export default function Prompts() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<PromptForm>(emptyForm);
   const [refinePrompt, setRefinePrompt] = useState<any | null>(null);
+  const [activeTab, setActiveTab] = useState("lead_magnet");
 
   const { data: prompts, isLoading } = useQuery({
     queryKey: ["prompts"],

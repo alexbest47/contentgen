@@ -66,7 +66,7 @@ export default function ExportTxtButton({ prompts, contentType }: ExportTxtButto
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "prompts_export.txt";
+    a.download = `prompts_export_${contentType || "all"}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`Экспортировано ${prompts.length} промптов`);
