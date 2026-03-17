@@ -130,7 +130,7 @@ export default function OfferDetail() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: async (contentType: "lead_magnet" | "reference_material" | "expert_content" | "provocative_content" | "list_content" | "testimonial_content" | "myth_busting" = "lead_magnet") => {
+    mutationFn: async (contentType: "lead_magnet" | "reference_material" | "expert_content" | "provocative_content" | "list_content" | "testimonial_content" | "myth_busting" | "objection_handling" = "lead_magnet") => {
       setGeneratingType(contentType);
       const labelMap: Record<string, string> = { reference_material: "справочных материалов", expert_content: "тем экспертного контента", provocative_content: "тем провокационного контента", list_content: "тем списка", testimonial_content: "контент-отзыва", myth_busting: "тем разбора мифа" };
       const label = labelMap[contentType] || "лид-магнитов";
