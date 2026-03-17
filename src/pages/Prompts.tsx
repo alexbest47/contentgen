@@ -402,7 +402,7 @@ export default function Prompts() {
         </div>
         <div className="flex items-center gap-2">
           <ImportTxtButton />
-          <ExportTxtButton prompts={prompts ?? []} />
+          <ExportTxtButton prompts={(prompts ?? []).filter(p => p.content_type === activeTab)} contentType={activeTab} />
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
               <Button><Plus className="mr-2 h-4 w-4" />Создать промпт</Button>
