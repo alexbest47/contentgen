@@ -117,6 +117,12 @@ export default function ProgramDetail() {
         </DialogContent>
       </Dialog>
 
+      <div className="flex flex-wrap gap-3 mb-2">
+        <Button variant="outline" onClick={() => navigate(`/programs/${programId}/objections`)}>
+          <ShieldQuestion className="h-4 w-4 mr-2" />Работа с возражениями
+        </Button>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {OFFER_TYPES.map((type) => (
           <Card
