@@ -54,6 +54,14 @@ const getStatusLabel = (status: string, contentType?: string): string => {
     };
     if (testimonialLabels[status]) return testimonialLabels[status];
   }
+  if (contentType === "myth_busting") {
+    const mythLabels: Record<string, string> = {
+      generating_leads: "Генерация тем разбора мифа...",
+      leads_ready: "Выберите тему разбора мифа",
+      lead_selected: "Тема разбора мифа выбрана",
+    };
+    if (mythLabels[status]) return mythLabels[status];
+  }
   const defaultLabels: Record<string, string> = {
     draft: "Черновик",
     generating_leads: "Генерация лид-магнитов...",
