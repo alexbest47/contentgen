@@ -25,6 +25,7 @@ import DiagnosticDetail from "@/pages/DiagnosticDetail";
 import Diagnostics from "@/pages/Diagnostics";
 import CaseManagement from "@/pages/CaseManagement";
 import Objections from "@/pages/Objections";
+import ObjectionsHub from "@/pages/ObjectionsHub";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
