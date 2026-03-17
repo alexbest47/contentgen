@@ -517,6 +517,7 @@ export default function Prompts() {
              <TabsTrigger value="testimonial_content">Контент-отзыв</TabsTrigger>
              <TabsTrigger value="myth_busting">Разбор мифа</TabsTrigger>
              <TabsTrigger value="objection_handling">Отработка возражения</TabsTrigger>
+             <TabsTrigger value="email_builder">Конструктор email</TabsTrigger>
            </TabsList>
            <TabsContent value="lead_magnet">
              {renderLeadMagnetTab()}
@@ -547,6 +548,20 @@ export default function Prompts() {
            </TabsContent>
            <TabsContent value="objection_handling">
              {renderObjectionHandlingTab()}
+           </TabsContent>
+           <TabsContent value="email_builder">
+             {(() => {
+               const sorted = emailBuilderPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+               return (
+                 <div className="space-y-3">
+                   {sorted.length > 0 ? sorted.map((p: any) => (
+                     <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                   )) : (
+                     <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
+                   )}
+                 </div>
+               );
+             })()}
            </TabsContent>
         </Tabs>
       ) : (
