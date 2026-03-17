@@ -13,6 +13,7 @@ import PromptStepCard from "@/components/prompts/PromptStepCard";
 import RefinePromptDialog from "@/components/prompts/RefinePromptDialog";
 import { contentTypeLabels, channelLabels, channelKeys, emptyForm, deriveCategory, type PromptForm } from "@/lib/promptConstants";
 import ExportTxtButton from "@/components/prompts/ExportTxtButton";
+import ImportTxtButton from "@/components/prompts/ImportTxtButton";
 
 export default function Prompts() {
   const queryClient = useQueryClient();
@@ -400,6 +401,7 @@ export default function Prompts() {
           <p className="text-muted-foreground">Настройка промптов для генерации контента</p>
         </div>
         <div className="flex items-center gap-2">
+          <ImportTxtButton />
           <ExportTxtButton prompts={prompts ?? []} />
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
