@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, ShieldQuestion } from "lucide-react";
 import { toast } from "sonner";
 import { OFFER_TYPES } from "@/lib/offerTypes";
 
