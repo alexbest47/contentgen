@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { letter_id, blocks_summary } = await req.json();
+    const { letter_id, letter_blocks_summary } = await req.json();
     if (!letter_id) throw new Error("letter_id required");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
