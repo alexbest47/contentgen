@@ -1,6 +1,18 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Loader2, Save, Check } from "lucide-react";
+
+const GLOBAL_VARS = [
+  { key: "offer_rules", name: "{{offer_rules}}", description: "Адаптация под тип оффера" },
+  { key: "antiAI_rules", name: "{{antiAI_rules}}", description: "Требования к тексту — антиAI" },
+  { key: "brand_voice", name: "{{brand_voice}}", description: "Голос бренда Talentsy" },
+];
 
 const categories = [
   {
@@ -91,6 +103,102 @@ function VariableTable({ variables }: { variables: typeof categories[0]["variabl
   );
 }
 
+function GlobalVariablesCard() {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("prompt_global_variables")
+        .select("key, value")
+        .in("key", GLOBAL_VARS.map((v) => v.key));
+      if (error) {
+        toast.error("Ошибка загрузки переменных");
+        setLoading(false);
+        return;
+      }
+      const map: Record<string, string> = {};
+      for (const row of data ?? []) map[row.key] = row.value;
+      setValues(map);
+      setLoading(false);
+    })();
+  }, []);
+
+  const handleSave = async (key: string) => {
+    setSaving(key);
+    const { error } = await supabase
+      .from("prompt_global_variables")
+      .update({ value: values[key] ?? "" })
+      .eq("key", key);
+    setSaving(null);
+    if (error) {
+      toast.error("Не удалось сохранить: " + error.message);
+    } else {
+      setSaved(key);
+      toast.success("Сохранено");
+      setTimeout(() => setSaved(null), 2000);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader><CardTitle>Общее</CardTitle></CardHeader>
+        <CardContent className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Загрузка…
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Общее</CardTitle>
+        <CardDescription>
+          Глобальные переменные с фиксированным значением. Редактируйте текст и сохраняйте — он будет подставляться в промпты.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {GLOBAL_VARS.map((v) => (
+          <div key={v.key} className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="font-mono text-xs">{v.name}</Badge>
+                <span className="text-sm text-muted-foreground">{v.description}</span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleSave(v.key)}
+                disabled={saving === v.key}
+              >
+                {saving === v.key ? (
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                ) : saved === v.key ? (
+                  <Check className="mr-1 h-4 w-4" />
+                ) : (
+                  <Save className="mr-1 h-4 w-4" />
+                )}
+                Сохранить
+              </Button>
+            </div>
+            <Textarea
+              className="min-h-[120px] font-mono text-sm"
+              value={values[v.key] ?? ""}
+              onChange={(e) => setValues((prev) => ({ ...prev, [v.key]: e.target.value }))}
+              placeholder={`Введите значение для ${v.name}…`}
+            />
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function PromptVariables() {
   return (
     <div className="space-y-6">
@@ -109,6 +217,8 @@ export default function PromptVariables() {
           </CardDescription>
         </CardHeader>
       </Card>
+
+      <GlobalVariablesCard />
 
       {categories.map((cat) => (
         <Card key={cat.title}>

@@ -560,6 +560,30 @@ export type Database = {
           },
         ]
       }
+      prompt_global_variables: {
+        Row: {
+          id: string
+          key: string
+          label: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          id?: string
+          key: string
+          label?: string
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          id?: string
+          key?: string
+          label?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       prompts: {
         Row: {
           category: Database["public"]["Enums"]["prompt_category"]
