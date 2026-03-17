@@ -45,6 +45,14 @@ function parseTxt(text: string): ParsedSection[] {
   return sections;
 }
 
+const NAME_ALIASES: Record<string, string> = {
+  "Генерация тем постов-провокаций": "Генерация тем провокационного контента",
+  "Пост-провокация: Instagram": "Провокационный контент: Instagram",
+  "Пост-провокация: Telegram": "Провокационный контент: Telegram",
+  "Пост-провокация: VK": "Провокационный контент: VK",
+  "Пост-провокация: Email": "Провокационный контент: Email",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -66,10 +74,11 @@ serve(async (req) => {
     const notFound: string[] = [];
 
     for (const section of sections) {
+      const lookupName = NAME_ALIASES[section.name] || section.name;
       const { data: prompt, error } = await supabase
         .from("prompts")
         .select("id, name")
-        .eq("name", section.name)
+        .eq("name", lookupName)
         .limit(1)
         .maybeSingle();
 
