@@ -348,6 +348,31 @@ export default function ProjectDetail() {
     },
   });
 
+  const selectObjectionMutation = useMutation({
+    mutationFn: async (objectionId: string) => {
+      setSelectingObjection(true);
+      const { error: updateErr } = await supabase.from("projects").update({
+        selected_objection_id: objectionId,
+      } as any).eq("id", projectId!);
+      if (updateErr) throw updateErr;
+      const { data, error } = await supabase.functions.invoke("generate-lead-magnets", {
+        body: { project_id: projectId, content_type: "objection_handling", selected_objection_id: objectionId },
+      });
+      if (error) throw new Error(error.message || "Ошибка генерации углов");
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["lead_magnets", projectId] });
+      toast.success("Углы подачи сгенерированы!");
+      setSelectingObjection(false);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setSelectingObjection(false);
+    },
+  });
+
   const selectMutation = useMutation({
     mutationFn: async (leadMagnetId: string) => {
       const selectedLm = leadMagnets?.find(lm => lm.id === leadMagnetId);
