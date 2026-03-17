@@ -279,6 +279,97 @@ export type Database = {
           },
         ]
       }
+      email_letter_blocks: {
+        Row: {
+          banner_image_prompt: string
+          banner_image_url: string
+          block_type: string
+          config: Json
+          created_at: string
+          generated_html: string
+          id: string
+          letter_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          banner_image_prompt?: string
+          banner_image_url?: string
+          block_type: string
+          config?: Json
+          created_at?: string
+          generated_html?: string
+          id?: string
+          letter_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          banner_image_prompt?: string
+          banner_image_url?: string
+          block_type?: string
+          config?: Json
+          created_at?: string
+          generated_html?: string
+          id?: string
+          letter_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_letter_blocks_letter_id_fkey"
+            columns: ["letter_id"]
+            isOneToOne: false
+            referencedRelation: "email_letters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_letters: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          preheader: string
+          selected_color_scheme_id: string | null
+          status: string
+          subject: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          preheader?: string
+          selected_color_scheme_id?: string | null
+          status?: string
+          subject?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          preheader?: string
+          selected_color_scheme_id?: string | null
+          status?: string
+          subject?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_letters_selected_color_scheme_id_fkey"
+            columns: ["selected_color_scheme_id"]
+            isOneToOne: false
+            referencedRelation: "color_schemes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_settings: {
         Row: {
           id: string
@@ -826,6 +917,7 @@ export type Database = {
         | "testimonial_content"
         | "myth_busting"
         | "objection_handling"
+        | "email_builder"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -993,6 +1085,7 @@ export const Constants = {
         "testimonial_content",
         "myth_busting",
         "objection_handling",
+        "email_builder",
       ],
     },
   },
