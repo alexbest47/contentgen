@@ -6,6 +6,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const OFFER_TYPE_LABELS: Record<string, string> = {
+  mini_course: "Мини-курс", diagnostic: "Диагностика", webinar: "Вебинар",
+  pre_list: "Предсписок", new_stream: "Старт нового потока", spot_available: "Освободилось место",
+  sale: "Распродажа", discount: "Скидка", download_pdf: "Скачай PDF",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
