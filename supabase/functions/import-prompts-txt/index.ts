@@ -55,6 +55,7 @@ function mapSection(name: string): { content_type: string; channel: string | nul
     "Лидмагнит: VK": { content_type: "lead_magnet", channel: "vk" },
     "Лидмагнит: Email": { content_type: "lead_magnet", channel: "email" },
     "Генерация справочного материала": { content_type: "reference_material", channel: null },
+    "Генерация справочных материалов": { content_type: "reference_material", channel: null },
     "Справочный материал: Instagram": { content_type: "reference_material", channel: "instagram" },
     "Справочный материал: Telegram": { content_type: "reference_material", channel: "telegram" },
     "Справочный материал: VK": { content_type: "reference_material", channel: "vk" },
