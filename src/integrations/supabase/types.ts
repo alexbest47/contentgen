@@ -363,6 +363,7 @@ export type Database = {
           is_selected: boolean
           project_id: string
           save_reason: string | null
+          target_segment: string | null
           title: string
           transition_to_course: string | null
           visual_content: string | null
@@ -376,6 +377,7 @@ export type Database = {
           is_selected?: boolean
           project_id: string
           save_reason?: string | null
+          target_segment?: string | null
           title: string
           transition_to_course?: string | null
           visual_content?: string | null
@@ -389,6 +391,7 @@ export type Database = {
           is_selected?: boolean
           project_id?: string
           save_reason?: string | null
+          target_segment?: string | null
           title?: string
           transition_to_course?: string | null
           visual_content?: string | null

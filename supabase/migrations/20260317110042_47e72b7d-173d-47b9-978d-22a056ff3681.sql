@@ -1,0 +1,1 @@
+ALTER TABLE public.lead_magnets ADD COLUMN target_segment text DEFAULT ''::text;
