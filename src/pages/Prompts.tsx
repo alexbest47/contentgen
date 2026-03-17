@@ -12,7 +12,7 @@ import PipelineGroup from "@/components/prompts/PipelineGroup";
 import PromptStepCard from "@/components/prompts/PromptStepCard";
 import RefinePromptDialog from "@/components/prompts/RefinePromptDialog";
 import { contentTypeLabels, channelLabels, channelKeys, emptyForm, deriveCategory, type PromptForm } from "@/lib/promptConstants";
-import CsvImportButton from "@/components/prompts/CsvImportButton";
+import ExportTxtButton from "@/components/prompts/ExportTxtButton";
 
 export default function Prompts() {
   const queryClient = useQueryClient();
