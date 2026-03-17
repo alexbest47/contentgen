@@ -218,7 +218,7 @@ export default function OfferDetail() {
               <div className="min-w-0 flex-1 flex items-center gap-2">
                 <div className="font-medium">{p.title}</div>
                 <Badge variant="outline" className="text-xs shrink-0">
-                  {(p as any).content_type === "reference_material" ? "Справочный материал" : (p as any).content_type === "expert_content" ? "Экспертный контент" : (p as any).content_type === "provocative_content" ? "Провокационный контент" : (p as any).content_type === "list_content" ? "Список" : (p as any).content_type === "testimonial_content" ? "Контент-отзыв" : (p as any).content_type === "myth_busting" ? "Разбор мифа" : "Лид-магнит"}
+                  {(p as any).content_type === "reference_material" ? "Справочный материал" : (p as any).content_type === "expert_content" ? "Экспертный контент" : (p as any).content_type === "provocative_content" ? "Провокационный контент" : (p as any).content_type === "list_content" ? "Список" : (p as any).content_type === "testimonial_content" ? "Контент-отзыв" : (p as any).content_type === "myth_busting" ? "Разбор мифа" : (p as any).content_type === "objection_handling" ? "Отработка возражения" : "Лид-магнит"}
                 </Badge>
               </div>
               <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
