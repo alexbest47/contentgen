@@ -153,6 +153,17 @@ serve(async (req) => {
       userPrompt = userPrompt.replace(/\{\{case_data\}\}/g, JSON.stringify(caseData.classification_json, null, 2));
     }
 
+    // For objection_handling, fetch objection data and substitute
+    if (content_type === "objection_handling" && selected_objection_id) {
+      const { data: objData, error: objErr } = await supabase
+        .from("objections")
+        .select("id, objection_text, tags")
+        .eq("id", selected_objection_id)
+        .single();
+      if (objErr) throw objErr;
+      userPrompt = userPrompt.replace(/\{\{objection_data\}\}/g, JSON.stringify(objData, null, 2));
+    }
+
     // Call Claude API
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
