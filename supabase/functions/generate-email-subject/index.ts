@@ -33,7 +33,7 @@ serve(async (req) => {
     gvRows?.forEach((r: any) => { gv[r.key] = r.value; });
 
     // Build summary of blocks
-    const summary = JSON.stringify(blocks_summary || [], null, 2);
+    const summary = JSON.stringify(letter_blocks_summary || [], null, 2);
 
     let userPrompt = prompt.user_prompt_template || "";
     userPrompt = userPrompt
