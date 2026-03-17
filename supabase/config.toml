@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.classify-case]
 verify_jwt = false
+
+[functions.import-prompts-txt]
+verify_jwt = false
