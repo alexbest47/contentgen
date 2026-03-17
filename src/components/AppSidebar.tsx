@@ -21,7 +21,6 @@ const mainNav = [
 const contentPrepNav = [
   { title: "Диагностики", url: "/diagnostics", icon: Stethoscope },
   { title: "Управление кейсами", url: "/cases", icon: FileVideo },
-  { title: "Работа с возражениями", url: "/objections", icon: ShieldQuestion },
 ];
 
 const adminNav = [
