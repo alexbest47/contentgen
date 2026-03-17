@@ -45,6 +45,15 @@ function parseTxt(text: string): ParsedSection[] {
   return sections;
 }
 
+const NAME_ALIASES: Record<string, string> = {
+  "Генерация тем постов-провокаций": "Генерация тем провокационного контента",
+  "Пост-провокация: Instagram": "Провокационный контент: Instagram",
+  "Пост-провокация: Telegram": "Провокационный контент: Telegram",
+  "Пост-провокация: VK": "Провокационный контент: VK",
+  "Пост-провокация: Email": "Провокационный контент: Email",
+};
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
