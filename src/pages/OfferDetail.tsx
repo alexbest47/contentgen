@@ -147,8 +147,8 @@ export default function OfferDetail() {
         .single();
       if (projError) throw projError;
 
-      // For testimonial_content, skip lead magnets generation — user picks case first
-      if (contentType === "testimonial_content") {
+      // For testimonial_content and objection_handling, skip lead magnets generation — user picks case/objection first
+      if (contentType === "testimonial_content" || contentType === "objection_handling") {
         return { projectId: project.id, label };
       }
 
