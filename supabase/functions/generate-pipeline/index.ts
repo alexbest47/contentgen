@@ -156,7 +156,11 @@ serve(async (req) => {
       .replace(/\{\{expert_post_topic\}\}/g, expertContext)
       .replace(/\{\{provocation_topic\}\}/g, provocativeContext)
       .replace(/\{\{list_topic\}\}/g, listContext)
-      .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
+      .replace(/\{\{program_doc_description\}\}/g, programDocDescription)
+      .replace(/\{\{brand_style\}\}/g, brandStyle)
+      .replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "")
+      .replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "")
+      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "");
 
     // Inject case_data for testimonial_content projects
     if (project.selected_case_id) {

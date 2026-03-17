@@ -136,7 +136,11 @@ serve(async (req) => {
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_description\}\}/g, offerDescription)
-      .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
+      .replace(/\{\{program_doc_description\}\}/g, programDocDescription)
+      .replace(/\{\{brand_style\}\}/g, brandStyle)
+      .replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "")
+      .replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "")
+      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "");
 
     // For testimonial_content, fetch case data and substitute
     if (content_type === "testimonial_content" && case_classification_id) {

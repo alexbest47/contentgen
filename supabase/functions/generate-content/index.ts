@@ -136,7 +136,11 @@ serve(async (req) => {
       .replace(/\{\{offer_description\}\}/g, offerDescription)
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
       .replace(/\{\{reference_material\}\}/g, leadMagnetContext)
-      .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
+      .replace(/\{\{program_doc_description\}\}/g, programDocDescription)
+      .replace(/\{\{brand_style\}\}/g, brandStyle)
+      .replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "")
+      .replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "")
+      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "");
 
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

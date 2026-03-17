@@ -118,7 +118,11 @@ serve(async (req) => {
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_description\}\}/g, offerDescription)
-      .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext);
+      .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
+      .replace(/\{\{brand_style\}\}/g, brandStyle)
+      .replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "")
+      .replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "")
+      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "");
 
     console.log("Generating image with prompt:", imagePrompt.substring(0, 200));
 
