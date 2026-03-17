@@ -475,6 +475,86 @@ export default function ProjectDetail() {
         </Card>
       )}
 
+      {/* Selected objection info for objection_handling */}
+      {isObjectionHandling && selectedObjection && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Выбранное возражение</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm">{selectedObjection.objection_text}</p>
+            <div className="flex flex-wrap gap-1">
+              {(selectedObjection.tags || []).map((t: string, i: number) => (
+                <Badge key={i} variant="secondary" className="text-xs">{t}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Objection selection for objection_handling */}
+      {needsObjectionSelection && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Выберите возражение</h2>
+          {selectingObjection && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Генерация углов подачи...
+            </div>
+          )}
+          <Card>
+            <CardContent className="pt-6">
+              {!objections || objections.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Нет возражений. Сначала добавьте их в разделе «Работа с возражениями».
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-9 py-1 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={objectionSearch}
+                      onChange={(e) => setObjectionSearch(e.target.value)}
+                      placeholder="Поиск по тексту возражения..."
+                    />
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Текст возражения</TableHead>
+                        <TableHead>Теги</TableHead>
+                        <TableHead className="w-[100px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {objections
+                        .filter((o: any) => o.objection_text.toLowerCase().includes(objectionSearch.toLowerCase()))
+                        .map((o: any) => (
+                          <TableRow key={o.id}>
+                            <TableCell className="text-sm">{o.objection_text}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {(o.tags || []).map((t: string, i: number) => (
+                                  <Badge key={i} variant="secondary" className="text-xs">{t}</Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Button size="sm" onClick={() => selectObjectionMutation.mutate(o.id)} disabled={selectingObjection}>
+                                Выбрать
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Case selection for testimonial_content */}
       {needsCaseSelection && (
         <div className="space-y-4">
