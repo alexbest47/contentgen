@@ -177,7 +177,9 @@ serve(async (req) => {
       .replace(/\{\{brand_style\}\}/g, brandStyle)
       .replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "")
       .replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "")
-      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "");
+      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "")
+      .replace(/\{\{objection_data\}\}/g, "")
+      .replace(/\{\{objection_angle\}\}/g, "");
 
     // Inject case_data for testimonial_content projects
     if (project.selected_case_id) {
