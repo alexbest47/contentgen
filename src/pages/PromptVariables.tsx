@@ -4,9 +4,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Save, Check } from "lucide-react";
+import { Loader2, Save, Check, Plus, Pencil, Trash2 } from "lucide-react";
 
 const GLOBAL_VARS = [
   { key: "offer_rules", name: "{{offer_rules}}", description: "Адаптация под тип оффера" },
@@ -29,6 +33,7 @@ const categories = [
       { name: "{{offer_type}}", description: "Тип оффера (мини-курс, вебинар, диагностика и т.д.)", source: "offers.offer_type" },
       { name: "{{offer_title}}", description: "Название оффера", source: "offers.title" },
       { name: "{{offer_description}}", description: "Описание оффера (загружается из Google Docs)", source: "Google Docs → offers.doc_url" },
+      { name: "{{brand_style}}", description: "Фирменный стиль (описание выбранной цветовой гаммы)", source: "Выбранная цветовая гамма (color_schemes.description)" },
     ],
   },
   {
@@ -199,6 +204,167 @@ function GlobalVariablesCard() {
   );
 }
 
+interface ColorScheme {
+  id: string;
+  name: string;
+  description: string;
+  preview_colors: string[];
+  is_active: boolean;
+}
+
+function ColorPreview({ colors, height = 20 }: { colors: string[]; height?: number }) {
+  return (
+    <div className="flex gap-1">
+      {colors.map((color, i) => (
+        <div
+          key={i}
+          className="rounded-sm border border-border"
+          style={{ backgroundColor: color, width: height, height }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ColorSchemesCard() {
+  const [schemes, setSchemes] = useState<ColorScheme[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<ColorScheme | null>(null);
+  const [form, setForm] = useState({ name: "", description: "", colorsText: "", is_active: true });
+  const [saving, setSaving] = useState(false);
+
+  const fetchSchemes = async () => {
+    const { data, error } = await supabase.from("color_schemes").select("*").order("created_at");
+    if (error) { toast.error("Ошибка загрузки гамм"); return; }
+    setSchemes((data as any[]) ?? []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchSchemes(); }, []);
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ name: "", description: "", colorsText: "", is_active: true });
+    setDialogOpen(true);
+  };
+
+  const openEdit = (s: ColorScheme) => {
+    setEditing(s);
+    setForm({ name: s.name, description: s.description, colorsText: s.preview_colors.join(", "), is_active: s.is_active });
+    setDialogOpen(true);
+  };
+
+  const parseColors = (text: string): string[] =>
+    text.split(",").map(c => c.trim()).filter(c => /^#[0-9a-fA-F]{3,8}$/.test(c));
+
+  const handleSave = async () => {
+    if (!form.name.trim()) { toast.error("Введите название"); return; }
+    setSaving(true);
+    const colors = parseColors(form.colorsText);
+    const payload = { name: form.name.trim(), description: form.description, preview_colors: colors, is_active: form.is_active };
+
+    if (editing) {
+      const { error } = await supabase.from("color_schemes").update(payload).eq("id", editing.id);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+    } else {
+      const { error } = await supabase.from("color_schemes").insert(payload);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+    }
+    setSaving(false);
+    setDialogOpen(false);
+    toast.success("Сохранено");
+    fetchSchemes();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Удалить цветовую гамму?")) return;
+    const { error } = await supabase.from("color_schemes").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Удалено");
+    fetchSchemes();
+  };
+
+  const previewColors = parseColors(form.colorsText);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader><CardTitle>Цветовые гаммы</CardTitle></CardHeader>
+        <CardContent className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Загрузка…
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Цветовые гаммы</CardTitle>
+              <CardDescription>Управляйте цветовыми гаммами для переменной <Badge variant="secondary" className="font-mono text-xs">{"{{brand_style}}"}</Badge></CardDescription>
+            </div>
+            <Button size="sm" onClick={openCreate}><Plus className="mr-1 h-4 w-4" />Добавить</Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {schemes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Нет цветовых гамм</p>
+          ) : (
+            <div className="space-y-2">
+              {schemes.map((s) => (
+                <div key={s.id} className="flex items-center gap-3 rounded-md border p-3">
+                  <ColorPreview colors={s.preview_colors} />
+                  <span className="font-medium flex-1">{s.name}</span>
+                  <Badge variant={s.is_active ? "default" : "secondary"}>{s.is_active ? "активна" : "неактивна"}</Badge>
+                  <Button size="icon" variant="ghost" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => handleDelete(s.id)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Редактировать гамму" : "Новая цветовая гамма"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Название гаммы</Label>
+              <Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Классика" />
+            </div>
+            <div className="space-y-2">
+              <Label>Цвета превью (hex, через запятую)</Label>
+              <Input value={form.colorsText} onChange={(e) => setForm(f => ({ ...f, colorsText: e.target.value }))} placeholder="#7B2FBE, #F0EDF7, #1A1A2E, #FFFFFF" />
+              {previewColors.length > 0 && <ColorPreview colors={previewColors} height={24} />}
+            </div>
+            <div className="space-y-2">
+              <Label>Описание гаммы (значение {"{{brand_style}}"})</Label>
+              <Textarea className="min-h-[160px] font-mono text-sm" value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Стиль: КЛАССИКА&#10;Фон изображения: градиент..." />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={form.is_active} onCheckedChange={(v) => setForm(f => ({ ...f, is_active: v }))} />
+              <Label>Активна</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Отмена</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export default function PromptVariables() {
   return (
     <div className="space-y-6">
@@ -219,6 +385,7 @@ export default function PromptVariables() {
       </Card>
 
       <GlobalVariablesCard />
+      <ColorSchemesCard />
 
       {categories.map((cat) => (
         <Card key={cat.title}>
