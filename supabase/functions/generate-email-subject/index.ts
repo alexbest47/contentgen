@@ -37,7 +37,7 @@ serve(async (req) => {
 
     let userPrompt = prompt.user_prompt_template || "";
     userPrompt = userPrompt
-      .replace(/\{\{blocks_summary\}\}/g, summary)
+      .replace(/\{\{letter_blocks_summary\}\}/g, summary)
       .replace(/\{\{offer_rules\}\}/g, gv.offer_rules || "")
       .replace(/\{\{antiAI_rules\}\}/g, gv.antiAI_rules || "")
       .replace(/\{\{brand_voice\}\}/g, gv.brand_voice || "");

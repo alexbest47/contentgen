@@ -92,6 +92,12 @@ const categories = [
       { name: "{{objection_angle}}", description: "JSON выбранного угла подачи (angle_type, angle_title, description, hook, transition_to_offer)", source: "Выбранный lead_magnet для objection_handling" },
     ],
   },
+  {
+    title: "Конструктор email",
+    variables: [
+      { name: "{{letter_blocks_summary}}", description: "JSON-сводка всех блоков письма (типы, офферы, темы) — заполняется автоматически при генерации темы", source: "Системная переменная (email_letter_blocks)" },
+    ],
+  },
 ];
 
 function VariableTable({ variables }: { variables: typeof categories[0]["variables"] }) {
