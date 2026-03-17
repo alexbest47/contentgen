@@ -592,7 +592,7 @@ export default function ProjectDetail() {
                        {lm.cta_text && <div><span className="font-medium">Что чувствует читатель:</span> {lm.cta_text}</div>}
                        <div><span className="font-medium">Переход к офферу:</span> {lm.transition_to_course}</div>
                      </>
-                   ) : project?.content_type === "expert_content" ? (
+                   ) : project?.content_type === "expert_content" || project?.content_type === "myth_busting" ? (
                      <>
                        <div><span className="font-medium">Категория:</span> {lm.visual_format}</div>
                        <div><span className="font-medium">Угол подачи:</span> {lm.visual_content}</div>

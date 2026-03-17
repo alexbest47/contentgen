@@ -470,6 +470,7 @@ export default function Prompts() {
              <TabsTrigger value="list_content">Список</TabsTrigger>
              <TabsTrigger value="case_analysis">Кейсы</TabsTrigger>
              <TabsTrigger value="testimonial_content">Контент-отзыв</TabsTrigger>
+             <TabsTrigger value="myth_busting">Разбор мифа</TabsTrigger>
            </TabsList>
            <TabsContent value="lead_magnet">
              {renderLeadMagnetTab()}
@@ -494,6 +495,9 @@ export default function Prompts() {
            </TabsContent>
            <TabsContent value="testimonial_content">
              {renderTestimonialContentTab()}
+           </TabsContent>
+           <TabsContent value="myth_busting">
+             {renderMythBustingTab()}
            </TabsContent>
         </Tabs>
       ) : (

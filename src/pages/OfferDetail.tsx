@@ -309,6 +309,18 @@ export default function OfferDetail() {
           )}
           Сгенерировать контент-отзыв
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => generateMutation.mutate("myth_busting")}
+          disabled={!!generatingType}
+        >
+          {generatingType === "myth_busting" ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4 mr-2" />
+          )}
+          Сгенерировать разбор мифа
+        </Button>
       </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

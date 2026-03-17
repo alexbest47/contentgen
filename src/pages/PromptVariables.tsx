@@ -79,6 +79,12 @@ const categories = [
       { name: "{{case_angle}}", description: "Полный JSON выбранного угла подачи кейса (angle_type, angle_title, hook, key_quote, story_arc, what_reader_feels, transition_to_offer)", source: "Выбранный lead_magnet для testimonial_content" },
     ],
   },
+  {
+    title: "Разбор мифа",
+    variables: [
+      { name: "{{myth_topic}}", description: "Полный контекст выбранной темы разбора мифа (категория, угол подачи, крючок, переход к офферу)", source: "Сгенерированные данные (lead_magnets)" },
+    ],
+  },
 ];
 
 function VariableTable({ variables }: { variables: typeof categories[0]["variables"] }) {
