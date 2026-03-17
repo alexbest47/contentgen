@@ -209,6 +209,30 @@ serve(async (req) => {
       userPrompt = userPrompt.replace(/\{\{case_angle\}\}/g, caseAngleContext);
     }
 
+    // Inject objection_data and objection_angle for objection_handling
+    if (projectContentType === "objection_handling") {
+      if (project.selected_objection_id) {
+        const { data: objData } = await supabase
+          .from("objections")
+          .select("id, objection_text, tags")
+          .eq("id", project.selected_objection_id)
+          .single();
+        if (objData) {
+          userPrompt = userPrompt.replace(/\{\{objection_data\}\}/g, JSON.stringify(objData, null, 2));
+        }
+      }
+      if (selectedLead) {
+        const objAngleContext = JSON.stringify({
+          angle_type: selectedLead.visual_format || "",
+          angle_title: selectedLead.title || "",
+          description: selectedLead.visual_content || "",
+          hook: selectedLead.instant_value || "",
+          transition_to_offer: selectedLead.transition_to_course || "",
+        }, null, 2);
+        userPrompt = userPrompt.replace(/\{\{objection_angle\}\}/g, objAngleContext);
+      }
+    }
+
     // Call Claude
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
