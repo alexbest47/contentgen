@@ -34,6 +34,18 @@ serve(async (req) => {
       .single();
     if (projErr) throw projErr;
 
+    // Get brand_style from selected color scheme
+    let brandStyle = "";
+    if (project.selected_color_scheme_id) {
+      const { data: scheme } = await supabase.from("color_schemes").select("description").eq("id", project.selected_color_scheme_id).single();
+      if (scheme) brandStyle = scheme.description || "";
+    }
+
+    // Get global variables (offer_rules, antiAI_rules, brand_voice)
+    const { data: globalVars } = await supabase.from("prompt_global_variables").select("key, value");
+    const gv: Record<string, string> = {};
+    (globalVars || []).forEach((v: any) => { gv[v.key] = v.value || ""; });
+
     const offer = project.offers;
     if (!offer) throw new Error("Project has no associated offer");
     const program = offer.paid_programs;
@@ -144,7 +156,11 @@ serve(async (req) => {
       .replace(/\{\{expert_post_topic\}\}/g, expertContext)
       .replace(/\{\{provocation_topic\}\}/g, provocativeContext)
       .replace(/\{\{list_topic\}\}/g, listContext)
-      .replace(/\{\{program_doc_description\}\}/g, programDocDescription);
+      .replace(/\{\{program_doc_description\}\}/g, programDocDescription)
+      .replace(/\{\{brand_style\}\}/g, brandStyle)
+      .replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "")
+      .replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "")
+      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "");
 
     // Inject case_data for testimonial_content projects
     if (project.selected_case_id) {
