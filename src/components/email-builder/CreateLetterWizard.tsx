@@ -180,7 +180,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     queryFn: async () => {
       if (!programId) return [];
       let q = supabase.from("offers").select("id, title").eq("program_id", programId).eq("is_archived", false);
-      if (offerType) q = q.eq("offer_type", offerType);
+      if (offerType) q = q.eq("offer_type", offerType as any);
       const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
     },
