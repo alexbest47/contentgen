@@ -347,7 +347,7 @@ export default function GeneratedBlockSettings({
               </Link>
             </div>
           ) : (
-            <Select value={config.case_id || ""} onValueChange={(v) => { setConfig("case_id", v); setConfig("selected_variant_id", undefined); }}>
+            <Select value={config.case_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, case_id: v, selected_variant_id: undefined })}>
               <SelectTrigger><SelectValue placeholder="Выберите кейс" /></SelectTrigger>
               <SelectContent>
                 {cases?.map((c) => (
