@@ -307,7 +307,7 @@ export default function GeneratedBlockSettings({
       {/* 4. Offer */}
       <div className="space-y-1.5">
         <Label className="text-xs">Оффер</Label>
-        <Select value={config.offer_id || ""} onValueChange={(v) => { setConfig("offer_id", v); setConfig("selected_variant_id", undefined); }}>
+        <Select value={config.offer_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, offer_id: v, selected_variant_id: undefined })}>
           <SelectTrigger><SelectValue placeholder="Выберите оффер" /></SelectTrigger>
           <SelectContent>
             {offers?.map((o) => (
