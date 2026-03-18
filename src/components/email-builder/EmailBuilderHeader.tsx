@@ -47,6 +47,9 @@ export default function EmailBuilderHeader({
           <Badge variant={saveStatus === "saved" ? "secondary" : saveStatus === "saving" ? "outline" : "destructive"}>
             {saveStatus === "saved" ? "Сохранено" : saveStatus === "saving" ? "Сохранение..." : "Не сохранено"}
           </Badge>
+          <Button variant="outline" size="sm" onClick={onSave} disabled={saveStatus === "saving"}>
+            Сохранить
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={onGenerateAll} disabled={generatingAll} className="gap-1.5">

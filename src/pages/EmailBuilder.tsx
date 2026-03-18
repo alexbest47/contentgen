@@ -329,6 +329,7 @@ export default function EmailBuilder() {
         onGenerateSubject={generateSubjectHandler}
         onGenerateAll={generateAllHandler}
         onExportHtml={handleExport}
+        onSave={save}
         generatingSubject={generatingSubject}
         generatingAll={generatingAll}
       />
