@@ -11,6 +11,7 @@ interface Props {
   onGenerateImage: (blockId: string) => void;
   generating: boolean;
   generatingImage: boolean;
+  userId: string;
 }
 
 export default function BlockSettingsPanel({
