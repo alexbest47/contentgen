@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles, ImageIcon, Info } from "lucide-react";
+import { Loader2, Sparkles, ImageIcon, Info, Plus } from "lucide-react";
 import { type EmailBlock } from "./BlockCanvas";
 import { OFFER_TYPES } from "@/lib/offerTypes";
 import VariantPickerModal from "./VariantPickerModal";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { format } from "date-fns";
 
 interface Props {
   block: EmailBlock;
@@ -42,6 +43,8 @@ const VARIANT_LABELS: Record<string, { plural: string; singular: string; action:
   testimonial_content: { plural: "углов подачи", singular: "угол", action: "Выбрать угол" },
   objection_handling: { plural: "углов подачи", singular: "угол", action: "Выбрать угол" },
 };
+
+const NEW_PROJECT_VALUE = "__new__";
 
 export default function GeneratedBlockSettings({
   block, onUpdateConfig, onGenerate, onGenerateImage, generating, generatingImage, userId,
@@ -80,33 +83,36 @@ export default function GeneratedBlockSettings({
   const isSingleLevel = SINGLE_LEVEL_TYPES.includes(block.block_type);
   const isTwoLevel = TWO_LEVEL_TYPES.includes(block.block_type);
 
-  // For single-level: find project matching offer_id + content_type
-  const { data: variantProject } = useQuery({
-    queryKey: ["variant_project", config.offer_id, block.block_type],
+  // For single-level: find ALL projects matching offer_id + content_type
+  const { data: variantProjects } = useQuery({
+    queryKey: ["variant_projects", config.offer_id, block.block_type],
     queryFn: async () => {
       const { data } = await supabase
         .from("projects")
-        .select("id, status")
+        .select("id, title, status, created_at")
         .eq("offer_id", config.offer_id)
         .eq("content_type", block.block_type)
-        .order("created_at", { ascending: false })
-        .limit(1);
-      return data?.[0] || null;
+        .order("created_at", { ascending: false });
+      return data ?? [];
     },
     enabled: isSingleLevel && !!config.offer_id,
   });
 
+  // Selected project for single-level
+  const selectedProjectId = config.selected_project_id;
+  const activeProjectId = selectedProjectId || variantProjects?.[0]?.id;
+
   const { data: variants } = useQuery({
-    queryKey: ["variants_for_block", variantProject?.id],
+    queryKey: ["variants_for_block", activeProjectId],
     queryFn: async () => {
       const { data } = await supabase
         .from("lead_magnets")
         .select("*")
-        .eq("project_id", variantProject!.id)
+        .eq("project_id", activeProjectId!)
         .order("created_at");
       return data ?? [];
     },
-    enabled: isSingleLevel && !!variantProject?.id,
+    enabled: isSingleLevel && !!activeProjectId,
   });
 
   // ── Two-level: cases / objections ──
@@ -129,41 +135,43 @@ export default function GeneratedBlockSettings({
     enabled: block.block_type === "objection_handling" && !!config.program_id,
   });
 
-  // For two-level: find project matching offer_id + content_type + case/objection
+  // For two-level: find ALL projects matching offer_id + content_type + case/objection
   const twoLevelItemId = block.block_type === "testimonial_content" ? config.case_id : config.objection_id;
 
-  const { data: angleProject } = useQuery({
-    queryKey: ["angle_project", config.offer_id, block.block_type, twoLevelItemId],
+  const { data: angleProjects } = useQuery({
+    queryKey: ["angle_projects", config.offer_id, block.block_type, twoLevelItemId],
     queryFn: async () => {
       let q = supabase
         .from("projects")
-        .select("id, status")
+        .select("id, title, status, created_at")
         .eq("offer_id", config.offer_id)
         .eq("content_type", block.block_type)
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .order("created_at", { ascending: false });
       if (block.block_type === "testimonial_content") {
         q = q.eq("selected_case_id", twoLevelItemId);
       } else {
         q = q.eq("selected_objection_id", twoLevelItemId);
       }
       const { data } = await q;
-      return data?.[0] || null;
+      return data ?? [];
     },
     enabled: isTwoLevel && !!config.offer_id && !!twoLevelItemId,
   });
 
+  // Selected project for two-level
+  const activeAngleProjectId = config.selected_project_id || angleProjects?.[0]?.id;
+
   const { data: angles } = useQuery({
-    queryKey: ["angles_for_block", angleProject?.id],
+    queryKey: ["angles_for_block", activeAngleProjectId],
     queryFn: async () => {
       const { data } = await supabase
         .from("lead_magnets")
         .select("*")
-        .eq("project_id", angleProject!.id)
+        .eq("project_id", activeAngleProjectId!)
         .order("created_at");
       return data ?? [];
     },
-    enabled: isTwoLevel && !!angleProject?.id,
+    enabled: isTwoLevel && !!activeAngleProjectId,
   });
 
   // ── Selected variant lookup ──
@@ -171,57 +179,56 @@ export default function GeneratedBlockSettings({
   const allVariants = isSingleLevel ? (variants ?? []) : (angles ?? []);
   const selectedVariant = allVariants.find((v: any) => v.id === selectedVariantId);
 
-  // ── Generate variants ──
-  const generateVariants = async (isRegenerate = false) => {
+  // ── Create new project + generate variants ──
+  const createProjectAndGenerate = async () => {
     if (!config.offer_id) return;
     setGeneratingVariants(true);
     try {
-      let projectId: string;
+      const offerTitle = offers?.find(o => o.id === config.offer_id)?.title || "Email Builder";
+      const insertData: any = {
+        offer_id: config.offer_id,
+        content_type: block.block_type,
+        title: `[Email] ${offerTitle}`,
+        created_by: userId,
+      };
+      if (block.block_type === "testimonial_content") insertData.selected_case_id = twoLevelItemId;
+      if (block.block_type === "objection_handling") insertData.selected_objection_id = twoLevelItemId;
 
-      if (isSingleLevel) {
-        if (variantProject?.id && isRegenerate) {
-          projectId = variantProject.id;
-        } else if (variantProject?.id) {
-          projectId = variantProject.id;
-        } else {
-          // Create project
-          const offerTitle = offers?.find(o => o.id === config.offer_id)?.title || "Email Builder";
-          const { data: newProject, error } = await supabase
-            .from("projects")
-            .insert({ offer_id: config.offer_id, content_type: block.block_type, title: `[Email] ${offerTitle}`, created_by: userId })
-            .select("id")
-            .single();
-          if (error) throw error;
-          projectId = newProject.id;
-        }
-      } else {
-        // Two-level
-        if (angleProject?.id && isRegenerate) {
-          projectId = angleProject.id;
-        } else if (angleProject?.id) {
-          projectId = angleProject.id;
-        } else {
-          const offerTitle = offers?.find(o => o.id === config.offer_id)?.title || "Email Builder";
-          const insertData: any = {
-            offer_id: config.offer_id,
-            content_type: block.block_type,
-            title: `[Email] ${offerTitle}`,
-            created_by: userId,
-          };
-          if (block.block_type === "testimonial_content") insertData.selected_case_id = twoLevelItemId;
-          else insertData.selected_objection_id = twoLevelItemId;
+      const { data: newProject, error } = await supabase
+        .from("projects")
+        .insert(insertData)
+        .select("id")
+        .single();
+      if (error) throw error;
 
-          const { data: newProject, error } = await supabase
-            .from("projects")
-            .insert(insertData)
-            .select("id")
-            .single();
-          if (error) throw error;
-          projectId = newProject.id;
-        }
-      }
+      const body: any = { project_id: newProject.id, content_type: block.block_type };
+      if (block.block_type === "testimonial_content") body.case_classification_id = twoLevelItemId;
+      if (block.block_type === "objection_handling") body.selected_objection_id = twoLevelItemId;
 
-      // Call generate-lead-magnets
+      const { data, error: fnError } = await supabase.functions.invoke("generate-lead-magnets", { body });
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+
+      await queryClient.invalidateQueries({ queryKey: ["variant_projects"] });
+      await queryClient.invalidateQueries({ queryKey: ["angle_projects"] });
+      await queryClient.invalidateQueries({ queryKey: ["variants_for_block"] });
+      await queryClient.invalidateQueries({ queryKey: ["angles_for_block"] });
+
+      onUpdateConfig({ ...config, selected_project_id: newProject.id, selected_variant_id: undefined });
+      toast.success("Новый проект создан, варианты сгенерированы");
+    } catch (e: any) {
+      toast.error(e.message || "Ошибка генерации");
+    } finally {
+      setGeneratingVariants(false);
+    }
+  };
+
+  // ── Regenerate variants for current project ──
+  const regenerateVariants = async () => {
+    const projectId = isSingleLevel ? activeProjectId : activeAngleProjectId;
+    if (!projectId) return;
+    setGeneratingVariants(true);
+    try {
       const body: any = { project_id: projectId, content_type: block.block_type };
       if (block.block_type === "testimonial_content") body.case_classification_id = twoLevelItemId;
       if (block.block_type === "objection_handling") body.selected_objection_id = twoLevelItemId;
@@ -230,18 +237,13 @@ export default function GeneratedBlockSettings({
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Invalidate queries
-      await queryClient.invalidateQueries({ queryKey: ["variant_project"] });
       await queryClient.invalidateQueries({ queryKey: ["variants_for_block"] });
-      await queryClient.invalidateQueries({ queryKey: ["angle_project"] });
       await queryClient.invalidateQueries({ queryKey: ["angles_for_block"] });
 
-      toast.success("Варианты сгенерированы");
-
-      // If regenerating, clear selected variant if it no longer exists
-      if (isRegenerate && selectedVariantId) {
+      if (selectedVariantId) {
         setConfig("selected_variant_id", undefined);
       }
+      toast.success("Варианты перегенерированы");
     } catch (e: any) {
       toast.error(e.message || "Ошибка генерации вариантов");
     } finally {
@@ -254,12 +256,27 @@ export default function GeneratedBlockSettings({
     setPickerOpen(false);
   };
 
+  const handleProjectChange = (value: string) => {
+    if (value === NEW_PROJECT_VALUE) {
+      createProjectAndGenerate();
+    } else {
+      onUpdateConfig({ ...config, selected_project_id: value, selected_variant_id: undefined });
+    }
+  };
+
   const labels = VARIANT_LABELS[block.block_type] || { plural: "вариантов", singular: "вариант", action: "Выбрать" };
   const offerTypes = OFFER_TYPES.map((t) => [t.key, t.label] as const);
 
   // ── Determine if generate block button should be enabled ──
   const hasVariantSelected = !!selectedVariantId;
   const canGenerate = !!config.program_id && !!config.offer_id && hasVariantSelected;
+
+  // Current projects list for display
+  const currentProjects = isSingleLevel ? (variantProjects ?? []) : (angleProjects ?? []);
+  const currentActiveProjectId = isSingleLevel ? activeProjectId : activeAngleProjectId;
+  const showProjectSelector = isSingleLevel
+    ? !!config.offer_id
+    : (isTwoLevel && !!config.offer_id && !!twoLevelItemId);
 
   return (
     <div className="space-y-4">
@@ -281,7 +298,7 @@ export default function GeneratedBlockSettings({
       {/* 2. Program */}
       <div className="space-y-1.5">
         <Label className="text-xs">Платная программа</Label>
-        <Select value={config.program_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, program_id: v, offer_id: "", selected_variant_id: undefined })}>
+        <Select value={config.program_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, program_id: v, offer_id: "", selected_project_id: undefined, selected_variant_id: undefined })}>
           <SelectTrigger><SelectValue placeholder="Выберите программу" /></SelectTrigger>
           <SelectContent>
             {programs?.map((p) => (
@@ -294,7 +311,7 @@ export default function GeneratedBlockSettings({
       {/* 3. Offer type */}
       <div className="space-y-1.5">
         <Label className="text-xs">Тип оффера</Label>
-        <Select value={config.offer_type || ""} onValueChange={(v) => onUpdateConfig({ ...config, offer_type: v, offer_id: "", selected_variant_id: undefined })}>
+        <Select value={config.offer_type || ""} onValueChange={(v) => onUpdateConfig({ ...config, offer_type: v, offer_id: "", selected_project_id: undefined, selected_variant_id: undefined })}>
           <SelectTrigger><SelectValue placeholder="Выберите тип" /></SelectTrigger>
           <SelectContent>
             {offerTypes.map(([key, label]) => (
@@ -307,7 +324,7 @@ export default function GeneratedBlockSettings({
       {/* 4. Offer */}
       <div className="space-y-1.5">
         <Label className="text-xs">Оффер</Label>
-        <Select value={config.offer_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, offer_id: v, selected_variant_id: undefined })}>
+        <Select value={config.offer_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, offer_id: v, selected_project_id: undefined, selected_variant_id: undefined })}>
           <SelectTrigger><SelectValue placeholder="Выберите оффер" /></SelectTrigger>
           <SelectContent>
             {offers?.map((o) => (
@@ -316,21 +333,6 @@ export default function GeneratedBlockSettings({
           </SelectContent>
         </Select>
       </div>
-
-      {/* ── SINGLE-LEVEL variant selection ── */}
-      {isSingleLevel && config.offer_id && (
-        <VariantSelectionBlock
-          variants={variants ?? []}
-          selectedVariant={selectedVariant}
-          labels={labels}
-          contentType={block.block_type}
-          generatingVariants={generatingVariants}
-          hasProject={!!variantProject?.id}
-          onGenerateVariants={() => generateVariants(false)}
-          onOpenPicker={() => setPickerOpen(true)}
-          onClearSelection={() => setConfig("selected_variant_id", undefined)}
-        />
-      )}
 
       {/* ── TWO-LEVEL: Step 1 — item selection ── */}
       {block.block_type === "testimonial_content" && config.offer_id && (
@@ -347,7 +349,7 @@ export default function GeneratedBlockSettings({
               </Link>
             </div>
           ) : (
-            <Select value={config.case_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, case_id: v, selected_variant_id: undefined })}>
+            <Select value={config.case_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, case_id: v, selected_project_id: undefined, selected_variant_id: undefined })}>
               <SelectTrigger><SelectValue placeholder="Выберите кейс" /></SelectTrigger>
               <SelectContent>
                 {cases?.map((c) => (
@@ -373,7 +375,7 @@ export default function GeneratedBlockSettings({
               </Link>
             </div>
           ) : (
-            <Select value={config.objection_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, objection_id: v, selected_variant_id: undefined })}>
+            <Select value={config.objection_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, objection_id: v, selected_project_id: undefined, selected_variant_id: undefined })}>
               <SelectTrigger><SelectValue placeholder="Выберите возражение" /></SelectTrigger>
               <SelectContent>
                 {objections?.map((o) => (
@@ -385,16 +387,63 @@ export default function GeneratedBlockSettings({
         </div>
       )}
 
-      {/* ── TWO-LEVEL: Step 2 — angle selection ── */}
-      {isTwoLevel && config.offer_id && twoLevelItemId && (
+      {/* ── Project selector ── */}
+      {showProjectSelector && (
+        <div className="space-y-1.5">
+          <Label className="text-xs">Проект с вариантами</Label>
+          {currentProjects.length === 0 ? (
+            <div className="rounded-md border border-dashed p-3 space-y-2">
+              <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span>Для этого оффера ещё нет проектов с {labels.plural}.</span>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full gap-1.5"
+                onClick={createProjectAndGenerate}
+                disabled={generatingVariants}
+              >
+                {generatingVariants ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                Создать проект и сгенерировать
+              </Button>
+            </div>
+          ) : (
+            <Select
+              value={currentActiveProjectId || ""}
+              onValueChange={handleProjectChange}
+              disabled={generatingVariants}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Выберите проект" />
+              </SelectTrigger>
+              <SelectContent>
+                {currentProjects.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.title} ({format(new Date(p.created_at), "dd.MM.yy")})
+                  </SelectItem>
+                ))}
+                <SelectItem value={NEW_PROJECT_VALUE}>
+                  <span className="flex items-center gap-1.5">
+                    <Plus className="h-3.5 w-3.5" />
+                    Создать новый проект
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      )}
+
+      {/* ── Variant selection (shared for single-level and two-level) ── */}
+      {showProjectSelector && currentProjects.length > 0 && currentActiveProjectId && (
         <VariantSelectionBlock
-          variants={angles ?? []}
+          variants={allVariants}
           selectedVariant={selectedVariant}
           labels={labels}
           contentType={block.block_type}
           generatingVariants={generatingVariants}
-          hasProject={!!angleProject?.id}
-          onGenerateVariants={() => generateVariants(false)}
+          onRegenerate={regenerateVariants}
           onOpenPicker={() => setPickerOpen(true)}
           onClearSelection={() => setConfig("selected_variant_id", undefined)}
         />
@@ -430,7 +479,7 @@ export default function GeneratedBlockSettings({
         variants={allVariants}
         contentType={block.block_type}
         onSelect={handleSelectVariant}
-        onRegenerate={() => generateVariants(true)}
+        onRegenerate={regenerateVariants}
         regenerating={generatingVariants}
         title={`Выбор: ${labels.plural}`}
       />
@@ -441,37 +490,35 @@ export default function GeneratedBlockSettings({
 // ── Sub-component for variant selection UI ──
 function VariantSelectionBlock({
   variants, selectedVariant, labels, contentType, generatingVariants,
-  hasProject, onGenerateVariants, onOpenPicker, onClearSelection,
+  onRegenerate, onOpenPicker, onClearSelection,
 }: {
   variants: any[];
   selectedVariant: any;
   labels: { plural: string; singular: string; action: string };
   contentType: string;
   generatingVariants: boolean;
-  hasProject: boolean;
-  onGenerateVariants: () => void;
+  onRegenerate: () => void;
   onOpenPicker: () => void;
   onClearSelection: () => void;
 }) {
   const hasVariants = variants.length > 0;
 
-  if (!hasProject || !hasVariants) {
-    // Scenario A: no variants
+  if (!hasVariants) {
     return (
       <div className="rounded-md border border-dashed p-3 space-y-2">
         <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
           <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-          <span>Для этого оффера ещё нет сгенерированных {labels.plural}.</span>
+          <span>В этом проекте нет {labels.plural}. Перегенерируйте или выберите другой проект.</span>
         </div>
         <Button
           variant="secondary"
           size="sm"
           className="w-full gap-1.5"
-          onClick={onGenerateVariants}
+          onClick={onRegenerate}
           disabled={generatingVariants}
         >
           {generatingVariants ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-          Сгенерировать варианты
+          Перегенерировать варианты
         </Button>
       </div>
     );
