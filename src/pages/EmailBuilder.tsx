@@ -12,6 +12,7 @@ import BlockCanvas, { type EmailBlock } from "@/components/email-builder/BlockCa
 import BlockSettingsPanel from "@/components/email-builder/BlockSettingsPanel";
 import EmailBuilderHeader from "@/components/email-builder/EmailBuilderHeader";
 import CreateLetterWizard from "@/components/email-builder/CreateLetterWizard";
+import LetterGenerationPanel, { type ImagePlaceholder } from "@/components/email-builder/LetterGenerationPanel";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function EmailBuilder() {
@@ -26,16 +27,29 @@ export default function EmailBuilder() {
   const [colorSchemeId, setColorSchemeId] = useState<string | null>(null);
   const [letterThemeTitle, setLetterThemeTitle] = useState("");
   const [letterThemeDescription, setLetterThemeDescription] = useState("");
+  const [programId, setProgramId] = useState<string | null>(null);
+  const [offerType, setOfferType] = useState("");
+  const [offerId, setOfferId] = useState<string | null>(null);
+  const [templateId, setTemplateId] = useState<string | null>(null);
   const [blocks, setBlocks] = useState<EmailBlock[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [exportOpen, setExportOpen] = useState(false);
   const [exportHtml, setExportHtml] = useState("");
   const [generatingSubject, setGeneratingSubject] = useState(false);
-  const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingBlockId, setGeneratingBlockId] = useState<string | null>(null);
   const [generatingImageBlockId, setGeneratingImageBlockId] = useState<string | null>(null);
   const [themeWizardOpen, setThemeWizardOpen] = useState(false);
+
+  // New full-letter state
+  const [generatedHtml, setGeneratedHtml] = useState("");
+  const [imagePlaceholders, setImagePlaceholders] = useState<ImagePlaceholder[]>([]);
+  const [caseId, setCaseId] = useState<string | null>(null);
+  const [extraOfferIds, setExtraOfferIds] = useState<string[]>([]);
+  const [generatingLetter, setGeneratingLetter] = useState(false);
+  const [generatingPlaceholderId, setGeneratingPlaceholderId] = useState<string | null>(null);
+  const [settingsMode, setSettingsMode] = useState(false); // true = show pre-generation panel even after generation
+
   const dirtyRef = useRef(false);
   const initialLoadRef = useRef(false);
 
@@ -76,6 +90,17 @@ export default function EmailBuilder() {
     },
   });
 
+  // Load template name
+  const { data: template } = useQuery({
+    queryKey: ["email_template_name", templateId],
+    queryFn: async () => {
+      if (!templateId) return null;
+      const { data } = await supabase.from("email_templates").select("name").eq("id", templateId).single();
+      return data;
+    },
+    enabled: !!templateId,
+  });
+
   // Initialize state from DB
   useEffect(() => {
     if (letter && !initialLoadRef.current) {
@@ -85,6 +110,14 @@ export default function EmailBuilder() {
       setColorSchemeId(letter.selected_color_scheme_id);
       setLetterThemeTitle(letter.letter_theme_title);
       setLetterThemeDescription(letter.letter_theme_description);
+      setProgramId((letter as any).program_id || null);
+      setOfferType((letter as any).offer_type || "");
+      setOfferId((letter as any).offer_id || null);
+      setTemplateId(letter.template_id);
+      setCaseId((letter as any).case_id || null);
+      setExtraOfferIds((letter as any).extra_offer_ids || []);
+      setGeneratedHtml((letter as any).generated_html || "");
+      setImagePlaceholders(((letter as any).image_placeholders as ImagePlaceholder[]) || []);
       initialLoadRef.current = true;
     }
   }, [letter]);
@@ -110,9 +143,9 @@ export default function EmailBuilder() {
       dirtyRef.current = true;
       setSaveStatus("unsaved");
     }
-  }, [title, subject, preheader, colorSchemeId, blocks]);
+  }, [title, subject, preheader, colorSchemeId, blocks, generatedHtml, imagePlaceholders, caseId, extraOfferIds]);
 
-  // Autosave every 30s
+  // Save
   const save = useCallback(async () => {
     if (!letterId || !dirtyRef.current) return;
     setSaveStatus("saving");
@@ -122,9 +155,15 @@ export default function EmailBuilder() {
         selected_color_scheme_id: colorSchemeId,
         letter_theme_title: letterThemeTitle,
         letter_theme_description: letterThemeDescription,
-      }).eq("id", letterId);
+        program_id: programId,
+        offer_type: offerType,
+        offer_id: offerId,
+        case_id: caseId,
+        extra_offer_ids: extraOfferIds,
+        generated_html: generatedHtml,
+        image_placeholders: imagePlaceholders,
+      } as any).eq("id", letterId);
 
-      // Save blocks
       for (const block of blocks) {
         await supabase.from("email_letter_blocks").upsert({
           id: block.id,
@@ -143,18 +182,18 @@ export default function EmailBuilder() {
     } catch {
       setSaveStatus("unsaved");
     }
-  }, [letterId, title, subject, preheader, colorSchemeId, letterThemeTitle, letterThemeDescription, blocks]);
+  }, [letterId, title, subject, preheader, colorSchemeId, letterThemeTitle, letterThemeDescription, programId, offerType, offerId, caseId, extraOfferIds, generatedHtml, imagePlaceholders, blocks]);
 
   useEffect(() => {
     const interval = setInterval(save, 30000);
     return () => clearInterval(interval);
   }, [save]);
 
-  // Save on unmount
   useEffect(() => () => { save(); }, [save]);
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || null;
 
+  // Block CRUD
   const addBlock = async (type: EmailBlockType) => {
     if (!letterId) return;
     const newOrder = blocks.length;
@@ -221,7 +260,6 @@ export default function EmailBuilder() {
           ? { ...b, generated_html: data.block_html || "", banner_image_prompt: data.banner_image_prompt || "" }
           : b
       ));
-      // Persist
       await supabase.from("email_letter_blocks").update({
         generated_html: data.block_html || "",
         banner_image_prompt: data.banner_image_prompt || "",
@@ -256,6 +294,61 @@ export default function EmailBuilder() {
     }
   };
 
+  // Full letter generation
+  const generateLetter = async () => {
+    if (!letterId) return;
+    setGeneratingLetter(true);
+    setSettingsMode(false);
+    try {
+      // Save current settings first
+      await supabase.from("email_letters").update({
+        case_id: caseId,
+        extra_offer_ids: extraOfferIds,
+      } as any).eq("id", letterId);
+
+      const { data, error } = await supabase.functions.invoke("generate-email-letter", {
+        body: { letter_id: letterId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setGeneratedHtml(data.html || "");
+      setImagePlaceholders(data.image_placeholders || []);
+      toast.success("Письмо сгенерировано");
+    } catch (e: any) {
+      toast.error(e.message || "Ошибка генерации письма");
+    } finally {
+      setGeneratingLetter(false);
+    }
+  };
+
+  // Generate placeholder image
+  const generatePlaceholderImage = async (placeholderId: string) => {
+    const ph = imagePlaceholders.find((p) => p.id === placeholderId);
+    if (!ph?.prompt) return;
+    setGeneratingPlaceholderId(placeholderId);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-email-letter", {
+        body: { generate_image: true, placeholder_id: placeholderId, prompt: ph.prompt },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const newPlaceholders = imagePlaceholders.map((p) =>
+        p.id === placeholderId ? { ...p, image_url: data.image_url } : p
+      );
+      setImagePlaceholders(newPlaceholders);
+      // Save to DB
+      await supabase.from("email_letters").update({
+        image_placeholders: newPlaceholders,
+      } as any).eq("id", letterId);
+      toast.success("Изображение сгенерировано");
+    } catch (e: any) {
+      toast.error(e.message || "Ошибка генерации изображения");
+    } finally {
+      setGeneratingPlaceholderId(null);
+    }
+  };
+
   const generateSubjectHandler = async () => {
     if (!letterId) return;
     setGeneratingSubject(true);
@@ -274,43 +367,47 @@ export default function EmailBuilder() {
     }
   };
 
-  const generateAllHandler = async () => {
-    setGeneratingAll(true);
-    const generated = ["lead_magnet", "reference_material", "expert_content", "provocative_content",
-      "list_content", "testimonial_content", "myth_busting", "objection_handling", "offer_collection"];
-    for (const block of blocks) {
-      if (generated.includes(block.block_type) && !block.generated_html) {
-        await generateBlock(block.id);
-      }
-    }
-    setGeneratingAll(false);
-  };
-
   const handleExport = () => {
     const header = emailSettings?.email_header_html || "";
     const footer = emailSettings?.email_footer_html || "";
-    const body = blocks
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((b) => {
-        if (b.generated_html) {
-          let html = b.generated_html;
-          if (b.banner_image_url) {
-            html = `<img src="${b.banner_image_url}" alt="" style="max-width:600px;width:100%;border-radius:6px;" />\n` + html;
+
+    let body: string;
+    if (generatedHtml) {
+      // Export full letter HTML with resolved images
+      body = generatedHtml;
+      for (const ph of imagePlaceholders) {
+        const marker = `<!-- IMAGE_PLACEHOLDER:${ph.id} -->`;
+        if (ph.image_url) {
+          body = body.replace(marker, `<img src="${ph.image_url}" alt="" style="max-width:600px;width:100%;border-radius:6px;" />`);
+        } else {
+          body = body.replace(marker, "");
+        }
+      }
+    } else {
+      body = blocks
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((b) => {
+          if (b.generated_html) {
+            let html = b.generated_html;
+            if (b.banner_image_url) {
+              html = `<img src="${b.banner_image_url}" alt="" style="max-width:600px;width:100%;border-radius:6px;" />\n` + html;
+            }
+            return html;
           }
-          return html;
-        }
-        if (b.block_type === "divider") return '<hr style="border:none;border-top:1px solid #E0E0E0;margin:24px 0;" />';
-        if (b.block_type === "text" && b.config.html) return b.config.html;
-        if (b.block_type === "cta" && b.config.text) {
-          return `<div style="text-align:center;padding:16px 0;"><a href="${b.config.url || '#'}" style="display:inline-block;padding:12px 32px;background-color:${b.config.color || '#6366f1'};color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;">${b.config.text}</a></div>`;
-        }
-        if (b.block_type === "image" && (b.config.url || b.config.src)) {
-          return `<div style="text-align:${b.config.align || 'center'};"><img src="${b.config.url || b.config.src}" alt="${b.config.alt || ''}" style="max-width:600px;width:100%;" /></div>`;
-        }
-        return "";
-      })
-      .filter(Boolean)
-      .join("\n\n");
+          if (b.block_type === "divider") return '<hr style="border:none;border-top:1px solid #E0E0E0;margin:24px 0;" />';
+          if (b.block_type === "text" && b.config.html) return b.config.html;
+          if (b.block_type === "cta" && b.config.text) {
+            return `<div style="text-align:center;padding:16px 0;"><a href="${b.config.url || '#'}" style="display:inline-block;padding:12px 32px;background-color:${b.config.color || '#6366f1'};color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;">${b.config.text}</a></div>`;
+          }
+          if (b.block_type === "image" && (b.config.url || b.config.src)) {
+            return `<div style="text-align:${b.config.align || 'center'};"><img src="${b.config.url || b.config.src}" alt="${b.config.alt || ''}" style="max-width:600px;width:100%;" /></div>`;
+          }
+          return "";
+        })
+        .filter(Boolean)
+        .join("\n\n");
+    }
+
     setExportHtml(`${header}\n\n${body}\n\n${footer}`);
     setExportOpen(true);
   };
@@ -327,16 +424,18 @@ export default function EmailBuilder() {
     toast.success("Тема обновлена");
   };
 
+  // Determine right panel content
+  const showGenerationPanel = !selectedBlock || settingsMode;
+  const isGenerated = !!generatedHtml && !settingsMode;
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
-      {/* Back button */}
       <div className="px-4 py-2 border-b">
         <Button variant="ghost" size="sm" onClick={() => { save(); navigate("/email-builder"); }} className="gap-1.5">
           <ArrowLeft className="h-4 w-4" /> К списку писем
         </Button>
       </div>
 
-      {/* Header */}
       <EmailBuilderHeader
         title={title}
         subject={subject}
@@ -349,15 +448,12 @@ export default function EmailBuilder() {
         onChangePreheader={setPreheader}
         onChangeColorScheme={setColorSchemeId}
         onGenerateSubject={generateSubjectHandler}
-        onGenerateAll={generateAllHandler}
         onExportHtml={handleExport}
         onSave={save}
         onChangeTheme={() => setThemeWizardOpen(true)}
         generatingSubject={generatingSubject}
-        generatingAll={generatingAll}
       />
 
-      {/* 3-column layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Block Library */}
         <div className="w-60 border-r p-3 overflow-y-auto shrink-0">
@@ -376,12 +472,16 @@ export default function EmailBuilder() {
             onDeleteBlock={deleteBlock}
             onGenerateImage={generateImage}
             generatingImageBlockId={generatingImageBlockId}
+            generatedHtml={generatedHtml}
+            imagePlaceholders={imagePlaceholders}
+            onGeneratePlaceholderImage={generatePlaceholderImage}
+            generatingPlaceholderId={generatingPlaceholderId}
           />
         </div>
 
         {/* Right: Settings */}
         <div className="w-72 border-l p-3 overflow-y-auto shrink-0">
-          {selectedBlock ? (
+          {selectedBlock && !settingsMode ? (
             <BlockSettingsPanel
               block={selectedBlock}
               colorSchemeId={colorSchemeId}
@@ -393,9 +493,25 @@ export default function EmailBuilder() {
               userId={user?.id || ""}
             />
           ) : (
-            <p className="text-sm text-muted-foreground py-4">
-              Выберите блок для настройки
-            </p>
+            <LetterGenerationPanel
+              programId={programId}
+              offerId={offerId}
+              offerType={offerType}
+              letterThemeTitle={letterThemeTitle}
+              templateName={template?.name || ""}
+              caseId={caseId}
+              onChangeCaseId={setCaseId}
+              extraOfferIds={extraOfferIds}
+              onChangeExtraOfferIds={setExtraOfferIds}
+              generatedHtml={settingsMode ? "" : generatedHtml}
+              imagePlaceholders={imagePlaceholders}
+              generatingLetter={generatingLetter}
+              onGenerate={generateLetter}
+              onRegenerate={generateLetter}
+              onEditSettings={() => setSettingsMode(true)}
+              selectedBlockHtml={null}
+              onChangeSelectedBlockHtml={() => {}}
+            />
           )}
         </div>
       </div>

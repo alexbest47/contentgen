@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Download, Wand2, Loader2, Tag } from "lucide-react";
+import { Sparkles, Download, Loader2, Tag } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,19 +19,17 @@ interface Props {
   onChangePreheader: (v: string) => void;
   onChangeColorScheme: (v: string) => void;
   onGenerateSubject: () => void;
-  onGenerateAll: () => void;
   onExportHtml: () => void;
   onSave: () => void;
   onChangeTheme: () => void;
   generatingSubject: boolean;
-  generatingAll: boolean;
 }
 
 export default function EmailBuilderHeader({
   title, subject, preheader, colorSchemeId, letterThemeTitle, saveStatus,
   onChangeTitle, onChangeSubject, onChangePreheader, onChangeColorScheme,
-  onGenerateSubject, onGenerateAll, onExportHtml, onSave, onChangeTheme,
-  generatingSubject, generatingAll,
+  onGenerateSubject, onExportHtml, onSave, onChangeTheme,
+  generatingSubject,
 }: Props) {
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
@@ -63,10 +61,6 @@ export default function EmailBuilderHeader({
           </Button>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onGenerateAll} disabled={generatingAll} className="gap-1.5">
-            {generatingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
-            Сгенерировать всё
-          </Button>
           <Button variant="outline" size="sm" onClick={onExportHtml} className="gap-1.5">
             <Download className="h-3.5 w-3.5" />
             Экспортировать HTML

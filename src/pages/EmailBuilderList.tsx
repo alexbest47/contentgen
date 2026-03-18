@@ -45,6 +45,9 @@ export default function EmailBuilderList() {
           letter_theme_title: original.letter_theme_title,
           letter_theme_description: original.letter_theme_description,
           template_id: original.template_id,
+          program_id: (original as any).program_id,
+          offer_type: (original as any).offer_type || "",
+          offer_id: (original as any).offer_id,
           status: "draft",
         })
         .select("id")
