@@ -63,8 +63,17 @@ serve(async (req) => {
     }
 
     // Block generation mode
-    const { block_type, config, color_scheme_id, mode } = body;
+    const { block_type, config, color_scheme_id, mode, letter_id } = body;
     if (!block_type || !config?.program_id) throw new Error("Missing block_type or program_id");
+
+    // Load letter theme
+    let letterTheme = "";
+    if (letter_id) {
+      const { data: letterData } = await sb.from("email_letters").select("letter_theme_title, letter_theme_description").eq("id", letter_id).single();
+      if (letterData && letterData.letter_theme_title) {
+        letterTheme = `${letterData.letter_theme_title}\n${letterData.letter_theme_description || ""}`;
+      }
+    }
 
     // Load prompt
     const { data: prompt } = await sb.from("prompts")
@@ -231,6 +240,7 @@ serve(async (req) => {
       .replace(/\{\{brand_voice\}\}/g, gv.brand_voice || "")
       .replace(/\{\{mode\}\}/g, mode || "text_only")
       .replace(/\{\{block_mode\}\}/g, mode || "text_only")
+      .replace(/\{\{letter_theme\}\}/g, letterTheme)
       .replace(/\{\{block_type\}\}/g, block_type);
 
     // Replace any remaining global variables

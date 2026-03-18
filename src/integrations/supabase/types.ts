@@ -331,10 +331,13 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          letter_theme_description: string
+          letter_theme_title: string
           preheader: string
           selected_color_scheme_id: string | null
           status: string
           subject: string
+          template_id: string | null
           title: string
           updated_at: string
         }
@@ -342,10 +345,13 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
+          letter_theme_description?: string
+          letter_theme_title?: string
           preheader?: string
           selected_color_scheme_id?: string | null
           status?: string
           subject?: string
+          template_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -353,10 +359,13 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          letter_theme_description?: string
+          letter_theme_title?: string
           preheader?: string
           selected_color_scheme_id?: string | null
           status?: string
           subject?: string
+          template_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -366,6 +375,13 @@ export type Database = {
             columns: ["selected_color_scheme_id"]
             isOneToOne: false
             referencedRelation: "color_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_letters_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -388,6 +404,33 @@ export type Database = {
           setting_key?: string
           setting_value?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          blocks: Json
+          created_at: string
+          description: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          blocks?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          sort_order?: number
         }
         Relationships: []
       }
@@ -846,6 +889,47 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      topic_tree: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          parent_id: string | null
+          sort_order: number
+          tags: string[]
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string
+          id?: string
+          parent_id?: string | null
+          sort_order?: number
+          tags?: string[]
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          parent_id?: string | null
+          sort_order?: number
+          tags?: string[]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_tree_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "topic_tree"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

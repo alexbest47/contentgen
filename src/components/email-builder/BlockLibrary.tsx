@@ -2,11 +2,13 @@ import { Button } from "@/components/ui/button";
 import {
   Magnet, BookOpen, BrainCircuit, Flame, List, MessageSquareQuote,
   Ghost, ShieldQuestion, Type, ImageIcon, MousePointerClick, Minus,
+  LayoutGrid,
 } from "lucide-react";
 
 export type EmailBlockType =
   | "lead_magnet" | "reference_material" | "expert_content" | "provocative_content"
   | "list_content" | "testimonial_content" | "myth_busting" | "objection_handling"
+  | "offer_collection"
   | "text" | "image" | "cta" | "divider";
 
 interface BlockDef {
@@ -24,6 +26,7 @@ const generatedBlocks: BlockDef[] = [
   { type: "testimonial_content", label: "Кейс / отзыв", icon: MessageSquareQuote },
   { type: "myth_busting", label: "Разбор мифа", icon: Ghost },
   { type: "objection_handling", label: "Отработка возражения", icon: ShieldQuestion },
+  { type: "offer_collection", label: "Подборка офферов", icon: LayoutGrid },
 ];
 
 const userBlocks: BlockDef[] = [
@@ -91,6 +94,7 @@ export const blockTypeLabels: Record<EmailBlockType, string> = {
   testimonial_content: "Кейс / отзыв",
   myth_busting: "Разбор мифа",
   objection_handling: "Отработка возражения",
+  offer_collection: "Подборка офферов",
   text: "Текстовый блок",
   image: "Изображение",
   cta: "Кнопка CTA",
@@ -99,4 +103,5 @@ export const blockTypeLabels: Record<EmailBlockType, string> = {
 
 export const isGeneratedBlock = (type: string) =>
   ["lead_magnet", "reference_material", "expert_content", "provocative_content",
-   "list_content", "testimonial_content", "myth_busting", "objection_handling"].includes(type);
+   "list_content", "testimonial_content", "myth_busting", "objection_handling",
+   "offer_collection"].includes(type);
