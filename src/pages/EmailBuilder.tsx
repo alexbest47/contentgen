@@ -364,6 +364,7 @@ export default function EmailBuilder() {
               onGenerateImage={generateImage}
               generating={generatingBlockId === selectedBlock.id}
               generatingImage={generatingImageBlockId === selectedBlock.id}
+              userId={user?.id || ""}
             />
           ) : (
             <p className="text-sm text-muted-foreground py-4">
