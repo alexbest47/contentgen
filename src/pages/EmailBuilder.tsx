@@ -314,6 +314,9 @@ export default function EmailBuilder() {
 
       setGeneratedHtml(data.html || "");
       setImagePlaceholders(data.image_placeholders || []);
+      // Update subject/preheader from AI if provided
+      if (data.email_subject) setSubject(data.email_subject);
+      if (data.email_preheader) setPreheader(data.email_preheader);
       toast.success("Письмо сгенерировано");
     } catch (e: any) {
       toast.error(e.message || "Ошибка генерации письма");
@@ -373,14 +376,25 @@ export default function EmailBuilder() {
 
     let body: string;
     if (generatedHtml) {
-      // Export full letter HTML with resolved images
+      // Export full letter HTML — replace {{image_placeholder_N}} markers with real URLs
       body = generatedHtml;
       for (const ph of imagePlaceholders) {
-        const marker = `<!-- IMAGE_PLACEHOLDER:${ph.id} -->`;
+        const placeholder = `{{${ph.id}}}`;
         if (ph.image_url) {
-          body = body.replace(marker, `<img src="${ph.image_url}" alt="" style="max-width:600px;width:100%;border-radius:6px;" />`);
+          // Replace entire <img src="{{...}}"> or just the placeholder with the real URL
+          body = body.replace(
+            new RegExp(`<img([^>]*)src\\s*=\\s*["']\\{\\{${ph.id}\\}\\}["']([^>]*)>`, "g"),
+            `<img$1src="${ph.image_url}"$2>`
+          );
+          // Also replace standalone markers
+          body = body.replace(placeholder, ph.image_url);
         } else {
-          body = body.replace(marker, "");
+          // Remove img tags with unresolved placeholders
+          body = body.replace(
+            new RegExp(`<img[^>]*src\\s*=\\s*["']\\{\\{${ph.id}\\}\\}["'][^>]*>`, "g"),
+            ""
+          );
+          body = body.replace(placeholder, "");
         }
       }
     } else {

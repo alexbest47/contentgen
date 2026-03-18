@@ -36,20 +36,30 @@ function renderHtmlWithPlaceholders(
   onGenerate?: (id: string) => void,
   generatingId?: string | null,
 ) {
-  // Split HTML by placeholder markers
-  const parts: React.ReactNode[] = [];
-  let remaining = html;
-  let idx = 0;
-
+  // Build a map of placeholder_id -> ImagePlaceholder for quick lookup
+  const phMap = new Map<string, ImagePlaceholder>();
   for (const ph of placeholders) {
-    const marker = `<!-- IMAGE_PLACEHOLDER:${ph.id} -->`;
-    const pos = remaining.indexOf(marker);
-    if (pos === -1) continue;
+    phMap.set(ph.id, ph);
+  }
+
+  // Split HTML by {{image_placeholder_N}} markers inside img src attributes
+  // Pattern matches <img ...src="{{placeholder_id}}"...> or standalone {{placeholder_id}}
+  const markerRegex = /(<img[^>]*src\s*=\s*["'])\{\{([^}]+)\}\}(["'][^>]*\/?>)|\{\{(image_placeholder_\w+)\}\}/g;
+  
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let idx = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = markerRegex.exec(html)) !== null) {
+    const placeholderId = match[2] || match[4];
+    const ph = phMap.get(placeholderId);
+    if (!ph) continue;
 
     // Add HTML before the marker
-    if (pos > 0) {
+    if (match.index > lastIndex) {
       parts.push(
-        <div key={`html-${idx}`} dangerouslySetInnerHTML={{ __html: remaining.substring(0, pos) }} />
+        <div key={`html-${idx}`} dangerouslySetInnerHTML={{ __html: html.substring(lastIndex, match.index) }} />
       );
     }
 
@@ -104,13 +114,13 @@ function renderHtmlWithPlaceholders(
       );
     }
 
-    remaining = remaining.substring(pos + marker.length);
+    lastIndex = match.index + match[0].length;
     idx++;
   }
 
   // Add remaining HTML
-  if (remaining.trim()) {
-    parts.push(<div key={`html-end`} dangerouslySetInnerHTML={{ __html: remaining }} />);
+  if (lastIndex < html.length) {
+    parts.push(<div key={`html-end`} dangerouslySetInnerHTML={{ __html: html.substring(lastIndex) }} />);
   }
 
   return parts;
