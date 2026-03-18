@@ -222,36 +222,39 @@ export default function TopicTree() {
     e.target.value = "";
   };
 
+  const getChildren = (item: any): any[] =>
+    item.children || item.subtopics || item.topics || item.sub_topics || item.items || [];
+
   const doImport = async (mode: "append" | "replace") => {
     if (!importData) return;
     setImporting(true);
     try {
       if (mode === "replace") {
-        // Delete all existing
         const ids = (rows ?? []).map((r) => r.id);
         if (ids.length) await supabase.from("topic_tree").delete().in("id", ids);
       }
 
       let count = 0;
       const insertRecursive = async (items: any[], parentId: string | null, startOrder: number) => {
+        if (!items.length) return;
+        const toInsert = items.map((item, i) => ({
+          parent_id: parentId,
+          title: item.title,
+          description: item.description || "",
+          tags: item.tags || [],
+          sort_order: startOrder + i,
+          created_by: user!.id,
+        }));
+        const { data, error } = await supabase
+          .from("topic_tree")
+          .insert(toInsert)
+          .select("id");
+        if (error) throw error;
+        count += data.length;
         for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          const { data, error } = await supabase
-            .from("topic_tree")
-            .insert({
-              parent_id: parentId,
-              title: item.title,
-              description: item.description || "",
-              tags: item.tags || [],
-              sort_order: startOrder + i,
-              created_by: user!.id,
-            })
-            .select("id")
-            .single();
-          if (error) throw error;
-          count++;
-          if (item.children?.length) {
-            await insertRecursive(item.children, data.id, 0);
+          const kids = getChildren(items[i]);
+          if (kids.length) {
+            await insertRecursive(kids, data[i].id, 0);
           }
         }
       };
