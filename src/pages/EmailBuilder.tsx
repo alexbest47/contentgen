@@ -351,6 +351,8 @@ export default function EmailBuilder() {
             onSelectBlock={setSelectedBlockId}
             onMoveBlock={moveBlock}
             onDeleteBlock={deleteBlock}
+            onGenerateImage={generateImage}
+            generatingImageBlockId={generatingImageBlockId}
           />
         </div>
 

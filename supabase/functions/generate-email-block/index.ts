@@ -268,6 +268,12 @@ serve(async (req) => {
       block_html = text;
     }
 
+    // Remove <img> tags from generated HTML when mode is text_image
+    // Banner images are managed separately via banner_image_url
+    if (mode === "text_image") {
+      block_html = block_html.replace(/<img[^>]*>/gi, "");
+    }
+
     // Update block in DB
     if (body.block_id) {
       await sb.from("email_letter_blocks").update({
