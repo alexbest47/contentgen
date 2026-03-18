@@ -47,7 +47,7 @@ export default function BlockCanvas({
       ) : (
         <div className="space-y-2">
           {blocks.map((block, idx) => {
-            const isTextImage = isGeneratedBlock(block.block_type) && block.config.mode === "text_image";
+            const isTextImage = isGeneratedBlock(block.block_type) && (block.config.mode === "header_image" || block.config.mode === "schema_image");
             const needsImagePlaceholder = isTextImage && !block.banner_image_url && block.generated_html;
             const isGeneratingImage = generatingImageBlockId === block.id;
 

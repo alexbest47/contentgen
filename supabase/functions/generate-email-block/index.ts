@@ -230,6 +230,7 @@ serve(async (req) => {
       .replace(/\{\{antiAI_rules\}\}/g, gv.antiAI_rules || "")
       .replace(/\{\{brand_voice\}\}/g, gv.brand_voice || "")
       .replace(/\{\{mode\}\}/g, mode || "text_only")
+      .replace(/\{\{block_mode\}\}/g, mode || "text_only")
       .replace(/\{\{block_type\}\}/g, block_type);
 
     // Replace any remaining global variables

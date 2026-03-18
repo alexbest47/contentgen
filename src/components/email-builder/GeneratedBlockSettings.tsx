@@ -464,7 +464,7 @@ export default function GeneratedBlockSettings({
       </Button>
 
       {/* Generate image button */}
-      {config.mode === "text_image" && block.generated_html && (
+      {(config.mode === "header_image" || config.mode === "schema_image") && block.generated_html && (
         <Button
           variant="outline"
           className="w-full gap-2"
