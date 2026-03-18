@@ -240,6 +240,7 @@ serve(async (req) => {
       .replace(/\{\{brand_voice\}\}/g, gv.brand_voice || "")
       .replace(/\{\{mode\}\}/g, mode || "text_only")
       .replace(/\{\{block_mode\}\}/g, mode || "text_only")
+      .replace(/\{\{letter_theme\}\}/g, letterTheme)
       .replace(/\{\{block_type\}\}/g, block_type);
 
     // Replace any remaining global variables
