@@ -373,7 +373,7 @@ export default function GeneratedBlockSettings({
               </Link>
             </div>
           ) : (
-            <Select value={config.objection_id || ""} onValueChange={(v) => { setConfig("objection_id", v); setConfig("selected_variant_id", undefined); }}>
+            <Select value={config.objection_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, objection_id: v, selected_variant_id: undefined })}>
               <SelectTrigger><SelectValue placeholder="Выберите возражение" /></SelectTrigger>
               <SelectContent>
                 {objections?.map((o) => (
