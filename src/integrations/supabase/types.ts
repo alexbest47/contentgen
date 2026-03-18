@@ -328,12 +328,19 @@ export type Database = {
       }
       email_letters: {
         Row: {
+          case_id: string | null
           created_at: string
           created_by: string
+          extra_offer_ids: string[]
+          generated_html: string
           id: string
+          image_placeholders: Json
           letter_theme_description: string
           letter_theme_title: string
+          offer_id: string | null
+          offer_type: string
           preheader: string
+          program_id: string | null
           selected_color_scheme_id: string | null
           status: string
           subject: string
@@ -342,12 +349,19 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          case_id?: string | null
           created_at?: string
           created_by: string
+          extra_offer_ids?: string[]
+          generated_html?: string
           id?: string
+          image_placeholders?: Json
           letter_theme_description?: string
           letter_theme_title?: string
+          offer_id?: string | null
+          offer_type?: string
           preheader?: string
+          program_id?: string | null
           selected_color_scheme_id?: string | null
           status?: string
           subject?: string
@@ -356,12 +370,19 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          case_id?: string | null
           created_at?: string
           created_by?: string
+          extra_offer_ids?: string[]
+          generated_html?: string
           id?: string
+          image_placeholders?: Json
           letter_theme_description?: string
           letter_theme_title?: string
+          offer_id?: string | null
+          offer_type?: string
           preheader?: string
+          program_id?: string | null
           selected_color_scheme_id?: string | null
           status?: string
           subject?: string
@@ -370,6 +391,27 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "email_letters_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_classifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_letters_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_letters_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "paid_programs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "email_letters_selected_color_scheme_id_fkey"
             columns: ["selected_color_scheme_id"]

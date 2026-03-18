@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { blockTypeLabels } from "./BlockLibrary";
+import { OFFER_TYPES } from "@/lib/offerTypes";
 import { toast } from "sonner";
 import {
   ChevronRight, ChevronDown, Search, Check, Loader2,
@@ -107,16 +108,9 @@ function TopicPickerNode({
   );
 }
 
-const MODE_LABELS: Record<string, string> = {
-  text_only: "Только текст",
-  header_image: "Заголовок + текст",
-  schema_image: "Текст + схема",
-};
-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** If set, wizard only shows step 1 for changing theme */
   themeOnlyMode?: boolean;
   onThemeChanged?: (title: string, description: string) => void;
 }
@@ -132,6 +126,9 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [letterTitle, setLetterTitle] = useState("");
   const [colorSchemeId, setColorSchemeId] = useState<string | null>(null);
+  const [programId, setProgramId] = useState<string | null>(null);
+  const [offerType, setOfferType] = useState("");
+  const [offerId, setOfferId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
   // Load topics
@@ -165,6 +162,29 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       return data ?? [];
     },
     enabled: open && step >= 3,
+  });
+
+  // Load programs
+  const { data: programs } = useQuery({
+    queryKey: ["paid_programs_list"],
+    queryFn: async () => {
+      const { data } = await supabase.from("paid_programs").select("id, title").order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: open && step >= 3,
+  });
+
+  // Load offers for selected program + type
+  const { data: offers } = useQuery({
+    queryKey: ["offers_wizard", programId, offerType],
+    queryFn: async () => {
+      if (!programId) return [];
+      let q = supabase.from("offers").select("id, title").eq("program_id", programId).eq("is_archived", false);
+      if (offerType) q = q.eq("offer_type", offerType as any);
+      const { data } = await q.order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: open && step >= 3 && !!programId,
   });
 
   const handleSelectTopic = (node: TreeNode) => {
@@ -207,6 +227,9 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           letter_theme_title: themeTitle,
           letter_theme_description: themeDescription,
           template_id: selectedTemplateId,
+          program_id: programId,
+          offer_type: offerType,
+          offer_id: offerId,
         })
         .select("id")
         .single();
@@ -241,7 +264,12 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     setSelectedTemplateId(null);
     setLetterTitle("");
     setColorSchemeId(null);
+    setProgramId(null);
+    setOfferType("");
+    setOfferId(null);
   };
+
+  const offerTypes = OFFER_TYPES.map((t) => [t.key, t.label] as const);
 
   return (
     <Dialog
@@ -354,6 +382,49 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
                   placeholder="Например: Прогрев — Выгорание"
                 />
               </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Платная программа</Label>
+                <Select value={programId || ""} onValueChange={(v) => { setProgramId(v); setOfferId(null); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите программу" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {programs?.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Тип оффера</Label>
+                <Select value={offerType} onValueChange={(v) => { setOfferType(v); setOfferId(null); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите тип" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {offerTypes.map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{String(label)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Конкретный оффер</Label>
+                <Select value={offerId || ""} onValueChange={setOfferId} disabled={!programId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите оффер" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {offers?.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-1.5">
                 <Label className="text-xs">Цветовая гамма</Label>
                 <Select value={colorSchemeId || ""} onValueChange={setColorSchemeId}>

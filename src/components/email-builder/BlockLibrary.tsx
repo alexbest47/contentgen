@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import {
-  Magnet, BookOpen, BrainCircuit, Flame, List, MessageSquareQuote,
-  Ghost, ShieldQuestion, Type, ImageIcon, MousePointerClick, Minus,
+  MessageSquareQuote, Type, ImageIcon, MousePointerClick, Minus,
   LayoutGrid,
 } from "lucide-react";
 
@@ -18,14 +17,7 @@ interface BlockDef {
 }
 
 const generatedBlocks: BlockDef[] = [
-  { type: "lead_magnet", label: "Лид-магнит", icon: Magnet },
-  { type: "reference_material", label: "Справочный материал", icon: BookOpen },
-  { type: "expert_content", label: "Экспертный контент", icon: BrainCircuit },
-  { type: "provocative_content", label: "Провокационный контент", icon: Flame },
-  { type: "list_content", label: "Пост-список", icon: List },
   { type: "testimonial_content", label: "Кейс / отзыв", icon: MessageSquareQuote },
-  { type: "myth_busting", label: "Разбор мифа", icon: Ghost },
-  { type: "objection_handling", label: "Отработка возражения", icon: ShieldQuestion },
   { type: "offer_collection", label: "Подборка офферов", icon: LayoutGrid },
 ];
 
@@ -85,23 +77,24 @@ export default function BlockLibrary({ onAddBlock }: Props) {
   );
 }
 
-export const blockTypeLabels: Record<EmailBlockType, string> = {
-  lead_magnet: "Лид-магнит",
-  reference_material: "Справочный материал",
-  expert_content: "Экспертный контент",
-  provocative_content: "Провокационный контент",
-  list_content: "Пост-список",
+export const blockTypeLabels: Record<string, string> = {
   testimonial_content: "Кейс / отзыв",
-  myth_busting: "Разбор мифа",
-  objection_handling: "Отработка возражения",
   offer_collection: "Подборка офферов",
   text: "Текстовый блок",
   image: "Изображение",
   cta: "Кнопка CTA",
   divider: "Разделитель",
+  // Legacy block types for backwards compatibility
+  lead_magnet: "Лид-магнит",
+  reference_material: "Справочный материал",
+  expert_content: "Экспертный контент",
+  provocative_content: "Провокационный контент",
+  list_content: "Пост-список",
+  myth_busting: "Разбор мифа",
+  objection_handling: "Отработка возражения",
 };
 
 export const isGeneratedBlock = (type: string) =>
-  ["lead_magnet", "reference_material", "expert_content", "provocative_content",
-   "list_content", "testimonial_content", "myth_busting", "objection_handling",
-   "offer_collection"].includes(type);
+  ["testimonial_content", "objection_handling", "offer_collection",
+   "lead_magnet", "reference_material", "expert_content", "provocative_content",
+   "list_content", "myth_busting"].includes(type);
