@@ -11,6 +11,7 @@ import BlockLibrary, { type EmailBlockType } from "@/components/email-builder/Bl
 import BlockCanvas, { type EmailBlock } from "@/components/email-builder/BlockCanvas";
 import BlockSettingsPanel from "@/components/email-builder/BlockSettingsPanel";
 import EmailBuilderHeader from "@/components/email-builder/EmailBuilderHeader";
+import CreateLetterWizard from "@/components/email-builder/CreateLetterWizard";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function EmailBuilder() {
@@ -23,6 +24,8 @@ export default function EmailBuilder() {
   const [subject, setSubject] = useState("");
   const [preheader, setPreheader] = useState("");
   const [colorSchemeId, setColorSchemeId] = useState<string | null>(null);
+  const [letterThemeTitle, setLetterThemeTitle] = useState("");
+  const [letterThemeDescription, setLetterThemeDescription] = useState("");
   const [blocks, setBlocks] = useState<EmailBlock[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
@@ -32,6 +35,7 @@ export default function EmailBuilder() {
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingBlockId, setGeneratingBlockId] = useState<string | null>(null);
   const [generatingImageBlockId, setGeneratingImageBlockId] = useState<string | null>(null);
+  const [themeWizardOpen, setThemeWizardOpen] = useState(false);
   const dirtyRef = useRef(false);
   const initialLoadRef = useRef(false);
 
@@ -79,6 +83,8 @@ export default function EmailBuilder() {
       setSubject(letter.subject);
       setPreheader(letter.preheader);
       setColorSchemeId(letter.selected_color_scheme_id);
+      setLetterThemeTitle(letter.letter_theme_title);
+      setLetterThemeDescription(letter.letter_theme_description);
       initialLoadRef.current = true;
     }
   }, [letter]);
@@ -114,6 +120,8 @@ export default function EmailBuilder() {
       await supabase.from("email_letters").update({
         title, subject, preheader,
         selected_color_scheme_id: colorSchemeId,
+        letter_theme_title: letterThemeTitle,
+        letter_theme_description: letterThemeDescription,
       }).eq("id", letterId);
 
       // Save blocks
@@ -135,7 +143,7 @@ export default function EmailBuilder() {
     } catch {
       setSaveStatus("unsaved");
     }
-  }, [letterId, title, subject, preheader, colorSchemeId, blocks]);
+  }, [letterId, title, subject, preheader, colorSchemeId, letterThemeTitle, letterThemeDescription, blocks]);
 
   useEffect(() => {
     const interval = setInterval(save, 30000);
@@ -203,6 +211,7 @@ export default function EmailBuilder() {
           config: block.config,
           color_scheme_id: colorSchemeId,
           mode: block.config.mode || "text_only",
+          letter_id: letterId,
         },
       });
       if (error) throw error;
@@ -268,7 +277,7 @@ export default function EmailBuilder() {
   const generateAllHandler = async () => {
     setGeneratingAll(true);
     const generated = ["lead_magnet", "reference_material", "expert_content", "provocative_content",
-      "list_content", "testimonial_content", "myth_busting", "objection_handling"];
+      "list_content", "testimonial_content", "myth_busting", "objection_handling", "offer_collection"];
     for (const block of blocks) {
       if (generated.includes(block.block_type) && !block.generated_html) {
         await generateBlock(block.id);
@@ -306,6 +315,18 @@ export default function EmailBuilder() {
     setExportOpen(true);
   };
 
+  const handleThemeChanged = async (newTitle: string, newDescription: string) => {
+    setLetterThemeTitle(newTitle);
+    setLetterThemeDescription(newDescription);
+    if (letterId) {
+      await supabase.from("email_letters").update({
+        letter_theme_title: newTitle,
+        letter_theme_description: newDescription,
+      }).eq("id", letterId);
+    }
+    toast.success("Тема обновлена");
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
       {/* Back button */}
@@ -321,6 +342,7 @@ export default function EmailBuilder() {
         subject={subject}
         preheader={preheader}
         colorSchemeId={colorSchemeId}
+        letterThemeTitle={letterThemeTitle}
         saveStatus={saveStatus}
         onChangeTitle={setTitle}
         onChangeSubject={setSubject}
@@ -330,6 +352,7 @@ export default function EmailBuilder() {
         onGenerateAll={generateAllHandler}
         onExportHtml={handleExport}
         onSave={save}
+        onChangeTheme={() => setThemeWizardOpen(true)}
         generatingSubject={generatingSubject}
         generatingAll={generatingAll}
       />
@@ -392,6 +415,14 @@ export default function EmailBuilder() {
           </Button>
         </DialogContent>
       </Dialog>
+
+      {/* Theme change wizard */}
+      <CreateLetterWizard
+        open={themeWizardOpen}
+        onOpenChange={setThemeWizardOpen}
+        themeOnlyMode
+        onThemeChanged={handleThemeChanged}
+      />
     </div>
   );
 }
