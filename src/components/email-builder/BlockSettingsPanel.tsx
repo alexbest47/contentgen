@@ -16,7 +16,7 @@ interface Props {
 
 export default function BlockSettingsPanel({
   block, colorSchemeId, onUpdateConfig, onGenerate, onGenerateImage,
-  generating, generatingImage,
+  generating, generatingImage, userId,
 }: Props) {
   return (
     <div className="space-y-4">
