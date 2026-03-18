@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function EmailBuilder() {
   const { letterId } = useParams<{ letterId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const [title, setTitle] = useState("");
