@@ -90,7 +90,7 @@ export default function VariantPickerModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden grid-rows-[auto_minmax(0,1fr)]">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>{modalTitle}</DialogTitle>
@@ -109,7 +109,7 @@ export default function VariantPickerModal({
             {regenerating ? "Генерация новых вариантов..." : `Доступно вариантов: ${variants.length}`}
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="flex-1 -mx-6 px-6 overflow-hidden">
+        <ScrollArea className="min-h-0 -mx-6 px-6">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pb-4">
             {variants.map((v) => (
               <VariantCard key={v.id} variant={v} contentType={contentType} onSelect={onSelect} />
