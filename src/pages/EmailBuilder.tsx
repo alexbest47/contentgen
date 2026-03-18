@@ -314,6 +314,9 @@ export default function EmailBuilder() {
 
       setGeneratedHtml(data.html || "");
       setImagePlaceholders(data.image_placeholders || []);
+      // Update subject/preheader from AI if provided
+      if (data.email_subject) setSubject(data.email_subject);
+      if (data.email_preheader) setPreheader(data.email_preheader);
       toast.success("Письмо сгенерировано");
     } catch (e: any) {
       toast.error(e.message || "Ошибка генерации письма");
