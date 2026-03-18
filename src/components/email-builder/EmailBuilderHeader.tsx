@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Download, Wand2, Loader2 } from "lucide-react";
+import { Sparkles, Download, Wand2, Loader2, Tag } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,6 +12,7 @@ interface Props {
   subject: string;
   preheader: string;
   colorSchemeId: string | null;
+  letterThemeTitle: string;
   saveStatus: "saved" | "saving" | "unsaved";
   onChangeTitle: (v: string) => void;
   onChangeSubject: (v: string) => void;
@@ -21,14 +22,15 @@ interface Props {
   onGenerateAll: () => void;
   onExportHtml: () => void;
   onSave: () => void;
+  onChangeTheme: () => void;
   generatingSubject: boolean;
   generatingAll: boolean;
 }
 
 export default function EmailBuilderHeader({
-  title, subject, preheader, colorSchemeId, saveStatus,
+  title, subject, preheader, colorSchemeId, letterThemeTitle, saveStatus,
   onChangeTitle, onChangeSubject, onChangePreheader, onChangeColorScheme,
-  onGenerateSubject, onGenerateAll, onExportHtml, onSave,
+  onGenerateSubject, onGenerateAll, onExportHtml, onSave, onChangeTheme,
   generatingSubject, generatingAll,
 }: Props) {
   const { data: colorSchemes } = useQuery({
@@ -44,6 +46,15 @@ export default function EmailBuilderHeader({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-bold">Конструктор письма</h1>
+          {letterThemeTitle && (
+            <button
+              onClick={onChangeTheme}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Tag className="h-3.5 w-3.5" />
+              <span>Тема: {letterThemeTitle}</span>
+            </button>
+          )}
           <Badge variant={saveStatus === "saved" ? "secondary" : saveStatus === "saving" ? "outline" : "destructive"}>
             {saveStatus === "saved" ? "Сохранено" : saveStatus === "saving" ? "Сохранение..." : "Не сохранено"}
           </Badge>

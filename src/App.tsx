@@ -28,6 +28,8 @@ import Diagnostics from "@/pages/Diagnostics";
 import CaseManagement from "@/pages/CaseManagement";
 import Objections from "@/pages/Objections";
 import ObjectionsHub from "@/pages/ObjectionsHub";
+import TopicTree from "@/pages/TopicTree";
+import EmailTemplates from "@/pages/EmailTemplates";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,6 +77,8 @@ const App = () => (
               <Route path="/cases" element={<ProtectedRoute adminOnly><CaseManagement /></ProtectedRoute>} />
               <Route path="/objections" element={<ProtectedRoute adminOnly><ObjectionsHub /></ProtectedRoute>} />
               <Route path="/programs/:programId/objections" element={<ProtectedRoute adminOnly><Objections /></ProtectedRoute>} />
+              <Route path="/topics" element={<ProtectedRoute adminOnly><TopicTree /></ProtectedRoute>} />
+              <Route path="/email-templates" element={<ProtectedRoute adminOnly><EmailTemplates /></ProtectedRoute>} />
               <Route path="/prompts" element={<ProtectedRoute adminOnly><Prompts /></ProtectedRoute>} />
               <Route path="/prompt-variables" element={<ProtectedRoute adminOnly><PromptVariables /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute adminOnly><UsersAdmin /></ProtectedRoute>} />

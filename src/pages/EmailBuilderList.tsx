@@ -10,11 +10,13 @@ import { Plus, ExternalLink, Copy, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
+import CreateLetterWizard from "@/components/email-builder/CreateLetterWizard";
 
 export default function EmailBuilderList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const { data: letters, isLoading } = useQuery({
     queryKey: ["email_letters"],
@@ -26,34 +28,6 @@ export default function EmailBuilderList() {
       if (error) throw error;
       return data;
     },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const { data: klassika } = await supabase
-        .from("color_schemes")
-        .select("id")
-        .eq("name", "Классика")
-        .eq("is_active", true)
-        .limit(1)
-        .single();
-
-      const { data, error } = await supabase
-        .from("email_letters")
-        .insert({
-          created_by: user!.id,
-          title: "Новое письмо",
-          selected_color_scheme_id: klassika?.id ?? null,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      navigate(`/email-builder/${data.id}`);
-    },
-    onError: (e: Error) => toast.error(e.message),
   });
 
   const duplicateMutation = useMutation({
@@ -68,6 +42,9 @@ export default function EmailBuilderList() {
           subject: original.subject,
           preheader: original.preheader,
           selected_color_scheme_id: original.selected_color_scheme_id,
+          letter_theme_title: original.letter_theme_title,
+          letter_theme_description: original.letter_theme_description,
+          template_id: original.template_id,
           status: "draft",
         })
         .select("id")
@@ -119,8 +96,8 @@ export default function EmailBuilderList() {
           <h1 className="text-2xl font-bold">Конструктор писем</h1>
           <p className="text-muted-foreground">Создавайте и редактируйте email-рассылки</p>
         </div>
-        <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
-          {createMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+        <Button onClick={() => setWizardOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
           Новое письмо
         </Button>
       </div>
@@ -138,7 +115,8 @@ export default function EmailBuilderList() {
           <TableHeader>
             <TableRow>
               <TableHead>Название</TableHead>
-              <TableHead>Тема</TableHead>
+              <TableHead>Тема письма</TableHead>
+              <TableHead>Тема контента</TableHead>
               <TableHead>Обновлено</TableHead>
               <TableHead>Статус</TableHead>
               <TableHead className="text-right">Действия</TableHead>
@@ -150,6 +128,9 @@ export default function EmailBuilderList() {
                 <TableCell className="font-medium">{letter.title || "Без названия"}</TableCell>
                 <TableCell className="text-muted-foreground max-w-[200px] truncate">
                   {letter.subject || "—"}
+                </TableCell>
+                <TableCell className="text-muted-foreground max-w-[150px] truncate">
+                  {letter.letter_theme_title || "—"}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
                   {format(new Date(letter.updated_at), "d MMM yyyy, HH:mm", { locale: ru })}
@@ -177,6 +158,8 @@ export default function EmailBuilderList() {
           </TableBody>
         </Table>
       )}
+
+      <CreateLetterWizard open={wizardOpen} onOpenChange={setWizardOpen} />
     </div>
   );
 }
