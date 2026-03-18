@@ -5,7 +5,9 @@ import {
 } from "lucide-react";
 
 export type EmailBlockType =
-  | "testimonial_content" | "offer_collection"
+  | "lead_magnet" | "reference_material" | "expert_content" | "provocative_content"
+  | "list_content" | "testimonial_content" | "myth_busting" | "objection_handling"
+  | "offer_collection"
   | "text" | "image" | "cta" | "divider";
 
 interface BlockDef {
