@@ -281,7 +281,7 @@ export default function GeneratedBlockSettings({
       {/* 2. Program */}
       <div className="space-y-1.5">
         <Label className="text-xs">Платная программа</Label>
-        <Select value={config.program_id || ""} onValueChange={(v) => { setConfig("program_id", v); setConfig("offer_id", ""); setConfig("selected_variant_id", undefined); }}>
+        <Select value={config.program_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, program_id: v, offer_id: "", selected_variant_id: undefined })}>
           <SelectTrigger><SelectValue placeholder="Выберите программу" /></SelectTrigger>
           <SelectContent>
             {programs?.map((p) => (
@@ -294,7 +294,7 @@ export default function GeneratedBlockSettings({
       {/* 3. Offer type */}
       <div className="space-y-1.5">
         <Label className="text-xs">Тип оффера</Label>
-        <Select value={config.offer_type || ""} onValueChange={(v) => { setConfig("offer_type", v); setConfig("offer_id", ""); setConfig("selected_variant_id", undefined); }}>
+        <Select value={config.offer_type || ""} onValueChange={(v) => onUpdateConfig({ ...config, offer_type: v, offer_id: "", selected_variant_id: undefined })}>
           <SelectTrigger><SelectValue placeholder="Выберите тип" /></SelectTrigger>
           <SelectContent>
             {offerTypes.map(([key, label]) => (
@@ -307,7 +307,7 @@ export default function GeneratedBlockSettings({
       {/* 4. Offer */}
       <div className="space-y-1.5">
         <Label className="text-xs">Оффер</Label>
-        <Select value={config.offer_id || ""} onValueChange={(v) => { setConfig("offer_id", v); setConfig("selected_variant_id", undefined); }}>
+        <Select value={config.offer_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, offer_id: v, selected_variant_id: undefined })}>
           <SelectTrigger><SelectValue placeholder="Выберите оффер" /></SelectTrigger>
           <SelectContent>
             {offers?.map((o) => (
@@ -347,7 +347,7 @@ export default function GeneratedBlockSettings({
               </Link>
             </div>
           ) : (
-            <Select value={config.case_id || ""} onValueChange={(v) => { setConfig("case_id", v); setConfig("selected_variant_id", undefined); }}>
+            <Select value={config.case_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, case_id: v, selected_variant_id: undefined })}>
               <SelectTrigger><SelectValue placeholder="Выберите кейс" /></SelectTrigger>
               <SelectContent>
                 {cases?.map((c) => (
@@ -373,7 +373,7 @@ export default function GeneratedBlockSettings({
               </Link>
             </div>
           ) : (
-            <Select value={config.objection_id || ""} onValueChange={(v) => { setConfig("objection_id", v); setConfig("selected_variant_id", undefined); }}>
+            <Select value={config.objection_id || ""} onValueChange={(v) => onUpdateConfig({ ...config, objection_id: v, selected_variant_id: undefined })}>
               <SelectTrigger><SelectValue placeholder="Выберите возражение" /></SelectTrigger>
               <SelectContent>
                 {objections?.map((o) => (
