@@ -31,6 +31,7 @@ export default function BlockSettingsPanel({
           onGenerateImage={() => onGenerateImage(block.id)}
           generating={generating}
           generatingImage={generatingImage}
+          userId={userId}
         />
       ) : (
         <UserBlockSettings

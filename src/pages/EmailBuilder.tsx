@@ -11,6 +11,7 @@ import BlockLibrary, { type EmailBlockType } from "@/components/email-builder/Bl
 import BlockCanvas, { type EmailBlock } from "@/components/email-builder/BlockCanvas";
 import BlockSettingsPanel from "@/components/email-builder/BlockSettingsPanel";
 import EmailBuilderHeader from "@/components/email-builder/EmailBuilderHeader";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function EmailBuilder() {
   const { letterId } = useParams<{ letterId: string }>();
