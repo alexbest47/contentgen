@@ -90,7 +90,7 @@ export default function VariantPickerModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden grid-rows-[auto_minmax(0,1fr)]">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>{modalTitle}</DialogTitle>
