@@ -43,7 +43,7 @@ export default function EmailTemplates() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {templates?.map((tpl) => {
-            const blocks = (tpl.blocks as TemplateBlock[]) || [];
+            const blocks = (tpl.blocks as unknown as TemplateBlock[]) || [];
             return (
               <Card key={tpl.id}>
                 <CardHeader>

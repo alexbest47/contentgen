@@ -2,6 +2,7 @@ import { type EmailBlock } from "./BlockCanvas";
 import { type EmailBlockType, blockTypeLabels, isGeneratedBlock } from "./BlockLibrary";
 import GeneratedBlockSettings from "./GeneratedBlockSettings";
 import UserBlockSettings from "./UserBlockSettings";
+import OfferCollectionSettings from "./OfferCollectionSettings";
 
 interface Props {
   block: EmailBlock;
@@ -22,7 +23,16 @@ export default function BlockSettingsPanel({
     <div className="space-y-4">
       <h3 className="font-semibold text-sm">{blockTypeLabels[block.block_type]}</h3>
 
-      {isGeneratedBlock(block.block_type) ? (
+      {block.block_type === "offer_collection" ? (
+        <OfferCollectionSettings
+          block={block}
+          onUpdateConfig={(config) => onUpdateConfig(block.id, config)}
+          onGenerate={() => onGenerate(block.id)}
+          onGenerateImage={() => onGenerateImage(block.id)}
+          generating={generating}
+          generatingImage={generatingImage}
+        />
+      ) : isGeneratedBlock(block.block_type) ? (
         <GeneratedBlockSettings
           block={block}
           colorSchemeId={colorSchemeId}
