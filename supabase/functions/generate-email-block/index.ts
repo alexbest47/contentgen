@@ -3,8 +3,25 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const OFFER_TYPE_LABELS: Record<string, string> = {
+  mini_course: "Мини-курс", diagnostic: "Диагностика", webinar: "Вебинар",
+  pre_list: "Предсписок", new_stream: "Старт нового потока", spot_available: "Освободилось место",
+  sale: "Распродажа", discount: "Скидка", download_pdf: "Скачай PDF",
+};
+
+async function fetchGoogleDoc(url: string): Promise<string> {
+  try {
+    const match = url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+    if (!match) return "";
+    const exportUrl = `https://docs.google.com/document/d/${match[1]}/export?format=txt`;
+    const resp = await fetch(exportUrl);
+    if (resp.ok) return await resp.text();
+  } catch (e) { console.error("Error fetching Google Doc:", e); }
+  return "";
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -58,12 +75,29 @@ serve(async (req) => {
       .single();
     if (!prompt) throw new Error(`Промпт email-builder-${block_type} не найден`);
 
-    // Load context
+    // Load program
     const { data: program } = await sb.from("paid_programs").select("*").eq("id", config.program_id).single();
-    let offerTitle = "", offerDesc = "";
+
+    // Load offer
+    let offerTitle = "", offerDesc = "", offerType = "";
     if (config.offer_id) {
       const { data: offer } = await sb.from("offers").select("*").eq("id", config.offer_id).single();
-      if (offer) { offerTitle = offer.title; offerDesc = offer.description || ""; }
+      if (offer) {
+        offerTitle = offer.title;
+        offerDesc = offer.description || "";
+        offerType = OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type;
+        // Fetch offer description from Google Doc if needed
+        if (offer.doc_url && !offerDesc) {
+          offerDesc = await fetchGoogleDoc(offer.doc_url);
+        }
+      }
+    }
+
+    // Load selected variant from lead_magnets
+    let selectedVariant: any = null;
+    if (config.selected_variant_id) {
+      const { data: variant } = await sb.from("lead_magnets").select("*").eq("id", config.selected_variant_id).single();
+      if (variant) selectedVariant = variant;
     }
 
     // Load global variables
@@ -78,14 +112,120 @@ serve(async (req) => {
       if (cs) brandStyle = cs.description;
     }
 
-    // Build user prompt
+    // Fetch audience description
+    let audienceDescription = program?.audience_description || "";
+    if (program?.audience_doc_url && !audienceDescription) {
+      audienceDescription = await fetchGoogleDoc(program.audience_doc_url);
+      if (audienceDescription) {
+        await sb.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
+      }
+    }
+
+    // Fetch program doc description
+    let programDocDescription = "";
+    if (program?.program_doc_url) {
+      programDocDescription = await fetchGoogleDoc(program.program_doc_url);
+    }
+
+    // Build variant context strings (matching generate-pipeline logic)
+    let leadMagnetContext = "";
+    let expertContext = "";
+    let mythContext = "";
+    let provocativeContext = "";
+    let listContext = "";
+    let caseAngleContext = "";
+    let objectionAngleContext = "";
+    let referenceContext = "";
+
+    if (selectedVariant) {
+      leadMagnetContext = `Выбранный лид-магнит:
+- Название: ${selectedVariant.title}
+- Визуальный формат: ${selectedVariant.visual_format || ""}
+- Визуальный контент: ${selectedVariant.visual_content || ""}
+- Мгновенная ценность: ${selectedVariant.instant_value || ""}
+- Переход к курсу: ${selectedVariant.transition_to_course || ""}`;
+
+      referenceContext = leadMagnetContext;
+
+      expertContext = `Выбранная тема экспертного поста:
+- Название: ${selectedVariant.title}
+- Категория: ${selectedVariant.visual_format || ""}
+- Угол подачи: ${selectedVariant.visual_content || ""}
+- Крючок: ${selectedVariant.instant_value || ""}
+- Переход к офферу: ${selectedVariant.transition_to_course || ""}`;
+
+      let mythHarm = "", mythTruth = "";
+      try {
+        const parsed = JSON.parse(selectedVariant.save_reason || "{}");
+        mythHarm = parsed.harm || "";
+        mythTruth = parsed.truth || "";
+      } catch {}
+      mythContext = `Выбранная тема разбора мифа:
+- Формулировка мифа: ${selectedVariant.title}
+- Категория: ${selectedVariant.visual_format || ""}
+- Почему миф вреден: ${selectedVariant.visual_content || ""}
+- Крючок: ${selectedVariant.instant_value || ""}
+- Вред мифа: ${mythHarm}
+- Правда: ${mythTruth}
+- Переход к офферу: ${selectedVariant.transition_to_course || ""}`;
+
+      provocativeContext = `Выбранная тема провокационного поста:
+- Название: ${selectedVariant.title}
+- Категория: ${selectedVariant.visual_format || ""}
+- Угол подачи: ${selectedVariant.visual_content || ""}
+- Крючок: ${selectedVariant.instant_value || ""}
+- Переход к офферу: ${selectedVariant.transition_to_course || ""}`;
+
+      listContext = JSON.stringify({
+        subtype: selectedVariant.visual_format || "",
+        list_title: selectedVariant.title,
+        hook: selectedVariant.instant_value || "",
+        items: (() => { try { return JSON.parse(selectedVariant.visual_content || "[]"); } catch { return []; } })(),
+        transition_to_offer: selectedVariant.transition_to_course || "",
+      });
+
+      // Case angle (testimonial_content)
+      let storyArc = null;
+      try { storyArc = JSON.parse(selectedVariant.save_reason || "null"); } catch {}
+      caseAngleContext = JSON.stringify({
+        angle_type: selectedVariant.visual_format || "",
+        angle_title: selectedVariant.title || "",
+        hook: selectedVariant.instant_value || "",
+        key_quote: selectedVariant.visual_content || null,
+        story_arc: storyArc,
+        what_reader_feels: selectedVariant.cta_text || "",
+        transition_to_offer: selectedVariant.transition_to_course || "",
+      }, null, 2);
+
+      // Objection angle
+      objectionAngleContext = JSON.stringify({
+        angle_type: selectedVariant.visual_format || "",
+        angle_title: selectedVariant.title || "",
+        description: selectedVariant.visual_content || "",
+        hook: selectedVariant.instant_value || "",
+        transition_to_offer: selectedVariant.transition_to_course || "",
+      }, null, 2);
+    }
+
+    // Build user prompt with all substitutions
     let userPrompt = prompt.user_prompt_template || "";
     userPrompt = userPrompt
       .replace(/\{\{program_title\}\}/g, program?.title || "")
       .replace(/\{\{program_description\}\}/g, program?.description || "")
+      .replace(/\{\{program_doc_description\}\}/g, programDocDescription)
+      .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_title\}\}/g, offerTitle)
       .replace(/\{\{offer_description\}\}/g, offerDesc)
+      .replace(/\{\{offer_type\}\}/g, offerType)
       .replace(/\{\{brand_style\}\}/g, brandStyle)
+      .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
+      .replace(/\{\{reference_material\}\}/g, referenceContext)
+      .replace(/\{\{expert_post_topic\}\}/g, expertContext)
+      .replace(/\{\{myth_topic\}\}/g, mythContext)
+      .replace(/\{\{provocation_topic\}\}/g, provocativeContext)
+      .replace(/\{\{list_topic\}\}/g, listContext)
+      .replace(/\{\{case_angle\}\}/g, caseAngleContext)
+      .replace(/\{\{objection_angle\}\}/g, objectionAngleContext)
       .replace(/\{\{offer_rules\}\}/g, gv.offer_rules || "")
       .replace(/\{\{antiAI_rules\}\}/g, gv.antiAI_rules || "")
       .replace(/\{\{brand_voice\}\}/g, gv.brand_voice || "")
@@ -140,6 +280,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    console.error("generate-email-block error:", e);
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
