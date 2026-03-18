@@ -289,8 +289,12 @@ export default function GeneratedBlockSettings({
             <Label htmlFor={`mode-text-${block.id}`} className="text-sm">Только текст</Label>
           </div>
           <div className="flex items-center gap-2">
-            <RadioGroupItem value="text_image" id={`mode-img-${block.id}`} />
-            <Label htmlFor={`mode-img-${block.id}`} className="text-sm">Текст + изображение</Label>
+            <RadioGroupItem value="header_image" id={`mode-header-${block.id}`} />
+            <Label htmlFor={`mode-header-${block.id}`} className="text-sm">Заголовок + текст</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="schema_image" id={`mode-schema-${block.id}`} />
+            <Label htmlFor={`mode-schema-${block.id}`} className="text-sm">Текст + схема</Label>
           </div>
         </RadioGroup>
       </div>
@@ -460,7 +464,7 @@ export default function GeneratedBlockSettings({
       </Button>
 
       {/* Generate image button */}
-      {config.mode === "text_image" && block.generated_html && (
+      {(config.mode === "header_image" || config.mode === "schema_image") && block.generated_html && (
         <Button
           variant="outline"
           className="w-full gap-2"
