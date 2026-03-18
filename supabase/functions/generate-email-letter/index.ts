@@ -23,6 +23,17 @@ async function fetchGoogleDoc(url: string): Promise<string> {
   return "";
 }
 
+/** Normalize AI response images array to internal format */
+function normalizeImagePlaceholders(images: any[]): any[] {
+  return images.map((img: any) => ({
+    id: img.placeholder_id || img.id,
+    type: img.type || "",
+    size: img.size || "",
+    prompt: img.imagen_prompt || img.prompt || "",
+    image_url: img.image_url || "",
+  }));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -107,8 +118,8 @@ serve(async (req) => {
       }
     }
 
-    // 5. Load extra offers
-    let extraOffersContext = "";
+    // 5. Load extra offers (for {{offers_selection}})
+    let offersSelectionContext = "";
     if (extraOfferIds.length > 0) {
       const { data: extras } = await sb.from("offers").select("title, description, offer_type, doc_url").in("id", extraOfferIds);
       if (extras && extras.length > 0) {
@@ -118,16 +129,16 @@ serve(async (req) => {
           if (ex.doc_url && !desc) desc = await fetchGoogleDoc(ex.doc_url);
           items.push(`- ${ex.title} (${OFFER_TYPE_LABELS[ex.offer_type] || ex.offer_type}): ${desc}`);
         }
-        extraOffersContext = items.join("\n");
+        offersSelectionContext = items.join("\n");
       }
     }
 
-    // 6. Load template
-    let templateStructure = "";
+    // 6. Load template name
+    let templateName = "";
     if (templateId) {
-      const { data: tpl } = await sb.from("email_templates").select("name, blocks").eq("id", templateId).single();
+      const { data: tpl } = await sb.from("email_templates").select("name").eq("id", templateId).single();
       if (tpl) {
-        templateStructure = JSON.stringify(tpl.blocks, null, 2);
+        templateName = tpl.name;
       }
     }
 
@@ -167,7 +178,7 @@ serve(async (req) => {
     // 11. Build letter theme
     const letterTheme = `${letter.letter_theme_title}\n${letter.letter_theme_description || ""}`;
 
-    // 12. Build user prompt
+    // 12. Build user prompt with variable substitution
     let userPrompt = prompt.user_prompt_template || "";
     userPrompt = userPrompt
       .replace(/\{\{program_title\}\}/g, program?.title || "")
@@ -179,9 +190,11 @@ serve(async (req) => {
       .replace(/\{\{offer_type\}\}/g, offerTypeLabel)
       .replace(/\{\{brand_style\}\}/g, brandStyle)
       .replace(/\{\{letter_theme\}\}/g, letterTheme)
-      .replace(/\{\{template_structure\}\}/g, templateStructure)
+      .replace(/\{\{template_name\}\}/g, templateName)
+      .replace(/\{\{template_structure\}\}/g, templateName) // backward compat
       .replace(/\{\{case_data\}\}/g, caseContext)
-      .replace(/\{\{extra_offers\}\}/g, extraOffersContext)
+      .replace(/\{\{offers_selection\}\}/g, offersSelectionContext)
+      .replace(/\{\{extra_offers\}\}/g, offersSelectionContext) // backward compat
       .replace(/\{\{offer_rules\}\}/g, gv.offer_rules || "")
       .replace(/\{\{antiAI_rules\}\}/g, gv.antiAI_rules || "")
       .replace(/\{\{brand_voice\}\}/g, gv.brand_voice || "");
@@ -202,7 +215,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: prompt.model || "claude-sonnet-4-20250514",
         max_tokens: 64000,
-        system: prompt.system_prompt || "Ты генератор email-писем. Возвращай JSON с полями html и image_placeholders.",
+        system: prompt.system_prompt || "Ты генератор email-писем. Возвращай JSON с полями letter_html и images.",
         messages: [{ role: "user", content: userPrompt }],
       }),
     });
@@ -210,26 +223,40 @@ serve(async (req) => {
     const aiData = await aiResp.json();
     const text = aiData.content?.[0]?.text || "";
 
-    // 14. Parse JSON
-    let html = "", image_placeholders: any[] = [];
+    // 14. Parse JSON — support both new (letter_html/images) and old (html/image_placeholders) formats
+    let html = "", imagePlaceholders: any[] = [];
+    let emailSubject = "", emailPreheader = "";
     try {
       const jsonMatch = text.match(/```json\s*([\s\S]*?)```/) || text.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text;
       const parsed = JSON.parse(jsonStr);
-      html = parsed.html || parsed.block_html || text;
-      image_placeholders = parsed.image_placeholders || [];
+
+      // New format: letter_html; fallback: html / block_html
+      html = parsed.letter_html || parsed.html || parsed.block_html || text;
+
+      // New format: images; fallback: image_placeholders
+      const rawImages = parsed.images || parsed.image_placeholders || [];
+      imagePlaceholders = normalizeImagePlaceholders(rawImages);
+
+      // Extract subject/preheader if provided
+      emailSubject = parsed.email_subject || "";
+      emailPreheader = parsed.email_preheader || "";
     } catch {
       html = text;
     }
 
     // 15. Save to DB
-    await sb.from("email_letters").update({
+    const updatePayload: Record<string, any> = {
       generated_html: html,
-      image_placeholders: image_placeholders,
+      image_placeholders: imagePlaceholders,
       status: "ready",
-    }).eq("id", letter_id);
+    };
+    if (emailSubject) updatePayload.subject = emailSubject;
+    if (emailPreheader) updatePayload.preheader = emailPreheader;
 
-    return new Response(JSON.stringify({ html, image_placeholders }), {
+    await sb.from("email_letters").update(updatePayload).eq("id", letter_id);
+
+    return new Response(JSON.stringify({ html, image_placeholders: imagePlaceholders, email_subject: emailSubject, email_preheader: emailPreheader }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
