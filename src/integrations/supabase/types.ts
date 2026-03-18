@@ -847,6 +847,47 @@ export type Database = {
         }
         Relationships: []
       }
+      topic_tree: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          parent_id: string | null
+          sort_order: number
+          tags: string[]
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string
+          id?: string
+          parent_id?: string | null
+          sort_order?: number
+          tags?: string[]
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          parent_id?: string | null
+          sort_order?: number
+          tags?: string[]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_tree_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "topic_tree"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
