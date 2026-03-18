@@ -21,8 +21,8 @@ serve(async (req) => {
     if (!project_id) throw new Error("project_id is required");
     const promptCategory = content_type === "reference_material" ? "reference_materials" : content_type === "expert_content" ? "expert_content" : content_type === "provocative_content" ? "provocative_content" : content_type === "list_content" ? "list_content" : content_type === "testimonial_content" ? "testimonial_content" : content_type === "myth_busting" ? "myth_busting" : content_type === "objection_handling" ? "objection_handling" : "lead_magnets";
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -164,31 +164,31 @@ serve(async (req) => {
       userPrompt = userPrompt.replace(/\{\{objection_data\}\}/g, JSON.stringify(objData, null, 2));
     }
 
-    // Call Lovable AI Gateway
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Call Anthropic API
+    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: prompt.model || "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
+        model: prompt.model || "claude-sonnet-4-6",
+        max_tokens: 64000,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
       }),
     });
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errText);
+      console.error("Claude API error:", aiResponse.status, errText);
       await supabase.from("projects").update({ status: "error" }).eq("id", project_id);
-      throw new Error(`AI gateway error: ${aiResponse.status}`);
+      throw new Error(`Claude API error: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || "";
+    const content = aiData.content?.[0]?.text || "";
 
     let leadMagnets;
     try {
