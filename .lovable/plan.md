@@ -1,56 +1,38 @@
 
 
-## Задача
+## Проблема
 
-1. Удалить из БД 7 устаревших промптов конструктора email (блоки лид-магнита, справочного материала, экспертного контента, провокационного контента, поста-списка, разбора мифа, отработки возражения).
-2. Создать болванку промпта «Генерация письма» (`slug: email-builder-full-letter`, `content_type: email_builder`).
+Миграция пыталась удалить промпты по slug с дефисами (`email-builder-lead-magnet`), но реальные slug'и в базе содержат подчёркивания (`email-builder-lead_magnet`). Поэтому DELETE не нашёл ни одной записи.
 
----
+## Решение
 
-## Реализация — 1 миграция
+Удалить 7 промптов по их реальным slug'ам. Это операция с данными (DELETE), не миграция схемы — используем insert tool.
 
 ```sql
--- Удалить устаревшие блочные промпты конструктора email
 DELETE FROM public.prompts
-WHERE content_type = 'email_builder'
-  AND slug IN (
-    'email-builder-lead-magnet',
-    'email-builder-reference-material',
-    'email-builder-expert-content',
-    'email-builder-provocative-content',
-    'email-builder-list-content',
-    'email-builder-myth-busting',
-    'email-builder-objection-handling'
-  );
-
--- Создать болванку промпта «Генерация письма»
-INSERT INTO public.prompts (
-  name, slug, description, provider, model,
-  system_prompt, user_prompt_template,
-  is_active, content_type, channel, step_order, category
-) VALUES (
-  'Генерация письма',
-  'email-builder-full-letter',
-  'Генерация полного HTML письма по теме, шаблону, программе, офферу и кейсу',
-  'anthropic',
-  'claude-sonnet-4-20250514',
-  'Ты генератор email-писем. Возвращай JSON с полями html и image_placeholders.',
-  '',
-  true,
-  'email_builder',
-  NULL,
-  2,
-  'email_builder'
+WHERE slug IN (
+  'email-builder-lead_magnet',
+  'email-builder-reference_material',
+  'email-builder-expert_content',
+  'email-builder-provocative_content',
+  'email-builder-list_content',
+  'email-builder-myth_busting',
+  'email-builder-objection_handling'
 );
 ```
 
-Удаление идёт по `slug` — это безопаснее чем по `name`, так как slug уникален. Если slug'и в БД отличаются от ожидаемых, удаление просто не затронет записи (без ошибок).
-
-После миграции во вкладке «Конструктор email» останутся:
+После этого во вкладке «Конструктор email» останутся 4 промпта:
 1. Тема и прехедер письма
-2. **Генерация письма** (новый)
+2. Генерация письма
 3. Блок кейса / отзыва
-4. Блок подборки офферов
+4. Блок отработки возражения — нет, этот тоже удалится
 
-Файлы кода не затрагиваются — edge-функция `generate-email-letter` уже ищет промпт по `slug: email-builder-full-letter`.
+Останутся 3:
+1. Тема и прехедер письма
+2. Генерация письма
+3. Блок кейса / отзыва
+
+Подождите — по плану нужно оставить ещё «Блок подборки офферов», но его нет в базе. Нужно проверить, есть ли он, или его тоже нужно создать.
+
+Итого — 1 DELETE-запрос через insert tool. Код не затрагивается.
 
