@@ -20,6 +20,7 @@ interface Props {
   onGenerateSubject: () => void;
   onGenerateAll: () => void;
   onExportHtml: () => void;
+  onSave: () => void;
   generatingSubject: boolean;
   generatingAll: boolean;
 }
