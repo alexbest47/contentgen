@@ -11,11 +11,12 @@ interface Props {
   onGenerateImage: (blockId: string) => void;
   generating: boolean;
   generatingImage: boolean;
+  userId: string;
 }
 
 export default function BlockSettingsPanel({
   block, colorSchemeId, onUpdateConfig, onGenerate, onGenerateImage,
-  generating, generatingImage,
+  generating, generatingImage, userId,
 }: Props) {
   return (
     <div className="space-y-4">
@@ -30,6 +31,7 @@ export default function BlockSettingsPanel({
           onGenerateImage={() => onGenerateImage(block.id)}
           generating={generating}
           generatingImage={generatingImage}
+          userId={userId}
         />
       ) : (
         <UserBlockSettings
