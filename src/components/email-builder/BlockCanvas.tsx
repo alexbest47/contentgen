@@ -44,6 +44,36 @@ interface Props {
   onUpdateGeneratedHtml?: (html: string) => void;
 }
 
+/** Restore placeholder markers from rendered HTML back to {{id}} format */
+function restorePlaceholderMarkers(
+  html: string,
+  placeholders: ImagePlaceholder[],
+) {
+  let result = html;
+  for (const ph of placeholders) {
+    // Replace <img src="real_url" ...> back to <img src="{{id}}" ...> for generated images
+    if (ph.image_url) {
+      const escapedUrl = ph.image_url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(
+        new RegExp(`(<img[^>]*src\\s*=\\s*["'])${escapedUrl}(["'][^>]*/?>)`, 'g'),
+        `$1{{${ph.id}}}$2`
+      );
+      // Also handle standalone <img> that were injected for standalone markers
+      result = result.replace(
+        new RegExp(`<img[^>]*src\\s*=\\s*["']${escapedUrl}["'][^>]*/?>`, 'g'),
+        `{{${ph.id}}}`
+      );
+    }
+    // Replace <div data-placeholder-id="id">...</div> back to {{id}} or <img src="{{id}}">
+    const divRegex = new RegExp(
+      `<div[^>]*data-placeholder-id\\s*=\\s*["']${ph.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>.*?</div>`,
+      'gs'
+    );
+    result = result.replace(divRegex, `{{${ph.id}}}`);
+  }
+  return result;
+}
+
 /** Replace {{placeholder_id}} markers with real <img> or styled placeholders in-string */
 function preprocessHtmlWithPlaceholders(
   html: string,
