@@ -359,7 +359,7 @@ export default function BlockCanvas({
                   isFullLetterMode
                     ? ""
                     : `border rounded-lg ${
-                      locked
+                      locked || hasTemplateLabel
                         ? "border-muted-foreground/20 cursor-default"
                         : `cursor-pointer ${
                             selectedBlockId === block.id
@@ -368,7 +368,7 @@ export default function BlockCanvas({
                           }`
                     }`
                 }`}
-                onClick={() => !locked && onSelectBlock(block.id)}
+                onClick={() => !locked && !hasTemplateLabel && onSelectBlock(block.id)}
               >
                 {/* Hover controls — hidden for template-label-only blocks */}
                 {!hasTemplateLabel && (
