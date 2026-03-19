@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2 } from "lucide-react";
+import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2, RefreshCcw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { blockTypeLabels, isGeneratedBlock, isTemplateLocked, type EmailBlockType } from "./BlockLibrary";
 import { Lock } from "lucide-react";
@@ -42,6 +42,7 @@ interface Props {
   onGeneratePlaceholderImage?: (placeholderId: string) => void;
   generatingPlaceholderId?: string | null;
   onUpdateGeneratedHtml?: (html: string) => void;
+  onUploadPlaceholderImage?: (placeholderId: string, file: File) => void;
 }
 
 /** Restore placeholder markers from rendered HTML back to {{id}} format */
