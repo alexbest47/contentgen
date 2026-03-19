@@ -210,8 +210,31 @@ export default function BlockCanvas({
     return () => window.removeEventListener("resize", measurePlaceholders);
   }, [isFullLetterMode, measurePlaceholders]);
 
+  const handleUploadClick = (placeholderId: string) => {
+    setUploadTargetId(placeholderId);
+    uploadInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && uploadTargetId && onUploadPlaceholderImage) {
+      onUploadPlaceholderImage(uploadTargetId, file);
+    }
+    e.target.value = "";
+    setUploadTargetId(null);
+  };
+
   return (
     <div className="mx-auto" style={{ maxWidth: 600 }}>
+      {/* Hidden file input for image upload */}
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       {/* Header */}
       {headerHtml && (
         <div
@@ -239,14 +262,14 @@ export default function BlockCanvas({
             }}
           />
 
-          {/* Overlay buttons on top of placeholder areas */}
+          {/* Overlay buttons for UNFILLED placeholders (centered) */}
           {onGeneratePlaceholderImage && placeholderRects.map(rect => {
             const ph = unfilledPlaceholders.find(p => p.id === rect.id);
             if (!ph) return null;
             const isGenerating = generatingPlaceholderId === ph.id;
             return (
               <div
-                key={rect.id}
+                key={`unfilled-${rect.id}`}
                 className="absolute flex items-center justify-center pointer-events-none"
                 style={{
                   top: rect.top,
@@ -267,6 +290,47 @@ export default function BlockCanvas({
                   ) : (
                     <><ImageIcon className="h-3.5 w-3.5" /> Сгенерировать</>
                   )}
+                </Button>
+              </div>
+            );
+          })}
+
+          {/* Floating buttons for FILLED placeholders (right side) */}
+          {placeholderRects.map(rect => {
+            const ph = filledPlaceholders.find(p => p.id === rect.id);
+            if (!ph) return null;
+            const isGenerating = generatingPlaceholderId === ph.id;
+            return (
+              <div
+                key={`filled-${rect.id}`}
+                className="absolute flex flex-col gap-1 pointer-events-auto z-10"
+                style={{
+                  top: rect.top + 4,
+                  left: rect.left + rect.width + 8,
+                }}
+              >
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shadow-md bg-background/90 backdrop-blur-sm"
+                  disabled={isGenerating}
+                  title="Перегенерировать"
+                  onClick={() => onGeneratePlaceholderImage?.(ph.id)}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCcw className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shadow-md bg-background/90 backdrop-blur-sm"
+                  title="Загрузить своё"
+                  onClick={() => handleUploadClick(ph.id)}
+                >
+                  <Upload className="h-3.5 w-3.5" />
                 </Button>
               </div>
             );
