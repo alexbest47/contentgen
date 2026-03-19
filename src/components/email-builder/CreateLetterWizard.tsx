@@ -164,7 +164,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       data?.forEach((r: any) => { map[r.key] = r.value; });
       return map;
     },
-    enabled: open && step >= 2,
+    enabled: open && step >= 3,
   });
 
   // Load templates
