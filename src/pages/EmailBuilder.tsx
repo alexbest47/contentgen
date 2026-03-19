@@ -53,6 +53,7 @@ export default function EmailBuilder() {
 
   const dirtyRef = useRef(false);
   const initialLoadRef = useRef(false);
+  const blocksLoadedRef = useRef(false);
 
   // Load letter
   const { data: letter } = useQuery({
@@ -125,8 +126,7 @@ export default function EmailBuilder() {
   }, [letter]);
 
   useEffect(() => {
-    if (dbBlocks && !initialLoadRef.current) return;
-    if (dbBlocks) {
+    if (dbBlocks && !blocksLoadedRef.current) {
       setBlocks(dbBlocks.map((b: any) => ({
         id: b.id,
         block_type: b.block_type as EmailBlockType,
@@ -136,6 +136,7 @@ export default function EmailBuilder() {
         banner_image_prompt: b.banner_image_prompt,
         banner_image_url: b.banner_image_url,
       })));
+      blocksLoadedRef.current = true;
     }
   }, [dbBlocks]);
 

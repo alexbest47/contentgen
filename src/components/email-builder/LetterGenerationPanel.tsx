@@ -134,20 +134,6 @@ export default function LetterGenerationPanel({
           </Button>
         </div>
 
-        <div className="border-t pt-4">
-          <Button
-            variant="outline"
-            className="w-full gap-1.5"
-            onClick={onRegenerate}
-            disabled={generatingLetter}
-          >
-            {generatingLetter ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Генерирую…</>
-            ) : (
-              <><Sparkles className="h-4 w-4" /> Перегенерировать письмо</>
-            )}
-          </Button>
-        </div>
       </div>
     );
   }
@@ -174,24 +160,6 @@ export default function LetterGenerationPanel({
         </Select>
       </div>
 
-      {/* Section 2: Generate */}
-      <div className="space-y-2 border-t pt-4">
-        <Button
-          className="w-full gap-1.5"
-          size="lg"
-          onClick={onGenerate}
-          disabled={generatingLetter}
-        >
-          {generatingLetter ? (
-            <><Loader2 className="h-4 w-4 animate-spin" /> Генерирую письмо…</>
-          ) : (
-            <><Sparkles className="h-4 w-4" /> Сгенерировать письмо</>
-          )}
-        </Button>
-        <p className="text-xs text-muted-foreground text-center">
-          Письмо будет создано целиком — от приветствия до кнопки CTA
-        </p>
-      </div>
     </div>
   );
 }
