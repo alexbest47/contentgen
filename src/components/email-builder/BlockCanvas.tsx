@@ -129,9 +129,10 @@ export default function BlockCanvas({
     setPlaceholderRects(rects);
   }, []);
 
+  // Force-update contentEditable innerHTML when processedHtml changes (React won't do it)
   useEffect(() => {
-    if (!isFullLetterMode) return;
-    // Measure after DOM paint
+    if (!isFullLetterMode || !contentRef.current || !processedHtml) return;
+    contentRef.current.innerHTML = processedHtml;
     requestAnimationFrame(measurePlaceholders);
   }, [isFullLetterMode, processedHtml, measurePlaceholders]);
 
