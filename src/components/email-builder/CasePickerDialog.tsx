@@ -185,13 +185,11 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Файл</TableHead>
-                  <TableHead>Тип</TableHead>
-                  <TableHead>Студент</TableHead>
-                  <TableHead>Продукты</TableHead>
-                  <TableHead>Тон</TableHead>
-                  <TableHead>Качество</TableHead>
-                  <TableHead>Теги</TableHead>
+                  <TableHead className="w-[180px]">Файл</TableHead>
+                  <TableHead className="w-[100px]">Тип</TableHead>
+                  <TableHead className="w-[140px]">Студент</TableHead>
+                  <TableHead className="w-[140px]">Продукты</TableHead>
+                  <TableHead className="w-[160px]">Теги</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
