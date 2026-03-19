@@ -1,25 +1,27 @@
 
 
-## Проблема
+## Задача
 
-После генерации изображения `imagePlaceholders` обновляется в state, `processedHtml` пересчитывается с новым URL. Но **React не обновляет содержимое `contentEditable` div** через `dangerouslySetInnerHTML`, потому что браузер считает этот DOM «своим». В итоге `processedHtml` пересчитан, но в DOM остаётся старая заглушка.
+Убрать Lovable AI Gateway из генерации изображений в `generate-email-letter`, использовать только OpenRouter.
 
-## Решение
+## Изменение
 
-### `BlockCanvas.tsx`
+### `supabase/functions/generate-email-letter/index.ts` (строки 51-55)
 
-Добавить `useEffect`, который при изменении `processedHtml` принудительно обновляет `innerHTML` контейнера:
+Удалить проверку `LOVABLE_API_KEY` и всегда использовать OpenRouter:
 
 ```ts
-useEffect(() => {
-  if (contentRef.current && processedHtml) {
-    contentRef.current.innerHTML = processedHtml;
-    requestAnimationFrame(measurePlaceholders);
-  }
-}, [processedHtml]);
+// Было:
+const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+const imgApiKey = lovableKey || openrouterKey;
+const imgApiUrl = lovableKey
+  ? "https://ai.gateway.lovable.dev/v1/chat/completions"
+  : "https://openrouter.ai/api/v1/chat/completions";
+
+// Станет:
+const imgApiKey = openrouterKey;
+const imgApiUrl = "https://openrouter.ai/api/v1/chat/completions";
 ```
 
-Это гарантирует, что когда `image_url` появляется в placeholder и `processedHtml` меняется (заглушка заменяется на `<img>`), DOM будет обновлён принудительно. После обновления также пересчитываются позиции overlay-кнопок, чтобы кнопка для уже сгенерированного изображения исчезла.
-
-Один файл, ~5 строк.
+Один файл, 3 строки заменяются на 2.
 
