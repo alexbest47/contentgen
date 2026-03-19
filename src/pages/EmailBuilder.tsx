@@ -401,54 +401,53 @@ export default function EmailBuilder() {
     const header = emailSettings?.email_header_html || "";
     const footer = emailSettings?.email_footer_html || "";
 
-    let body: string;
+    // Build generated letter body
+    let letterBody = "";
     if (generatedHtml) {
-      // Export full letter HTML — replace {{image_placeholder_N}} markers with real URLs
-      body = generatedHtml;
+      letterBody = generatedHtml;
       for (const ph of imagePlaceholders) {
         const placeholder = `{{${ph.id}}}`;
         if (ph.image_url) {
-          // Replace entire <img src="{{...}}"> or just the placeholder with the real URL
-          body = body.replace(
+          letterBody = letterBody.replace(
             new RegExp(`<img([^>]*)src\\s*=\\s*["']\\{\\{${ph.id}\\}\\}["']([^>]*)>`, "g"),
             `<img$1src="${ph.image_url}"$2>`
           );
-          // Also replace standalone markers
-          body = body.replace(placeholder, ph.image_url);
+          letterBody = letterBody.replace(placeholder, ph.image_url);
         } else {
-          // Remove img tags with unresolved placeholders
-          body = body.replace(
+          letterBody = letterBody.replace(
             new RegExp(`<img[^>]*src\\s*=\\s*["']\\{\\{${ph.id}\\}\\}["'][^>]*>`, "g"),
             ""
           );
-          body = body.replace(placeholder, "");
+          letterBody = letterBody.replace(placeholder, "");
         }
       }
-    } else {
-      body = blocks
-        .sort((a, b) => a.sort_order - b.sort_order)
-        .map((b) => {
-          if (b.generated_html) {
-            let html = b.generated_html;
-            if (b.banner_image_url) {
-              html = `<img src="${b.banner_image_url}" alt="" style="max-width:600px;width:100%;border-radius:6px;" />\n` + html;
-            }
-            return html;
-          }
-          if (b.block_type === "divider") return '<hr style="border:none;border-top:1px solid #E0E0E0;margin:24px 0;" />';
-          if (b.block_type === "text" && b.config.html) return b.config.html;
-          if (b.block_type === "cta" && b.config.text) {
-            return `<div style="text-align:center;padding:16px 0;"><a href="${b.config.url || '#'}" style="display:inline-block;padding:12px 32px;background-color:${b.config.color || '#6366f1'};color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;">${b.config.text}</a></div>`;
-          }
-          if (b.block_type === "image" && (b.config.url || b.config.src)) {
-            return `<div style="text-align:${b.config.align || 'center'};"><img src="${b.config.url || b.config.src}" alt="${b.config.alt || ''}" style="max-width:600px;width:100%;" /></div>`;
-          }
-          return "";
-        })
-        .filter(Boolean)
-        .join("\n\n");
     }
 
+    // Build user blocks body
+    const blocksBody = blocks
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((b) => {
+        if (b.generated_html) {
+          let html = b.generated_html;
+          if (b.banner_image_url) {
+            html = `<img src="${b.banner_image_url}" alt="" style="max-width:600px;width:100%;border-radius:6px;" />\n` + html;
+          }
+          return html;
+        }
+        if (b.block_type === "divider") return '<hr style="border:none;border-top:1px solid #E0E0E0;margin:24px 0;" />';
+        if (b.block_type === "text" && b.config.html) return b.config.html;
+        if (b.block_type === "cta" && b.config.text) {
+          return `<div style="text-align:center;padding:16px 0;"><a href="${b.config.url || '#'}" style="display:inline-block;padding:12px 32px;background-color:${b.config.color || '#6366f1'};color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;">${b.config.text}</a></div>`;
+        }
+        if (b.block_type === "image" && (b.config.url || b.config.src)) {
+          return `<div style="text-align:${b.config.align || 'center'};"><img src="${b.config.url || b.config.src}" alt="${b.config.alt || ''}" style="max-width:600px;width:100%;" /></div>`;
+        }
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n\n");
+
+    const body = [letterBody, blocksBody].filter(Boolean).join("\n\n");
     setExportHtml(`${header}\n\n${body}\n\n${footer}`);
     setExportOpen(true);
   };
