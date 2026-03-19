@@ -24,7 +24,7 @@ interface Props {
   onSave: () => void;
   onChangeTheme: () => void;
   onGenerateLetter: () => void;
-  generatingSubject: boolean;
+  
   generatingLetter: boolean;
   canGenerate: boolean;
 }
