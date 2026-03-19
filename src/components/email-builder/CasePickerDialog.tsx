@@ -182,7 +182,7 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
 
           {/* Table */}
           <ScrollArea className="min-h-0 flex-1 border rounded-md">
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
                   <TableHead>Файл</TableHead>
