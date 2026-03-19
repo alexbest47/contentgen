@@ -370,23 +370,25 @@ export default function BlockCanvas({
                 }`}
                 onClick={() => !locked && onSelectBlock(block.id)}
               >
-                {/* Hover controls */}
-                <div className="absolute -top-3 right-2 hidden group-hover:flex items-center gap-1 bg-background border rounded-md shadow-sm px-1 py-0.5 z-10">
-                  {!locked && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onSelectBlock(block.id); }}>
-                      <Settings className="h-3 w-3" />
+                {/* Hover controls — hidden for template-label-only blocks */}
+                {!hasTemplateLabel && (
+                  <div className="absolute -top-3 right-2 hidden group-hover:flex items-center gap-1 bg-background border rounded-md shadow-sm px-1 py-0.5 z-10">
+                    {!locked && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onSelectBlock(block.id); }}>
+                        <Settings className="h-3 w-3" />
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === 0} onClick={(e) => { e.stopPropagation(); onMoveBlock(block.id, "up"); }}>
+                      <ArrowUp className="h-3 w-3" />
                     </Button>
-                  )}
-                  <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === 0} onClick={(e) => { e.stopPropagation(); onMoveBlock(block.id, "up"); }}>
-                    <ArrowUp className="h-3 w-3" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === visibleBlocks.length - 1} onClick={(e) => { e.stopPropagation(); onMoveBlock(block.id, "down"); }}>
-                    <ArrowDown className="h-3 w-3" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onDeleteBlock(block.id); }}>
-                    <Trash2 className="h-3 w-3 text-destructive" />
-                  </Button>
-                </div>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === visibleBlocks.length - 1} onClick={(e) => { e.stopPropagation(); onMoveBlock(block.id, "down"); }}>
+                      <ArrowDown className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onDeleteBlock(block.id); }}>
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
+                )}
 
                 {/* Block content */}
                 <div className={isFullLetterMode ? "py-1" : "p-4"}>
