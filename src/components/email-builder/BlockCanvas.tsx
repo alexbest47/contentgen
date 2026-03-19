@@ -1,6 +1,7 @@
 import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { blockTypeLabels, isGeneratedBlock, type EmailBlockType } from "./BlockLibrary";
+import { blockTypeLabels, isGeneratedBlock, isTemplateLocked, type EmailBlockType } from "./BlockLibrary";
+import { Lock } from "lucide-react";
 import type { ImagePlaceholder } from "./LetterGenerationPanel";
 
 export interface EmailBlock {
@@ -172,22 +173,29 @@ export default function BlockCanvas({
                 const isTextImage = isGeneratedBlock(block.block_type) && (block.config.mode === "header_image" || block.config.mode === "schema_image");
                 const needsImagePlaceholder = isTextImage && !block.banner_image_url && block.generated_html;
                 const isGeneratingImage = generatingImageBlockId === block.id;
+                const locked = isTemplateLocked(block.block_type);
 
                 return (
                   <div
                     key={block.id}
-                    className={`group relative border rounded-lg transition-colors cursor-pointer ${
-                      selectedBlockId === block.id
-                        ? "border-primary ring-2 ring-primary/20"
-                        : "border-border hover:border-primary/40"
+                    className={`group relative border rounded-lg transition-colors ${
+                      locked
+                        ? "border-muted-foreground/20 cursor-default"
+                        : `cursor-pointer ${
+                            selectedBlockId === block.id
+                              ? "border-primary ring-2 ring-primary/20"
+                              : "border-border hover:border-primary/40"
+                          }`
                     }`}
-                    onClick={() => onSelectBlock(block.id)}
+                    onClick={() => !locked && onSelectBlock(block.id)}
                   >
                     {/* Hover controls */}
                     <div className="absolute -top-3 right-2 hidden group-hover:flex items-center gap-1 bg-background border rounded-md shadow-sm px-1 py-0.5 z-10">
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onSelectBlock(block.id); }}>
-                        <Settings className="h-3 w-3" />
-                      </Button>
+                      {!locked && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onSelectBlock(block.id); }}>
+                          <Settings className="h-3 w-3" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === 0} onClick={(e) => { e.stopPropagation(); onMoveBlock(block.id, "up"); }}>
                         <ArrowUp className="h-3 w-3" />
                       </Button>
@@ -262,11 +270,23 @@ export default function BlockCanvas({
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 text-muted-foreground text-sm py-3">
-                          <span className="bg-muted px-2 py-1 rounded text-xs font-medium">
-                            {blockTypeLabels[block.block_type]}
-                          </span>
-                          {isGeneratedBlock(block.block_type) && (
-                            <span className="text-xs">— настройте и сгенерируйте в правой панели</span>
+                          {locked ? (
+                            <>
+                              <Lock className="h-3.5 w-3.5 text-muted-foreground/50" />
+                              <span className="bg-muted px-2 py-1 rounded text-xs font-medium">
+                                {blockTypeLabels[block.block_type]}
+                              </span>
+                              <span className="text-xs text-muted-foreground/60">— определяется промптом</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="bg-muted px-2 py-1 rounded text-xs font-medium">
+                                {blockTypeLabels[block.block_type]}
+                              </span>
+                              {isGeneratedBlock(block.block_type) && (
+                                <span className="text-xs">— настройте и сгенерируйте в правой панели</span>
+                              )}
+                            </>
                           )}
                         </div>
                       )}
