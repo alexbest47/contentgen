@@ -112,15 +112,6 @@ const categories = [
       { name: "{{letter_blocks_summary}}", description: "JSON-сводка всех блоков письма (типы, офферы, темы) — заполняется автоматически при генерации темы", source: "Системная переменная (email_letter_blocks)" },
     ],
   },
-  {
-    title: "Аудитория",
-    variables: [
-      { name: "{{audience_from_scratch_personal}}", description: "С нуля — для себя", source: "prompt_global_variables" },
-      { name: "{{audience_from_scratch_career}}", description: "С нуля — новая профессия", source: "prompt_global_variables" },
-      { name: "{{audience_from_scratch_both}}", description: "С нуля — для себя и, возможно, профессия", source: "prompt_global_variables" },
-      { name: "{{audience_with_diploma}}", description: "Есть образование — повышение квалификации", source: "prompt_global_variables" },
-    ],
-  },
 ];
 
 function VariableTable({ variables }: { variables: typeof categories[0]["variables"] }) {
