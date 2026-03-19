@@ -451,6 +451,14 @@ export default function BlockCanvas({
                         style={{ maxWidth: "100%", width: "600px" }}
                       />
                     </div>
+                  ) : hasTemplateLabel ? (
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm py-3">
+                      <Lock className="h-3.5 w-3.5 text-muted-foreground/50" />
+                      <span className="bg-muted px-2 py-1 rounded text-xs font-medium">
+                        {block.config.label}
+                      </span>
+                      <span className="text-xs text-muted-foreground/60">— будет сгенерировано</span>
+                    </div>
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground text-sm py-3">
                       {locked ? (
