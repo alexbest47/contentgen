@@ -122,8 +122,10 @@ export default function BlockCanvas({
   onGenerateImage, generatingImageBlockId,
   generatedHtml, imagePlaceholders,
   onGeneratePlaceholderImage, generatingPlaceholderId,
-  onUpdateGeneratedHtml,
+  onUpdateGeneratedHtml, onUploadPlaceholderImage,
 }: Props) {
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
   const { data: accentColor } = useQuery({
     queryKey: ["color_scheme_accent", colorSchemeId],
     queryFn: async () => {
