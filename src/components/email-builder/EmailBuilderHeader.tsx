@@ -19,7 +19,7 @@ interface Props {
   onChangeSubject: (v: string) => void;
   onChangePreheader: (v: string) => void;
   onChangeColorScheme: (v: string) => void;
-  onGenerateSubject: () => void;
+  
   onExportHtml: () => void;
   onSave: () => void;
   onChangeTheme: () => void;
