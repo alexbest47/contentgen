@@ -238,12 +238,12 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1 max-w-[200px]">
-                          {(j.tags || []).slice(0, 5).map((t: string, i: number) => (
+                        <div className="flex flex-wrap gap-1 max-w-[160px]">
+                          {(j.tags || []).slice(0, 3).map((t: string, i: number) => (
                             <Badge key={i} variant="outline" className="text-xs">{t}</Badge>
                           ))}
-                          {(j.tags || []).length > 5 && (
-                            <span className="text-xs text-muted-foreground">+{j.tags.length - 5}</span>
+                          {(j.tags || []).length > 3 && (
+                            <span className="text-xs text-muted-foreground">+{j.tags.length - 3}</span>
                           )}
                         </div>
                       </TableCell>
