@@ -84,13 +84,21 @@ function preprocessHtmlWithPlaceholders(
 const USER_BLOCK_TYPES = ["text", "image", "cta", "divider", "paid_programs_collection", "free_courses_grid"];
 
 export default function BlockCanvas({
-  blocks, selectedBlockId, headerHtml, footerHtml,
+  blocks, selectedBlockId, headerHtml, footerHtml, colorSchemeId,
   onSelectBlock, onMoveBlock, onDeleteBlock,
   onGenerateImage, generatingImageBlockId,
   generatedHtml, imagePlaceholders,
   onGeneratePlaceholderImage, generatingPlaceholderId,
   onUpdateGeneratedHtml,
 }: Props) {
+  const { data: accentColor } = useQuery({
+    queryKey: ["color_scheme_accent", colorSchemeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("color_schemes").select("preview_colors").eq("id", colorSchemeId!).single();
+      return data?.preview_colors?.[1] || null;
+    },
+    enabled: !!colorSchemeId,
+  });
   const isFullLetterMode = !!generatedHtml;
   const contentRef = useRef<HTMLDivElement>(null);
   const [placeholderRects, setPlaceholderRects] = useState<PlaceholderRect[]>([]);
