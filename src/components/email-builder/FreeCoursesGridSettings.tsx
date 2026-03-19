@@ -91,7 +91,7 @@ export default function FreeCoursesGridSettings({ block, colorSchemeId, onUpdate
 </tr>`);
     }
 
-    return `<table width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;"><tr><td>
+    return `<table width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;"><tr><td style="padding:24px 32px;">
 <p style="font-family:Arial,sans-serif;font-size:20px;font-weight:bold;color:${headingColor};margin:0 0 8px 0;">Подборка бесплатных курсов</p>
 <p style="font-family:Arial,sans-serif;font-size:15px;color:#444444;margin:0 0 24px 0;line-height:1.5;">Подготовили для вас подборку бесплатных мини-курсов на интересные темы.</p>
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
