@@ -516,7 +516,7 @@ export default function EmailBuilder() {
         onChangeSubject={setSubject}
         onChangePreheader={setPreheader}
         onChangeColorScheme={setColorSchemeId}
-        onGenerateSubject={generateSubjectHandler}
+        
         onExportHtml={handleExport}
         onSave={save}
         onChangeTheme={() => setThemeWizardOpen(true)}
