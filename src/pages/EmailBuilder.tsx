@@ -237,7 +237,14 @@ export default function EmailBuilder() {
   };
 
   const updateBlockConfig = (blockId: string, config: Record<string, any>) => {
-    setBlocks((prev) => prev.map((b) => b.id === blockId ? { ...b, config } : b));
+    // Handle _generated_html from static block components
+    const generatedHtmlFromConfig = config._generated_html;
+    if (generatedHtmlFromConfig !== undefined) {
+      const { _generated_html, ...cleanConfig } = config;
+      setBlocks((prev) => prev.map((b) => b.id === blockId ? { ...b, config: cleanConfig, generated_html: _generated_html } : b));
+    } else {
+      setBlocks((prev) => prev.map((b) => b.id === blockId ? { ...b, config } : b));
+    }
   };
 
   const generateBlock = async (blockId: string) => {
