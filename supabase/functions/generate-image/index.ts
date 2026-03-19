@@ -73,9 +73,9 @@ serve(async (req) => {
       }
     }
 
-    // Get offer description
-    let offerDescription = offer.description || "";
-    if (offer.doc_url && !offerDescription) {
+    // Get offer full description from Google Doc
+    let offerDescription = "";
+    if (offer.doc_url) {
       try {
         const docMatch = offer.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
         if (docMatch) {
