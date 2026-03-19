@@ -425,23 +425,6 @@ export default function EmailBuilder() {
     }
   };
 
-  const generateSubjectHandler = async () => {
-    if (!letterId) return;
-    setGeneratingSubject(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-email-subject", {
-        body: { letter_id: letterId, letter_blocks_summary: blocks.map((b) => ({ type: b.block_type, config: b.config })) },
-      });
-      if (error) throw error;
-      if (data?.subject) setSubject(data.subject);
-      if (data?.preheader) setPreheader(data.preheader);
-      toast.success("Тема и прехедер сгенерированы");
-    } catch (e: any) {
-      toast.error(e.message || "Ошибка генерации");
-    } finally {
-      setGeneratingSubject(false);
-    }
-  };
 
   const handleExport = () => {
     const header = emailSettings?.email_header_html || "";
