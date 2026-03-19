@@ -91,6 +91,8 @@ export default function BlockCanvas({
   onUpdateGeneratedHtml,
 }: Props) {
   const isFullLetterMode = !!generatedHtml;
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [placeholderRects, setPlaceholderRects] = useState<PlaceholderRect[]>([]);
 
   // In full letter mode, only show user blocks
   const visibleBlocks = isFullLetterMode
@@ -105,6 +107,39 @@ export default function BlockCanvas({
     ? preprocessHtmlWithPlaceholders(generatedHtml, imagePlaceholders || [])
     : "";
 
+  // Measure placeholder positions after render
+  const measurePlaceholders = useCallback(() => {
+    if (!contentRef.current) return;
+    const container = contentRef.current;
+    const els = container.querySelectorAll<HTMLElement>("[data-placeholder-id]");
+    const rects: PlaceholderRect[] = [];
+    els.forEach(el => {
+      const id = el.getAttribute("data-placeholder-id");
+      if (!id) return;
+      rects.push({
+        id,
+        top: el.offsetTop,
+        left: el.offsetLeft,
+        width: el.offsetWidth,
+        height: el.offsetHeight,
+      });
+    });
+    setPlaceholderRects(rects);
+  }, []);
+
+  useEffect(() => {
+    if (!isFullLetterMode) return;
+    // Measure after DOM paint
+    requestAnimationFrame(measurePlaceholders);
+  }, [isFullLetterMode, processedHtml, measurePlaceholders]);
+
+  // Re-measure on window resize
+  useEffect(() => {
+    if (!isFullLetterMode) return;
+    window.addEventListener("resize", measurePlaceholders);
+    return () => window.removeEventListener("resize", measurePlaceholders);
+  }, [isFullLetterMode, measurePlaceholders]);
+
   return (
     <div className="mx-auto" style={{ maxWidth: 600 }}>
       {/* Header */}
@@ -115,10 +150,11 @@ export default function BlockCanvas({
         />
       )}
 
-      {/* Full letter mode — single editable container */}
+      {/* Full letter mode — single editable container with overlay buttons */}
       {isFullLetterMode && (
-        <>
+        <div className="relative">
           <div
+            ref={contentRef}
             contentEditable
             suppressContentEditableWarning
             className="p-4 outline-none focus:ring-2 focus:ring-primary/20 rounded"
@@ -127,35 +163,39 @@ export default function BlockCanvas({
             onBlur={(e) => onUpdateGeneratedHtml?.(e.currentTarget.innerHTML)}
           />
 
-          {/* Image placeholder generation buttons */}
-          {unfilledPlaceholders.length > 0 && onGeneratePlaceholderImage && (
-            <div className="mt-3 space-y-2 border border-dashed border-muted-foreground/30 rounded-lg p-4">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                Изображения для генерации
-              </p>
-              {unfilledPlaceholders.map(ph => (
-                <div key={ph.id} className="flex items-center justify-between gap-2 bg-muted/50 rounded-md px-3 py-2">
-                  <span className="text-sm text-muted-foreground truncate">
-                    {ph.type} — {ph.size}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 shrink-0"
-                    disabled={generatingPlaceholderId === ph.id}
-                    onClick={() => onGeneratePlaceholderImage(ph.id)}
-                  >
-                    {generatingPlaceholderId === ph.id ? (
-                      <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Генерация…</>
-                    ) : (
-                      <><ImageIcon className="h-3.5 w-3.5" /> Сгенерировать</>
-                    )}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+          {/* Overlay buttons on top of placeholder areas */}
+          {onGeneratePlaceholderImage && placeholderRects.map(rect => {
+            const ph = unfilledPlaceholders.find(p => p.id === rect.id);
+            if (!ph) return null;
+            const isGenerating = generatingPlaceholderId === ph.id;
+            return (
+              <div
+                key={rect.id}
+                className="absolute flex items-center justify-center pointer-events-none"
+                style={{
+                  top: rect.top,
+                  left: rect.left,
+                  width: rect.width,
+                  height: rect.height,
+                }}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 pointer-events-auto shadow-md bg-background/90 backdrop-blur-sm"
+                  disabled={isGenerating}
+                  onClick={() => onGeneratePlaceholderImage(ph.id)}
+                >
+                  {isGenerating ? (
+                    <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Генерация…</>
+                  ) : (
+                    <><ImageIcon className="h-3.5 w-3.5" /> Сгенерировать</>
+                  )}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* Blocks (all in block mode, user-only in full letter mode) */}
