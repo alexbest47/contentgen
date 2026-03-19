@@ -108,6 +108,13 @@ function TopicPickerNode({
   );
 }
 
+const AUDIENCE_SEGMENTS = [
+  { key: "audience_from_scratch_personal", label: "С нуля — для себя" },
+  { key: "audience_from_scratch_career", label: "С нуля — новая профессия" },
+  { key: "audience_from_scratch_both", label: "С нуля — для себя и, возможно, профессия" },
+  { key: "audience_with_diploma", label: "Есть образование — повышение квалификации" },
+];
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -119,10 +126,11 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [selectedTopic, setSelectedTopic] = useState<TreeNode | null>(null);
   const [manualTopic, setManualTopic] = useState("");
   const [topicSearch, setTopicSearch] = useState("");
+  const [audienceSegment, setAudienceSegment] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [letterTitle, setLetterTitle] = useState("");
   const [colorSchemeId, setColorSchemeId] = useState<string | null>(null);
@@ -144,6 +152,21 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const tree = useMemo(() => buildTree(topicRows ?? []), [topicRows]);
   const filtered = useMemo(() => filterTree(tree, topicSearch), [tree, topicSearch]);
 
+  // Load audience variable descriptions
+  const { data: audienceVars } = useQuery({
+    queryKey: ["audience_global_vars"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("prompt_global_variables")
+        .select("key, value")
+        .in("key", AUDIENCE_SEGMENTS.map((s) => s.key));
+      const map: Record<string, string> = {};
+      data?.forEach((r: any) => { map[r.key] = r.value; });
+      return map;
+    },
+    enabled: open && step >= 2,
+  });
+
   // Load templates
   const { data: templates } = useQuery({
     queryKey: ["email_templates"],
@@ -151,7 +174,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       const { data } = await supabase.from("email_templates").select("*").order("sort_order");
       return data ?? [];
     },
-    enabled: open && step >= 2,
+    enabled: open && step >= 3,
   });
 
   // Load color schemes
@@ -161,7 +184,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       const { data } = await supabase.from("color_schemes").select("id, name, preview_colors").eq("is_active", true).order("name");
       return data ?? [];
     },
-    enabled: open && step >= 3,
+    enabled: open && step >= 4,
   });
 
   // Load programs
@@ -171,7 +194,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       const { data } = await supabase.from("paid_programs").select("id, title").order("created_at", { ascending: false });
       return data ?? [];
     },
-    enabled: open && step >= 3,
+    enabled: open && step >= 4,
   });
 
   // Load offers for selected program + type
@@ -184,7 +207,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
     },
-    enabled: open && step >= 3 && !!programId,
+    enabled: open && step >= 4 && !!programId,
   });
 
   const handleSelectTopic = (node: TreeNode) => {
@@ -210,7 +233,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     setStep(2);
   };
 
-  const canNext2 = !!selectedTemplateId;
+  const canNext2 = !!audienceSegment;
+  const canNext3 = !!selectedTemplateId;
   const canCreate = !!letterTitle.trim();
 
   const handleCreate = async () => {
@@ -230,7 +254,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           program_id: programId,
           offer_type: offerType,
           offer_id: offerId,
-        })
+          audience_segment: audienceSegment || "",
+        } as any)
         .select("id")
         .single();
       if (error) throw error;
@@ -261,6 +286,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     setSelectedTopic(null);
     setManualTopic("");
     setTopicSearch("");
+    setAudienceSegment(null);
     setSelectedTemplateId(null);
     setLetterTitle("");
     setColorSchemeId(null);
@@ -270,6 +296,16 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   };
 
   const offerTypes = OFFER_TYPES.map((t) => [t.key, t.label] as const);
+
+  const stepTitle = themeOnlyMode
+    ? "Выбор темы письма"
+    : step === 1
+    ? "Шаг 1 из 4 — О чём это письмо?"
+    : step === 2
+    ? "Шаг 2 из 4 — Для кого это письмо?"
+    : step === 3
+    ? "Шаг 3 из 4 — Как построить письмо?"
+    : "Шаг 4 из 4 — Настройки";
 
   return (
     <Dialog
@@ -281,15 +317,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     >
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>
-            {themeOnlyMode
-              ? "Выбор темы письма"
-              : step === 1
-              ? "Шаг 1 из 3 — О чём это письмо?"
-              : step === 2
-              ? "Шаг 2 из 3 — Как построить письмо?"
-              : "Шаг 3 из 3 — Настройки"}
-          </DialogTitle>
+          <DialogTitle>{stepTitle}</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
@@ -339,8 +367,38 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
             </div>
           )}
 
-          {/* Step 2: Template */}
+          {/* Step 2: Audience */}
           {step === 2 && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Это поможет точнее настроить тон и контекст</p>
+              <div className="space-y-3">
+                {AUDIENCE_SEGMENTS.map((seg) => {
+                  const isSelected = audienceSegment === seg.key;
+                  const description = audienceVars?.[seg.key] || "";
+                  return (
+                    <div
+                      key={seg.key}
+                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                        isSelected ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/40"
+                      }`}
+                      onClick={() => setAudienceSegment(seg.key)}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-sm">{seg.label}</h3>
+                        {isSelected && <Check className="h-4 w-4 text-primary" />}
+                      </div>
+                      {description && (
+                        <p className="text-xs text-muted-foreground line-clamp-3">{description}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Template */}
+          {step === 3 && (
             <div className="space-y-3">
               {templates?.map((tpl) => {
                 const blocks = (tpl.blocks as any[]) || [];
@@ -371,8 +429,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
             </div>
           )}
 
-          {/* Step 3: Settings */}
-          {step === 3 && (
+          {/* Step 4: Settings */}
+          {step === 4 && (
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Название письма (внутреннее)</Label>
@@ -457,7 +515,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
 
         <DialogFooter>
           {step > 1 && !themeOnlyMode && (
-            <Button variant="outline" onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}>
+            <Button variant="outline" onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3 | 4)}>
               Назад
             </Button>
           )}
@@ -472,6 +530,11 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
             </Button>
           )}
           {step === 3 && (
+            <Button onClick={() => setStep(4)} disabled={!canNext3}>
+              Далее
+            </Button>
+          )}
+          {step === 4 && (
             <Button onClick={handleCreate} disabled={!canCreate || creating}>
               {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
               Создать письмо
