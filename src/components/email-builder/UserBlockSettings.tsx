@@ -3,15 +3,28 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type EmailBlock } from "./BlockCanvas";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   block: EmailBlock;
+  colorSchemeId?: string | null;
   onUpdateConfig: (config: Record<string, any>) => void;
 }
 
-export default function UserBlockSettings({ block, onUpdateConfig }: Props) {
+export default function UserBlockSettings({ block, colorSchemeId, onUpdateConfig }: Props) {
+  const { data: accentColor } = useQuery({
+    queryKey: ["color_scheme_accent", colorSchemeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("color_schemes").select("preview_colors").eq("id", colorSchemeId!).single();
+      return data?.preview_colors?.[1] || null;
+    },
+    enabled: !!colorSchemeId,
+  });
+
   const config = block.config;
   const setConfig = (key: string, value: any) => onUpdateConfig({ ...config, [key]: value });
+  const defaultCtaColor = accentColor || "#6366f1";
 
   if (block.block_type === "text") {
     return (
