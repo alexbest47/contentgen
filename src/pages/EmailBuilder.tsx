@@ -46,6 +46,7 @@ export default function EmailBuilder() {
   const [imagePlaceholders, setImagePlaceholders] = useState<ImagePlaceholder[]>([]);
   const [caseId, setCaseId] = useState<string | null>(null);
   const [extraOfferIds, setExtraOfferIds] = useState<string[]>([]);
+  const [audienceSegment, setAudienceSegment] = useState("");
   const [generatingLetter, setGeneratingLetter] = useState(false);
   const [generatingPlaceholderId, setGeneratingPlaceholderId] = useState<string | null>(null);
   const [settingsMode, setSettingsMode] = useState(false); // true = show pre-generation panel even after generation
