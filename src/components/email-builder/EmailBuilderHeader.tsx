@@ -62,7 +62,7 @@ export default function EmailBuilderHeader({
           <Button variant="outline" size="sm" onClick={onSave} disabled={saveStatus === "saving"}>
             Сохранить
           </Button>
-          <Button size="sm" onClick={onGenerateLetter} disabled={generatingLetter} className="gap-1.5">
+          <Button size="sm" onClick={onGenerateLetter} disabled={generatingLetter || !canGenerate} className="gap-1.5">
             {generatingLetter ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             Сгенерировать письмо
           </Button>

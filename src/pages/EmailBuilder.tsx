@@ -479,6 +479,7 @@ export default function EmailBuilder() {
         onGenerateLetter={generateLetter}
         generatingSubject={generatingSubject}
         generatingLetter={generatingLetter}
+        canGenerate={!!caseId}
       />
 
       <div className="flex flex-1 overflow-hidden">

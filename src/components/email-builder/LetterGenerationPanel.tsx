@@ -142,28 +142,25 @@ export default function LetterGenerationPanel({
     );
   }
 
-  // Pre-generation mode — only case selection + generate button
+  // Pre-generation mode — only case selection
   return (
     <div className="space-y-5">
-      {/* Section 1: Case */}
       <div className="space-y-2">
-        <h3 className="font-semibold text-sm">Кейс студента</h3>
+        <h3 className="font-semibold text-sm">Выберите кейс</h3>
         <p className="text-xs text-muted-foreground">
-          Выберите кейс чтобы включить его в письмо
+          История кейса — основа письма. Без кейса письмо не будет содержать реальную историю студента
         </p>
-        <Select value={caseId || "none"} onValueChange={(v) => onChangeCaseId(v === "none" ? null : v)}>
+        <Select value={caseId || ""} onValueChange={(v) => onChangeCaseId(v)}>
           <SelectTrigger>
-            <SelectValue placeholder="Без кейса" />
+            <SelectValue placeholder="Выберите кейс..." />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">Без кейса</SelectItem>
             {cases?.map((c) => (
               <SelectItem key={c.id} value={c.id}>{c.file_name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
-
     </div>
   );
 }
