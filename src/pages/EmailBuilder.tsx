@@ -53,6 +53,7 @@ export default function EmailBuilder() {
 
   const dirtyRef = useRef(false);
   const initialLoadRef = useRef(false);
+  const blocksLoadedRef = useRef(false);
 
   // Load letter
   const { data: letter } = useQuery({
