@@ -519,18 +519,18 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
               Назад
             </Button>
           )}
-          {(step === 1 || themeOnlyMode) && (
+          {step === 1 && !themeOnlyMode && (
+            <Button onClick={() => setStep(2)} disabled={!canNext3}>
+              Далее
+            </Button>
+          )}
+          {step === 2 && (
             <Button onClick={handleNext1} disabled={!canNext1}>
               {themeOnlyMode ? "Применить" : "Далее"}
             </Button>
           )}
-          {step === 2 && (
-            <Button onClick={() => setStep(3)} disabled={!canNext2}>
-              Далее
-            </Button>
-          )}
           {step === 3 && (
-            <Button onClick={() => setStep(4)} disabled={!canNext3}>
+            <Button onClick={() => setStep(4)} disabled={!canNext2}>
               Далее
             </Button>
           )}
