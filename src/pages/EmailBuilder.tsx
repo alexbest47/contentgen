@@ -604,6 +604,13 @@ export default function EmailBuilder() {
         themeOnlyMode
         onThemeChanged={handleThemeChanged}
       />
+
+      <CasePickerDialog
+        open={casePickerOpen}
+        onOpenChange={setCasePickerOpen}
+        onSelect={(id) => handleChangeCaseId(id)}
+        selectedCaseId={caseId}
+      />
     </div>
   );
 }
