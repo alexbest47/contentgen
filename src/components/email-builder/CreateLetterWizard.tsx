@@ -230,7 +230,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       onOpenChange(false);
       return;
     }
-    setStep(2);
+    setStep(3);
   };
 
   const canNext2 = !!audienceSegment;
