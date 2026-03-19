@@ -308,8 +308,8 @@ export default function BlockCanvas({
               })}
             </div>
           )}
-        </>
-      )}
+        </div>
+      ) : null}
 
       {/* Footer */}
       {footerHtml && (
