@@ -381,14 +381,16 @@ export default function EmailBuilder() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      const newPlaceholders = imagePlaceholders.map((p) =>
-        p.id === placeholderId ? { ...p, image_url: data.image_url } : p
-      );
-      setImagePlaceholders(newPlaceholders);
-      // Save to DB
-      await supabase.from("email_letters").update({
-        image_placeholders: newPlaceholders,
-      } as any).eq("id", letterId);
+      setImagePlaceholders(prev => {
+        const updated = prev.map((p) =>
+          p.id === placeholderId ? { ...p, image_url: data.image_url } : p
+        );
+        // Save to DB immediately with the fresh value
+        supabase.from("email_letters").update({
+          image_placeholders: updated,
+        } as any).eq("id", letterId);
+        return updated;
+      });
       toast.success("Изображение сгенерировано");
     } catch (e: any) {
       toast.error(e.message || "Ошибка генерации изображения");
