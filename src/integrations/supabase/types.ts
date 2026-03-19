@@ -331,6 +331,7 @@ export type Database = {
       }
       email_letters: {
         Row: {
+          audience_segment: string
           case_id: string | null
           created_at: string
           created_by: string
@@ -352,6 +353,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audience_segment?: string
           case_id?: string | null
           created_at?: string
           created_by: string
@@ -373,6 +375,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audience_segment?: string
           case_id?: string | null
           created_at?: string
           created_by?: string
