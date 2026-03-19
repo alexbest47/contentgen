@@ -51,40 +51,64 @@ serve(async (req) => {
       const imgApiKey = openrouterKey;
       const imgApiUrl = "https://openrouter.ai/api/v1/chat/completions";
 
-      const imageResp = await fetch(imgApiUrl, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${imgApiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
-          messages: [{ role: "user", content: body.prompt }],
-          modalities: ["image", "text"],
-        }),
-      });
+      const tryGenerate = async (prompt: string): Promise<string> => {
+        const imageResp = await fetch(imgApiUrl, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${imgApiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-3-pro-image-preview",
+            messages: [{ role: "user", content: prompt }],
+            modalities: ["image", "text"],
+          }),
+        });
 
-      if (!imageResp.ok) {
-        const errText = await imageResp.text();
-        console.error("Image API error:", imageResp.status, errText);
-        if (imageResp.status === 429) throw new Error("Превышен лимит запросов, попробуйте позже");
-        if (imageResp.status === 402) throw new Error("Недостаточно средств для генерации изображения");
-        throw new Error(`Ошибка API генерации изображений: ${imageResp.status}`);
-      }
+        if (!imageResp.ok) {
+          const errText = await imageResp.text();
+          console.error("Image API error:", imageResp.status, errText);
+          if (imageResp.status === 429) throw new Error("Превышен лимит запросов, попробуйте позже");
+          if (imageResp.status === 402) throw new Error("Недостаточно средств для генерации изображения");
+          throw new Error(`API_ERROR_${imageResp.status}:${errText.substring(0, 200)}`);
+        }
 
-      const imageData = await imageResp.json();
-      const message = imageData.choices?.[0]?.message;
-      let imageUrl = message?.images?.[0]?.image_url?.url || "";
+        const imageData = await imageResp.json();
+        const message = imageData.choices?.[0]?.message;
+        let imageUrl = message?.images?.[0]?.image_url?.url || "";
 
-      if (!imageUrl && Array.isArray(message?.content)) {
-        for (const part of message.content) {
-          if (part.type === "image_url" && part.image_url?.url) {
-            imageUrl = part.image_url.url;
-            break;
+        if (!imageUrl && Array.isArray(message?.content)) {
+          for (const part of message.content) {
+            if (part.type === "image_url" && part.image_url?.url) {
+              imageUrl = part.image_url.url;
+              break;
+            }
           }
         }
-      }
 
-      if (!imageUrl) {
-        console.error("No image in response:", JSON.stringify(imageData).substring(0, 500));
-        throw new Error("Не удалось сгенерировать изображение");
+        if (!imageUrl) {
+          console.error("No image in response:", JSON.stringify(imageData).substring(0, 500));
+          throw new Error("NO_IMAGE_IN_RESPONSE");
+        }
+
+        return imageUrl;
+      };
+
+      let imageUrl = "";
+      try {
+        imageUrl = await tryGenerate(body.prompt);
+      } catch (firstErr: any) {
+        console.error("First attempt failed:", firstErr.message);
+        // Retry with simplified prompt on 400/safety errors
+        if (firstErr.message?.startsWith("API_ERROR_4") || firstErr.message === "NO_IMAGE_IN_RESPONSE") {
+          console.log("Retrying with simplified prompt...");
+          const simplifiedPrompt = `Create a professional, abstract decorative banner image. Use soft gradients and geometric shapes. Size: 600x300 pixels. Modern, clean design.`;
+          try {
+            imageUrl = await tryGenerate(simplifiedPrompt);
+          } catch (retryErr: any) {
+            console.error("Retry also failed:", retryErr.message);
+            throw new Error("Не удалось сгенерировать изображение после повторной попытки");
+          }
+        } else {
+          throw firstErr;
+        }
       }
 
       const base64 = imageUrl.split(",")[1];

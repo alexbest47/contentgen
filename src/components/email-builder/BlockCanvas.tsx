@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2 } from "lucide-react";
+import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2, RefreshCcw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { blockTypeLabels, isGeneratedBlock, isTemplateLocked, type EmailBlockType } from "./BlockLibrary";
 import { Lock } from "lucide-react";
@@ -42,6 +42,7 @@ interface Props {
   onGeneratePlaceholderImage?: (placeholderId: string) => void;
   generatingPlaceholderId?: string | null;
   onUpdateGeneratedHtml?: (html: string) => void;
+  onUploadPlaceholderImage?: (placeholderId: string, file: File) => void;
 }
 
 /** Restore placeholder markers from rendered HTML back to {{id}} format */
@@ -121,8 +122,10 @@ export default function BlockCanvas({
   onGenerateImage, generatingImageBlockId,
   generatedHtml, imagePlaceholders,
   onGeneratePlaceholderImage, generatingPlaceholderId,
-  onUpdateGeneratedHtml,
+  onUpdateGeneratedHtml, onUploadPlaceholderImage,
 }: Props) {
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
   const { data: accentColor } = useQuery({
     queryKey: ["color_scheme_accent", colorSchemeId],
     queryFn: async () => {
@@ -140,8 +143,10 @@ export default function BlockCanvas({
     ? blocks.filter(b => USER_BLOCK_TYPES.includes(b.block_type))
     : blocks;
 
-  // Build unfilled placeholders list for generation buttons
-  const unfilledPlaceholders = (imagePlaceholders || []).filter(ph => !ph.image_url);
+  // Build placeholder lists
+  const allPlaceholders = imagePlaceholders || [];
+  const unfilledPlaceholders = allPlaceholders.filter(ph => !ph.image_url);
+  const filledPlaceholders = allPlaceholders.filter(ph => !!ph.image_url);
 
   // Preprocess HTML for unified rendering
   const processedHtml = isFullLetterMode && generatedHtml
@@ -153,8 +158,10 @@ export default function BlockCanvas({
     if (!contentRef.current) return;
     const container = contentRef.current;
     const containerRect = container.getBoundingClientRect();
-    const els = container.querySelectorAll<HTMLElement>("[data-placeholder-id]");
     const rects: PlaceholderRect[] = [];
+
+    // Unfilled: div[data-placeholder-id]
+    const els = container.querySelectorAll<HTMLElement>("[data-placeholder-id]");
     els.forEach(el => {
       const id = el.getAttribute("data-placeholder-id");
       if (!id) return;
@@ -167,8 +174,27 @@ export default function BlockCanvas({
         height: elRect.height,
       });
     });
+
+    // Filled: find <img> whose src matches a filled placeholder URL
+    if (filledPlaceholders.length > 0) {
+      const imgs = container.querySelectorAll<HTMLImageElement>("img");
+      imgs.forEach(img => {
+        const matchedPh = filledPlaceholders.find(ph => ph.image_url && img.src.includes(ph.image_url));
+        if (matchedPh) {
+          const elRect = img.getBoundingClientRect();
+          rects.push({
+            id: matchedPh.id,
+            top: elRect.top - containerRect.top + container.scrollTop,
+            left: elRect.left - containerRect.left + container.scrollLeft,
+            width: elRect.width,
+            height: elRect.height,
+          });
+        }
+      });
+    }
+
     setPlaceholderRects(rects);
-  }, []);
+  }, [filledPlaceholders]);
 
   // Force-update contentEditable innerHTML when processedHtml changes (React won't do it)
   useEffect(() => {
@@ -184,8 +210,31 @@ export default function BlockCanvas({
     return () => window.removeEventListener("resize", measurePlaceholders);
   }, [isFullLetterMode, measurePlaceholders]);
 
+  const handleUploadClick = (placeholderId: string) => {
+    setUploadTargetId(placeholderId);
+    uploadInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && uploadTargetId && onUploadPlaceholderImage) {
+      onUploadPlaceholderImage(uploadTargetId, file);
+    }
+    e.target.value = "";
+    setUploadTargetId(null);
+  };
+
   return (
     <div className="mx-auto" style={{ maxWidth: 600 }}>
+      {/* Hidden file input for image upload */}
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       {/* Header */}
       {headerHtml && (
         <div
@@ -213,14 +262,14 @@ export default function BlockCanvas({
             }}
           />
 
-          {/* Overlay buttons on top of placeholder areas */}
+          {/* Overlay buttons for UNFILLED placeholders (centered) */}
           {onGeneratePlaceholderImage && placeholderRects.map(rect => {
             const ph = unfilledPlaceholders.find(p => p.id === rect.id);
             if (!ph) return null;
             const isGenerating = generatingPlaceholderId === ph.id;
             return (
               <div
-                key={rect.id}
+                key={`unfilled-${rect.id}`}
                 className="absolute flex items-center justify-center pointer-events-none"
                 style={{
                   top: rect.top,
@@ -245,6 +294,47 @@ export default function BlockCanvas({
               </div>
             );
           })}
+
+          {/* Floating buttons for FILLED placeholders (right side) */}
+          {placeholderRects.map(rect => {
+            const ph = filledPlaceholders.find(p => p.id === rect.id);
+            if (!ph) return null;
+            const isGenerating = generatingPlaceholderId === ph.id;
+            return (
+              <div
+                key={`filled-${rect.id}`}
+                className="absolute flex flex-col gap-1 pointer-events-auto z-10"
+                style={{
+                  top: rect.top + 4,
+                  left: rect.left + rect.width + 8,
+                }}
+              >
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shadow-md bg-background/90 backdrop-blur-sm"
+                  disabled={isGenerating}
+                  title="Перегенерировать"
+                  onClick={() => onGeneratePlaceholderImage?.(ph.id)}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCcw className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shadow-md bg-background/90 backdrop-blur-sm"
+                  title="Загрузить своё"
+                  onClick={() => handleUploadClick(ph.id)}
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -264,14 +354,18 @@ export default function BlockCanvas({
             return (
               <div
                 key={block.id}
-                className={`group relative border rounded-lg transition-colors ${
-                  locked
-                    ? "border-muted-foreground/20 cursor-default"
-                    : `cursor-pointer ${
-                        selectedBlockId === block.id
-                          ? "border-primary ring-2 ring-primary/20"
-                          : "border-border hover:border-primary/40"
-                      }`
+                className={`group relative transition-colors ${
+                  isFullLetterMode
+                    ? ""
+                    : `border rounded-lg ${
+                      locked
+                        ? "border-muted-foreground/20 cursor-default"
+                        : `cursor-pointer ${
+                            selectedBlockId === block.id
+                              ? "border-primary ring-2 ring-primary/20"
+                              : "border-border hover:border-primary/40"
+                          }`
+                    }`
                 }`}
                 onClick={() => !locked && onSelectBlock(block.id)}
               >
@@ -294,7 +388,7 @@ export default function BlockCanvas({
                 </div>
 
                 {/* Block content */}
-                <div className="p-4">
+                <div className={isFullLetterMode ? "px-4 py-1" : "p-4"}>
                   {needsImagePlaceholder && (
                     <div className="mb-3 bg-muted/50 border border-dashed border-muted-foreground/30 rounded-lg p-6 flex flex-col items-center gap-3">
                       <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
