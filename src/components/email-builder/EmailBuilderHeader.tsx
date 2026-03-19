@@ -22,7 +22,9 @@ interface Props {
   onExportHtml: () => void;
   onSave: () => void;
   onChangeTheme: () => void;
+  onGenerateLetter: () => void;
   generatingSubject: boolean;
+  generatingLetter: boolean;
 }
 
 export default function EmailBuilderHeader({
