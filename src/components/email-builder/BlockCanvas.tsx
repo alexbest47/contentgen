@@ -158,8 +158,10 @@ export default function BlockCanvas({
     if (!contentRef.current) return;
     const container = contentRef.current;
     const containerRect = container.getBoundingClientRect();
-    const els = container.querySelectorAll<HTMLElement>("[data-placeholder-id]");
     const rects: PlaceholderRect[] = [];
+
+    // Unfilled: div[data-placeholder-id]
+    const els = container.querySelectorAll<HTMLElement>("[data-placeholder-id]");
     els.forEach(el => {
       const id = el.getAttribute("data-placeholder-id");
       if (!id) return;
@@ -172,8 +174,27 @@ export default function BlockCanvas({
         height: elRect.height,
       });
     });
+
+    // Filled: find <img> whose src matches a filled placeholder URL
+    if (filledPlaceholders.length > 0) {
+      const imgs = container.querySelectorAll<HTMLImageElement>("img");
+      imgs.forEach(img => {
+        const matchedPh = filledPlaceholders.find(ph => ph.image_url && img.src.includes(ph.image_url));
+        if (matchedPh) {
+          const elRect = img.getBoundingClientRect();
+          rects.push({
+            id: matchedPh.id,
+            top: elRect.top - containerRect.top + container.scrollTop,
+            left: elRect.left - containerRect.left + container.scrollLeft,
+            width: elRect.width,
+            height: elRect.height,
+          });
+        }
+      });
+    }
+
     setPlaceholderRects(rects);
-  }, []);
+  }, [filledPlaceholders]);
 
   // Force-update contentEditable innerHTML when processedHtml changes (React won't do it)
   useEffect(() => {
