@@ -5,6 +5,7 @@ import UserBlockSettings from "./UserBlockSettings";
 import OfferCollectionSettings from "./OfferCollectionSettings";
 import PaidProgramsCollectionSettings from "./PaidProgramsCollectionSettings";
 import FreeCoursesGridSettings from "./FreeCoursesGridSettings";
+import TestimonialCaseSelector from "./TestimonialCaseSelector";
 
 interface Props {
   block: EmailBlock;
@@ -15,6 +16,8 @@ interface Props {
   generating: boolean;
   generatingImage: boolean;
   userId: string;
+  caseId?: string | null;
+  onChangeCaseId?: (id: string | null) => void;
 }
 
 export default function BlockSettingsPanel({
