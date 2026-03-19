@@ -525,6 +525,10 @@ export default function EmailBuilder() {
             colorSchemeId={colorSchemeId}
             onSelectBlock={(id) => {
               const block = blocks.find(b => b.id === id);
+              if (block && block.block_type === "testimonial_content") {
+                setCasePickerOpen(true);
+                return;
+              }
               if (block && isTemplateLocked(block.block_type)) return;
               setSelectedBlockId(id);
             }}
