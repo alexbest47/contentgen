@@ -43,6 +43,19 @@ export default function Tags() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase.from("tags").update({ name: name.trim() }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tags"] });
+      setEditingId(null);
+      toast.success("Тег обновлён");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("tags").delete().eq("id", id);
