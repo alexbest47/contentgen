@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { blockTypeLabels, isGeneratedBlock, isTemplateLocked, type EmailBlockType } from "./BlockLibrary";
 import { Lock } from "lucide-react";
 import type { ImagePlaceholder } from "./LetterGenerationPanel";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PlaceholderRect {
   id: string;
@@ -28,6 +30,7 @@ interface Props {
   selectedBlockId: string | null;
   headerHtml: string;
   footerHtml: string;
+  colorSchemeId?: string | null;
   onSelectBlock: (id: string) => void;
   onMoveBlock: (id: string, direction: "up" | "down") => void;
   onDeleteBlock: (id: string) => void;
@@ -83,13 +86,21 @@ function preprocessHtmlWithPlaceholders(
 const USER_BLOCK_TYPES = ["text", "image", "cta", "divider", "paid_programs_collection", "free_courses_grid"];
 
 export default function BlockCanvas({
-  blocks, selectedBlockId, headerHtml, footerHtml,
+  blocks, selectedBlockId, headerHtml, footerHtml, colorSchemeId,
   onSelectBlock, onMoveBlock, onDeleteBlock,
   onGenerateImage, generatingImageBlockId,
   generatedHtml, imagePlaceholders,
   onGeneratePlaceholderImage, generatingPlaceholderId,
   onUpdateGeneratedHtml,
 }: Props) {
+  const { data: accentColor } = useQuery({
+    queryKey: ["color_scheme_accent", colorSchemeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("color_schemes").select("preview_colors").eq("id", colorSchemeId!).single();
+      return data?.preview_colors?.[1] || null;
+    },
+    enabled: !!colorSchemeId,
+  });
   const isFullLetterMode = !!generatedHtml;
   const contentRef = useRef<HTMLDivElement>(null);
   const [placeholderRects, setPlaceholderRects] = useState<PlaceholderRect[]>([]);
@@ -279,7 +290,7 @@ export default function BlockCanvas({
                   {block.generated_html ? (
                     <div dangerouslySetInnerHTML={{ __html: block.generated_html }} />
                   ) : block.block_type === "divider" ? (
-                    <hr style={{ border: "none", borderTop: "1px solid hsl(var(--border))", margin: "24px 0" }} />
+                    <hr style={{ border: "none", borderTop: `1px solid ${accentColor || "hsl(var(--border))"}`, margin: "24px 0" }} />
                   ) : block.block_type === "text" && block.config.html ? (
                     <div dangerouslySetInnerHTML={{ __html: block.config.html }} />
                   ) : block.block_type === "cta" && block.config.text ? (
@@ -289,7 +300,7 @@ export default function BlockCanvas({
                         style={{
                           display: "inline-block",
                           padding: "12px 32px",
-                          backgroundColor: block.config.color || "hsl(var(--primary))",
+                          backgroundColor: block.config.color || accentColor || "hsl(var(--primary))",
                           color: "#ffffff",
                           borderRadius: "6px",
                           textDecoration: "none",

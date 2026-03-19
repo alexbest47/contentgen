@@ -63,6 +63,7 @@ export default function BlockSettingsPanel({
       ) : (
         <UserBlockSettings
           block={block}
+          colorSchemeId={colorSchemeId}
           onUpdateConfig={(config) => onUpdateConfig(block.id, config)}
         />
       )}

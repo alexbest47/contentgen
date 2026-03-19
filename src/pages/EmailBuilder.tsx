@@ -88,6 +88,16 @@ export default function EmailBuilder() {
     enabled: !!letterId,
   });
 
+  // Load accent color from color scheme
+  const { data: accentColor } = useQuery({
+    queryKey: ["color_scheme_accent", colorSchemeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("color_schemes").select("preview_colors").eq("id", colorSchemeId!).single();
+      return data?.preview_colors?.[1] || null;
+    },
+    enabled: !!colorSchemeId,
+  });
+
   // Load email settings (header/footer)
   const { data: emailSettings } = useQuery({
     queryKey: ["email_settings"],
@@ -434,10 +444,10 @@ export default function EmailBuilder() {
           }
           return html;
         }
-        if (b.block_type === "divider") return '<hr style="border:none;border-top:1px solid #E0E0E0;margin:24px 0;" />';
+        if (b.block_type === "divider") return `<hr style="border:none;border-top:1px solid ${accentColor || '#E0E0E0'};margin:24px 0;" />`;
         if (b.block_type === "text" && b.config.html) return b.config.html;
         if (b.block_type === "cta" && b.config.text) {
-          return `<div style="text-align:center;padding:16px 0;"><a href="${b.config.url || '#'}" style="display:inline-block;padding:12px 32px;background-color:${b.config.color || '#6366f1'};color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;">${b.config.text}</a></div>`;
+          return `<div style="text-align:center;padding:16px 0;"><a href="${b.config.url || '#'}" style="display:inline-block;padding:12px 32px;background-color:${b.config.color || accentColor || '#6366f1'};color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;">${b.config.text}</a></div>`;
         }
         if (b.block_type === "image" && (b.config.url || b.config.src)) {
           return `<div style="text-align:${b.config.align || 'center'};"><img src="${b.config.url || b.config.src}" alt="${b.config.alt || ''}" style="max-width:600px;width:100%;" /></div>`;
@@ -510,6 +520,7 @@ export default function EmailBuilder() {
             selectedBlockId={selectedBlockId}
             headerHtml={emailSettings?.email_header_html || ""}
             footerHtml={emailSettings?.email_footer_html || ""}
+            colorSchemeId={colorSchemeId}
             onSelectBlock={(id) => {
               const block = blocks.find(b => b.id === id);
               if (block && isTemplateLocked(block.block_type)) return;
