@@ -2,38 +2,58 @@
 
 ## Проблема
 
-На скриншоте видно две проблемы:
+Изображения генерируются успешно (edge-функция возвращает URL), но **не отображаются** в письме. В БД `image_url` остаётся пустым.
 
-1. **Пустое место** между сгенерированным блоком (фиолетовый) и пользовательским (белый «Программы»): вызвано `mt-4` и `space-y-2` на контейнере пользовательских блоков в `BlockCanvas.tsx` (строка 347).
+**Причина — race condition между генерацией и автосохранением:**
 
-2. **Квадратные углы** у пользовательских блоков: в HTML-шаблонах `PaidProgramsCollectionSettings` и `FreeCoursesGridSettings` внешний `<table>` не имеет `border-radius`, тогда как таблицы в AI-контенте имеют скругления.
+1. Пользователь нажимает «Сгенерировать» → `generatePlaceholderImage` стартует
+2. Edge-функция работает ~30-60 сек
+3. За это время **автосохранение** (каждые 30 сек) записывает в БД `image_placeholders` из текущего state — **где URL ещё пустые**
+4. Edge-функция возвращает URL → `setImagePlaceholders(newPlaceholders)` обновляет state → прямой DB update записывает URL ✓
+5. Но `setImagePlaceholders` триггерит `useEffect` (строка 163-168), который ставит `dirtyRef.current = true`
+6. При следующем тике `save()` в `useEffect(() => () => { save(); }, [save])` (строка 214) **перезаписывает** `save` и может сработать с промежуточным состоянием
+7. Кроме того, `generatePlaceholderImage` использует `imagePlaceholders` из **замкнутого scope** (строка 378) — если за время ожидания были другие обновления state, они теряются
 
-## Изменения
+## Решение
 
-### 1. `src/components/email-builder/BlockCanvas.tsx` (строка 347)
+### `src/pages/EmailBuilder.tsx`
 
-Убрать `mt-4` в full letter mode, оставить `space-y-0` чтобы блоки шли вплотную:
+**1. Добавить `useRef` для imagePlaceholders** — чтобы autosave и генерация всегда читали актуальное значение:
 
-```
-// Было:
-<div className={`space-y-2 ${isFullLetterMode ? "mt-4" : ""}`}>
-
-// Станет:
-<div className={isFullLetterMode ? "" : "space-y-2"}>
-```
-
-### 2. `src/components/email-builder/PaidProgramsCollectionSettings.tsx`
-
-В `buildHtml()` добавить `border-radius:12px;overflow:hidden;` на внешнюю `<table>`:
-
-```html
-<table width="100%" cellpadding="0" cellspacing="0"
-  style="background:#FFFFFF;border-radius:12px;overflow:hidden;">
+```ts
+const imagePlaceholdersRef = useRef(imagePlaceholders);
+useEffect(() => { imagePlaceholdersRef.current = imagePlaceholders; }, [imagePlaceholders]);
 ```
 
-### 3. `src/components/email-builder/FreeCoursesGridSettings.tsx`
+**2. В `save()` использовать ref вместо closure-переменной:**
+```ts
+image_placeholders: imagePlaceholdersRef.current,
+```
 
-Аналогично — добавить `border-radius:12px;overflow:hidden;` на внешнюю `<table>`.
+**3. В `generatePlaceholderImage` использовать функциональное обновление state:**
+```ts
+setImagePlaceholders(prev => {
+  const updated = prev.map(p =>
+    p.id === placeholderId ? { ...p, image_url: data.image_url } : p
+  );
+  // Save to DB inline
+  supabase.from("email_letters").update({
+    image_placeholders: updated,
+  } as any).eq("id", letterId);
+  return updated;
+});
+```
 
-3 файла, по 1 строке в каждом.
+**4. Аналогично для `uploadPlaceholderImage`** — тот же паттерн с `prev =>`.
+
+**5. Для `generatedHtml` добавить аналогичный ref** — та же проблема может возникать при редактировании текста + автосохранении:
+```ts
+const generatedHtmlRef = useRef(generatedHtml);
+useEffect(() => { generatedHtmlRef.current = generatedHtml; }, [generatedHtml]);
+```
+И в `save()`: `generated_html: generatedHtmlRef.current`.
+
+## Объём
+
+1 файл (`EmailBuilder.tsx`), ~20 строк правок. Логика edge-функций и `BlockCanvas` не меняется.
 
