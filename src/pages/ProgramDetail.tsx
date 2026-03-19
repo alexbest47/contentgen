@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pencil, ShieldQuestion, Tag } from "lucide-react";
+import { ArrowLeft, Pencil, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { OFFER_TYPES } from "@/lib/offerTypes";
 
