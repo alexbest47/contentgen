@@ -174,7 +174,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       const { data } = await supabase.from("email_templates").select("*").order("sort_order");
       return data ?? [];
     },
-    enabled: open && step >= 3,
+    enabled: open && step >= 1,
   });
 
   // Load color schemes
