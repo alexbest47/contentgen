@@ -101,11 +101,8 @@ serve(async (req) => {
       const { data: offer } = await sb.from("offers").select("*").eq("id", offerId).single();
       if (offer) {
         offerTitle = offer.title;
-        offerDesc = offer.description || "";
+        offerDesc = offer.doc_url ? await fetchGoogleDoc(offer.doc_url) : "";
         offerTypeLabel = OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type;
-        if (offer.doc_url && !offerDesc) {
-          offerDesc = await fetchGoogleDoc(offer.doc_url);
-        }
       }
     }
 
