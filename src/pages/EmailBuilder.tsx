@@ -51,6 +51,13 @@ export default function EmailBuilder() {
   const [generatingPlaceholderId, setGeneratingPlaceholderId] = useState<string | null>(null);
   const [settingsMode, setSettingsMode] = useState(false); // true = show pre-generation panel even after generation
 
+  const handleChangeCaseId = useCallback(async (id: string | null) => {
+    setCaseId(id);
+    if (letterId) {
+      await supabase.from("email_letters").update({ case_id: id }).eq("id", letterId);
+    }
+  }, [letterId]);
+
   const dirtyRef = useRef(false);
   const initialLoadRef = useRef(false);
   const blocksLoadedRef = useRef(false);
