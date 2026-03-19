@@ -117,6 +117,7 @@ export default function EmailBuilder() {
       setTemplateId(letter.template_id);
       setCaseId((letter as any).case_id || null);
       setExtraOfferIds((letter as any).extra_offer_ids || []);
+      setAudienceSegment((letter as any).audience_segment || "");
       setGeneratedHtml((letter as any).generated_html || "");
       setImagePlaceholders(((letter as any).image_placeholders as ImagePlaceholder[]) || []);
       initialLoadRef.current = true;
