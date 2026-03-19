@@ -33,6 +33,7 @@ export default function BlockSettingsPanel({
       ) : block.block_type === "paid_programs_collection" ? (
         <PaidProgramsCollectionSettings
           block={block}
+          colorSchemeId={colorSchemeId}
           onUpdateConfig={(config) => onUpdateConfig(block.id, config)}
         />
       ) : block.block_type === "free_courses_grid" ? (
