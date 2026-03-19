@@ -173,7 +173,7 @@ export default function EmailBuilder() {
       dirtyRef.current = true;
       setSaveStatus("unsaved");
     }
-  }, [title, subject, preheader, colorSchemeId, blocks, generatedHtml, imagePlaceholders, caseId, extraOfferIds]);
+  }, [title, subject, preheader, colorSchemeId, blocks, generatedHtml, imagePlaceholders, caseId, extraOfferIds, selectedObjectionIds]);
 
   // Save
   const save = useCallback(async () => {
