@@ -5,13 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ImageUploadField } from "@/components/offer/ImageUploadField";
+import { uploadOfferImage } from "@/lib/uploadOfferImage";
 
 export default function CreateDiagnostic() {
   const { user } = useAuth();
@@ -20,8 +22,10 @@ export default function CreateDiagnostic() {
 
   const [programId, setProgramId] = useState(searchParams.get("programId") || "");
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [docUrl, setDocUrl] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { data: programs } = useQuery({
@@ -56,8 +60,6 @@ export default function CreateDiagnostic() {
     },
   });
 
-  
-
   const toggleTag = (tagId: string) => {
     setSelectedTags((prev) =>
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
@@ -65,36 +67,32 @@ export default function CreateDiagnostic() {
   };
 
   const handleSave = async () => {
-    if (!programId) {
-      toast.error("Выберите программу");
-      return;
-    }
-    if (!title.trim()) {
-      toast.error("Укажите название");
-      return;
-    }
-    if (!docUrl.trim()) {
-      toast.error("Укажите ссылку на Google Doc");
-      return;
-    }
+    if (!programId) { toast.error("Выберите программу"); return; }
+    if (!title.trim()) { toast.error("Укажите название"); return; }
+    if (!description.trim()) { toast.error("Укажите описание"); return; }
+    if (!imageFile) { toast.error("Загрузите изображение"); return; }
+    if (!docUrl.trim()) { toast.error("Укажите ссылку на Google Doc"); return; }
 
     setSaving(true);
     try {
+      const imageUrl = await uploadOfferImage(imageFile, user!.id);
+
       const tagNames = (allTags || [])
         .filter((t) => selectedTags.includes(t.id))
         .map((t) => t.name);
 
-      // Create diagnostic record with draft status
       const { data: diag, error: diagErr } = await supabase
         .from("diagnostics")
         .insert({
           program_id: programId,
           name: title,
+          description,
           doc_url: docUrl || null,
           audience_tags: tagNames,
           prompt_id: null,
           status: "draft",
           created_by: user!.id,
+          image_url: imageUrl,
         } as any)
         .select("id")
         .single();
@@ -102,21 +100,20 @@ export default function CreateDiagnostic() {
       if (diagErr) throw new Error(diagErr.message);
       const newDiagId = (diag as any).id;
 
-      // Create offer
       const { data: offer } = await supabase
         .from("offers")
         .insert({
           program_id: programId,
           offer_type: "diagnostic" as any,
           title,
-          description: null,
+          description,
           doc_url: docUrl || null,
           created_by: user!.id,
-        })
+          image_url: imageUrl,
+        } as any)
         .select("id")
         .single();
 
-      // Link offer to diagnostic
       if (offer) {
         await supabase
           .from("diagnostics")
@@ -149,10 +146,7 @@ export default function CreateDiagnostic() {
         </CardHeader>
         <CardContent>
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSave();
-            }}
+            onSubmit={(e) => { e.preventDefault(); handleSave(); }}
             className="space-y-4"
           >
             <div className="space-y-2">
@@ -163,9 +157,7 @@ export default function CreateDiagnostic() {
                 </SelectTrigger>
                 <SelectContent>
                   {programs?.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.title}
-                    </SelectItem>
+                    <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -173,22 +165,24 @@ export default function CreateDiagnostic() {
 
             <div className="space-y-2">
               <Label>Название</Label>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Название диагностики"
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название диагностики" required />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Описание *</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Описание диагностики"
                 required
               />
             </div>
 
+            <ImageUploadField imageFile={imageFile} setImageFile={setImageFile} />
+
             <div className="space-y-2">
               <Label>Ссылка на Google Doc</Label>
-              <Input
-                value={docUrl}
-                onChange={(e) => setDocUrl(e.target.value)}
-                placeholder="https://docs.google.com/document/d/..."
-                required
-              />
+              <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." required />
             </div>
 
             <div className="space-y-2">
@@ -209,9 +203,7 @@ export default function CreateDiagnostic() {
               ) : (
                 <p className="text-sm text-muted-foreground">
                   Нет тегов.{" "}
-                  <a href="/tags" className="underline text-primary">
-                    Создать теги
-                  </a>
+                  <a href="/tags" className="underline text-primary">Создать теги</a>
                 </p>
               )}
             </div>

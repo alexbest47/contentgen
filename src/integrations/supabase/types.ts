@@ -227,6 +227,7 @@ export type Database = {
           doc_url: string | null
           generation_progress: Json | null
           id: string
+          image_url: string | null
           name: string
           offer_id: string | null
           program_id: string
@@ -244,6 +245,7 @@ export type Database = {
           doc_url?: string | null
           generation_progress?: Json | null
           id?: string
+          image_url?: string | null
           name: string
           offer_id?: string | null
           program_id: string
@@ -261,6 +263,7 @@ export type Database = {
           doc_url?: string | null
           generation_progress?: Json | null
           id?: string
+          image_url?: string | null
           name?: string
           offer_id?: string | null
           program_id?: string
@@ -658,6 +661,7 @@ export type Database = {
           description: string | null
           doc_url: string | null
           id: string
+          image_url: string | null
           is_archived: boolean
           offer_type: Database["public"]["Enums"]["offer_type"]
           program_id: string
@@ -669,6 +673,7 @@ export type Database = {
           description?: string | null
           doc_url?: string | null
           id?: string
+          image_url?: string | null
           is_archived?: boolean
           offer_type: Database["public"]["Enums"]["offer_type"]
           program_id: string
@@ -680,6 +685,7 @@ export type Database = {
           description?: string | null
           doc_url?: string | null
           id?: string
+          image_url?: string | null
           is_archived?: boolean
           offer_type?: Database["public"]["Enums"]["offer_type"]
           program_id?: string
