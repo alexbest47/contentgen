@@ -15,13 +15,27 @@ const GRID_OPTIONS = [
 
 interface Props {
   block: EmailBlock;
+  colorSchemeId?: string | null;
   onUpdateConfig: (config: Record<string, any>) => void;
 }
 
-export default function FreeCoursesGridSettings({ block, onUpdateConfig }: Props) {
+export default function FreeCoursesGridSettings({ block, colorSchemeId, onUpdateConfig }: Props) {
   const config = block.config;
   const gridType: string = config.grid_type || "";
   const selectedOfferIds: string[] = config.offer_ids || [];
+
+  const { data: schemeColors } = useQuery({
+    queryKey: ["color_scheme_colors", colorSchemeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("color_schemes").select("preview_colors").eq("id", colorSchemeId!).single();
+      return data?.preview_colors || null;
+    },
+    enabled: !!colorSchemeId,
+  });
+
+  const headingColor = schemeColors?.[0] || "#1A1A2E";
+  const accentColor = schemeColors?.[1] || "#888888";
+  const placeholderBg = schemeColors?.[2] || "#E8E0F0";
 
   const { data: miniCourses } = useQuery({
     queryKey: ["mini_courses_for_grid"],
@@ -59,11 +73,11 @@ export default function FreeCoursesGridSettings({ block, onUpdateConfig }: Props
     const imgSrc = offer.image_url || "";
     const imgHtml = imgSrc
       ? `<img src="${imgSrc}" width="100%" style="display:block;border-radius:8px;margin:0 0 12px 0;" alt="${offer.title}">`
-      : `<div style="width:100%;padding-top:100%;background:#E8E0F0;border-radius:8px;margin:0 0 12px 0;"></div>`;
+      : `<div style="width:100%;padding-top:100%;background:${placeholderBg};border-radius:8px;margin:0 0 12px 0;"></div>`;
     return `${imgHtml}
-    <p style="font-family:Arial,sans-serif;font-size:15px;font-weight:bold;color:#1A1A2E;margin:0 0 6px 0;">${offer.title}</p>
+    <p style="font-family:Arial,sans-serif;font-size:15px;font-weight:bold;color:${headingColor};margin:0 0 6px 0;">${offer.title}</p>
     <p style="font-family:Arial,sans-serif;font-size:14px;color:#444444;margin:0 0 10px 0;line-height:1.5;">${offer.description || ""}</p>
-    <a href="#" style="font-family:Arial,sans-serif;font-size:14px;color:#888888;text-decoration:none;">Пройти бесплатно →</a>`;
+    <a href="#" style="font-family:Arial,sans-serif;font-size:14px;color:${accentColor};text-decoration:none;">Пройти бесплатно →</a>`;
   };
 
   const buildHtml = () => {
@@ -77,7 +91,7 @@ export default function FreeCoursesGridSettings({ block, onUpdateConfig }: Props
 </tr>`);
     }
 
-    return `<p style="font-family:Arial,sans-serif;font-size:20px;font-weight:bold;color:#1A1A2E;margin:0 0 8px 0;">Подборка бесплатных курсов</p>
+    return `<p style="font-family:Arial,sans-serif;font-size:20px;font-weight:bold;color:${headingColor};margin:0 0 8px 0;">Подборка бесплатных курсов</p>
 <p style="font-family:Arial,sans-serif;font-size:15px;color:#444444;margin:0 0 24px 0;line-height:1.5;">Подготовили для вас подборку бесплатных мини-курсов на интересные темы.</p>
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
 ${rows.join("\n")}
