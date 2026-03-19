@@ -143,8 +143,10 @@ export default function BlockCanvas({
     ? blocks.filter(b => USER_BLOCK_TYPES.includes(b.block_type))
     : blocks;
 
-  // Build unfilled placeholders list for generation buttons
-  const unfilledPlaceholders = (imagePlaceholders || []).filter(ph => !ph.image_url);
+  // Build placeholder lists
+  const allPlaceholders = imagePlaceholders || [];
+  const unfilledPlaceholders = allPlaceholders.filter(ph => !ph.image_url);
+  const filledPlaceholders = allPlaceholders.filter(ph => !!ph.image_url);
 
   // Preprocess HTML for unified rendering
   const processedHtml = isFullLetterMode && generatedHtml
