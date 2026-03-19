@@ -282,7 +282,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   };
 
   const resetState = () => {
-    setStep(1);
+    setStep(themeOnlyMode ? 2 : 1);
     setSelectedTopic(null);
     setManualTopic("");
     setTopicSearch("");
