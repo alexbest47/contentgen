@@ -16,10 +16,13 @@ const GLOBAL_VARS = [
   { key: "offer_rules", name: "{{offer_rules}}", description: "Адаптация под тип оффера" },
   { key: "antiAI_rules", name: "{{antiAI_rules}}", description: "Требования к тексту — антиAI" },
   { key: "brand_voice", name: "{{brand_voice}}", description: "Голос бренда Talentsy" },
-  { key: "audience_from_scratch_personal", name: "{{audience_from_scratch_personal}}", description: "Аудитория: С нуля — для себя" },
-  { key: "audience_from_scratch_career", name: "{{audience_from_scratch_career}}", description: "Аудитория: С нуля — новая профессия" },
-  { key: "audience_from_scratch_both", name: "{{audience_from_scratch_both}}", description: "Аудитория: С нуля — для себя и профессия" },
-  { key: "audience_with_diploma", name: "{{audience_with_diploma}}", description: "Аудитория: Есть образование — повышение квалификации" },
+];
+
+const AUDIENCE_VARS = [
+  { key: "audience_from_scratch_personal", name: "{{audience_from_scratch_personal}}", description: "С нуля — для себя" },
+  { key: "audience_from_scratch_career", name: "{{audience_from_scratch_career}}", description: "С нуля — новая профессия" },
+  { key: "audience_from_scratch_both", name: "{{audience_from_scratch_both}}", description: "С нуля — для себя и, возможно, профессия" },
+  { key: "audience_with_diploma", name: "{{audience_with_diploma}}", description: "Есть образование — повышение квалификации" },
 ];
 
 const categories = [
