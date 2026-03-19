@@ -39,6 +39,7 @@ export default function BlockSettingsPanel({
       ) : block.block_type === "free_courses_grid" ? (
         <FreeCoursesGridSettings
           block={block}
+          colorSchemeId={colorSchemeId}
           onUpdateConfig={(config) => onUpdateConfig(block.id, config)}
         />
       ) : block.block_type === "offer_collection" ? (

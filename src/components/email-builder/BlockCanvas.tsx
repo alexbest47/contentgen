@@ -204,7 +204,13 @@ export default function BlockCanvas({
             className="p-4 outline-none focus:ring-2 focus:ring-primary/20 rounded"
             style={{ maxWidth: "100%", overflow: "hidden", wordBreak: "break-word" }}
             dangerouslySetInnerHTML={{ __html: processedHtml }}
-            onBlur={(e) => onUpdateGeneratedHtml?.(e.currentTarget.innerHTML)}
+            onBlur={(e) => {
+              let html = e.currentTarget.innerHTML;
+              if (imagePlaceholders?.length) {
+                html = restorePlaceholderMarkers(html, imagePlaceholders);
+              }
+              onUpdateGeneratedHtml?.(html);
+            }}
           />
 
           {/* Overlay buttons on top of placeholder areas */}
