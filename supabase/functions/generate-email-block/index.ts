@@ -88,11 +88,13 @@ serve(async (req) => {
     const { data: program } = await sb.from("paid_programs").select("*").eq("id", config.program_id).single();
 
     // Load offer
-    let offerTitle = "", offerDesc = "", offerType = "";
+    let offerTitle = "", offerDesc = "", offerType = "", offerValue = "", offerImageUrl = "";
     if (config.offer_id) {
       const { data: offer } = await sb.from("offers").select("*").eq("id", config.offer_id).single();
       if (offer) {
         offerTitle = offer.title;
+        offerValue = offer.description || "";
+        offerImageUrl = offer.image_url || "";
         offerDesc = offer.doc_url ? await fetchGoogleDoc(offer.doc_url) : "";
         offerType = OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type;
       }
