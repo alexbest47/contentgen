@@ -2,19 +2,22 @@
 
 ## Задача
 
-Удалить шаблоны «Экспертный дайджест» и «Работа с возражением» из таблицы `email_templates`, оставив только «История трансформации».
+Удалить 5-й блок «Подборка офферов» (`offer_collection`) из шаблона «История трансформации».
 
 ## Изменения
 
-### SQL-миграция
+### Обновление данных в `email_templates`
 
-```sql
-DELETE FROM public.email_templates 
-WHERE id IN (
-  '565630ef-5cb0-4ffd-b951-4adc1da2a761',
-  '5c6495f8-7487-4ee4-ab4f-39f2f06063c1'
-);
+Обновить поле `blocks` записи с `id = '15ce6987-0220-433f-990b-3f85448ca3a4'`, убрав последний элемент массива. Итоговый JSON:
+
+```json
+[
+  {"block_type": "expert_content", "mode": "text_only"},
+  {"block_type": "testimonial_content", "mode": "header_image"},
+  {"block_type": "lead_magnet", "mode": "schema_image"},
+  {"block_type": "myth_busting", "mode": "header_image"}
+]
 ```
 
-Код не затрагивается — страница `EmailTemplates.tsx` и wizard автоматически покажут только оставшийся шаблон.
+Код не затрагивается — страница `EmailTemplates.tsx` и wizard автоматически покажут обновлённый состав.
 
