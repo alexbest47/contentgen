@@ -19,10 +19,23 @@ interface Props {
   onUpdateConfig: (config: Record<string, any>) => void;
 }
 
-export default function FreeCoursesGridSettings({ block, onUpdateConfig }: Props) {
+export default function FreeCoursesGridSettings({ block, colorSchemeId, onUpdateConfig }: Props) {
   const config = block.config;
   const gridType: string = config.grid_type || "";
   const selectedOfferIds: string[] = config.offer_ids || [];
+
+  const { data: schemeColors } = useQuery({
+    queryKey: ["color_scheme_colors", colorSchemeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("color_schemes").select("preview_colors").eq("id", colorSchemeId!).single();
+      return data?.preview_colors || null;
+    },
+    enabled: !!colorSchemeId,
+  });
+
+  const headingColor = schemeColors?.[0] || "#1A1A2E";
+  const accentColor = schemeColors?.[1] || "#888888";
+  const placeholderBg = schemeColors?.[2] || "#E8E0F0";
 
   const { data: miniCourses } = useQuery({
     queryKey: ["mini_courses_for_grid"],
