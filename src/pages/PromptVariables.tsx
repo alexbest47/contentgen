@@ -25,6 +25,7 @@ const categories = [
       { name: "{{program_title}}", description: "Название платной программы", source: "paid_programs.title" },
       { name: "{{audience_description}}", description: "Описание целевой аудитории программы", source: "Google Docs → paid_programs.audience_description" },
       { name: "{{program_doc_description}}", description: "Полное описание программы (загружается из Google Docs)", source: "Google Docs → paid_programs.program_doc_url" },
+      { name: "{{program_tags}}", description: "Теги аудитории платной программы (через запятую)", source: "program_tags → tags.name" },
     ],
   },
   {
