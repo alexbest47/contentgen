@@ -475,7 +475,9 @@ export default function EmailBuilder() {
         onExportHtml={handleExport}
         onSave={save}
         onChangeTheme={() => setThemeWizardOpen(true)}
+        onGenerateLetter={generateLetter}
         generatingSubject={generatingSubject}
+        generatingLetter={generatingLetter}
       />
 
       <div className="flex flex-1 overflow-hidden">
