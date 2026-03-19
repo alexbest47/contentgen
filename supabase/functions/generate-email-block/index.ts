@@ -220,6 +220,7 @@ serve(async (req) => {
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_title\}\}/g, offerTitle)
+      .replace(/\{\{offer_value\}\}/g, offer?.description || "")
       .replace(/\{\{offer_description\}\}/g, offerDesc)
       .replace(/\{\{offer_image\}\}/g, offer?.image_url || "")
       .replace(/\{\{offer_type\}\}/g, offerType)
