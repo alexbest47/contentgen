@@ -48,11 +48,8 @@ serve(async (req) => {
     // ── Image generation mode ──
     if (body.generate_image && body.prompt) {
       const placeholderId = body.placeholder_id;
-      const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-      const imgApiKey = lovableKey || openrouterKey;
-      const imgApiUrl = lovableKey
-        ? "https://ai.gateway.lovable.dev/v1/chat/completions"
-        : "https://openrouter.ai/api/v1/chat/completions";
+      const imgApiKey = openrouterKey;
+      const imgApiUrl = "https://openrouter.ai/api/v1/chat/completions";
 
       const imageResp = await fetch(imgApiUrl, {
         method: "POST",
