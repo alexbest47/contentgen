@@ -211,7 +211,7 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
                       onClick={() => handleSelect(c.id)}
                     >
                       <TableCell>
-                        <div className="max-w-[200px]">
+                        <div className="max-w-[180px]">
                           <span className="text-sm font-medium truncate block">{c.file_name}</span>
                           {j.summary && (
                             <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{j.summary}</p>
