@@ -113,7 +113,38 @@ export default function Tags() {
               variant="secondary"
               className="text-sm py-1.5 px-3 gap-1.5"
             >
-              {tag.name}
+              {editingId === tag.id ? (
+                <input
+                  autoFocus
+                  className="bg-transparent border-none outline-none w-20 text-sm"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && editingName.trim()) {
+                      updateMutation.mutate({ id: tag.id, name: editingName });
+                    } else if (e.key === "Escape") {
+                      setEditingId(null);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (editingName.trim() && editingName.trim() !== tag.name) {
+                      updateMutation.mutate({ id: tag.id, name: editingName });
+                    } else {
+                      setEditingId(null);
+                    }
+                  }}
+                />
+              ) : (
+                <span
+                  className="cursor-pointer"
+                  onDoubleClick={() => {
+                    setEditingId(tag.id);
+                    setEditingName(tag.name);
+                  }}
+                >
+                  {tag.name}
+                </span>
+              )}
               <button
                 onClick={() => deleteMutation.mutate(tag.id)}
                 className="hover:text-destructive transition-colors"
