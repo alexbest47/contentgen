@@ -319,6 +319,15 @@ export default function EmailBuilder() {
     try {
       // Save current settings first
       await supabase.from("email_letters").update({
+        title,
+        subject,
+        preheader,
+        selected_color_scheme_id: colorSchemeId,
+        letter_theme_title: letterThemeTitle,
+        letter_theme_description: letterThemeDescription,
+        program_id: programId,
+        offer_type: offerType,
+        offer_id: offerId,
         case_id: caseId,
         extra_offer_ids: extraOfferIds,
         audience_segment: audienceSegment,
