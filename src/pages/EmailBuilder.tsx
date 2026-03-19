@@ -64,6 +64,12 @@ export default function EmailBuilder() {
   const initialLoadRef = useRef(false);
   const blocksLoadedRef = useRef(false);
 
+  // Refs to always have fresh values for autosave (avoids race conditions)
+  const imagePlaceholdersRef = useRef(imagePlaceholders);
+  useEffect(() => { imagePlaceholdersRef.current = imagePlaceholders; }, [imagePlaceholders]);
+  const generatedHtmlRef = useRef(generatedHtml);
+  useEffect(() => { generatedHtmlRef.current = generatedHtml; }, [generatedHtml]);
+
   // Load letter
   const { data: letter } = useQuery({
     queryKey: ["email_letter", letterId],
