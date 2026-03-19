@@ -510,6 +510,7 @@ export default function EmailBuilder() {
             selectedBlockId={selectedBlockId}
             headerHtml={emailSettings?.email_header_html || ""}
             footerHtml={emailSettings?.email_footer_html || ""}
+            colorSchemeId={colorSchemeId}
             onSelectBlock={(id) => {
               const block = blocks.find(b => b.id === id);
               if (block && isTemplateLocked(block.block_type)) return;

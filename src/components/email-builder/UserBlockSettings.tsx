@@ -89,8 +89,8 @@ export default function UserBlockSettings({ block, colorSchemeId, onUpdateConfig
           <Input value={config.url || ""} onChange={(e) => setConfig("url", e.target.value)} placeholder="https://..." />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">Цвет кнопки</Label>
-          <Input type="color" value={config.color || "#6366f1"} onChange={(e) => setConfig("color", e.target.value)} />
+          <Label className="text-xs">Цвет кнопки {accentColor && !config.color && <span className="text-muted-foreground">(из гаммы)</span>}</Label>
+          <Input type="color" value={config.color || defaultCtaColor} onChange={(e) => setConfig("color", e.target.value)} />
         </div>
       </div>
     );

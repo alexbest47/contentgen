@@ -288,7 +288,7 @@ export default function BlockCanvas({
                   {block.generated_html ? (
                     <div dangerouslySetInnerHTML={{ __html: block.generated_html }} />
                   ) : block.block_type === "divider" ? (
-                    <hr style={{ border: "none", borderTop: "1px solid hsl(var(--border))", margin: "24px 0" }} />
+                    <hr style={{ border: "none", borderTop: `1px solid ${accentColor || "hsl(var(--border))"}`, margin: "24px 0" }} />
                   ) : block.block_type === "text" && block.config.html ? (
                     <div dangerouslySetInnerHTML={{ __html: block.config.html }} />
                   ) : block.block_type === "cta" && block.config.text ? (
@@ -298,7 +298,7 @@ export default function BlockCanvas({
                         style={{
                           display: "inline-block",
                           padding: "12px 32px",
-                          backgroundColor: block.config.color || "hsl(var(--primary))",
+                          backgroundColor: block.config.color || accentColor || "hsl(var(--primary))",
                           color: "#ffffff",
                           borderRadius: "6px",
                           textDecoration: "none",
