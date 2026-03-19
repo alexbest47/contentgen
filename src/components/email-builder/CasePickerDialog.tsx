@@ -231,17 +231,11 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1 max-w-[180px]">
+                        <div className="flex flex-wrap gap-1 max-w-[140px]">
                           {(j.products || []).map((p: string, i: number) => (
                             <Badge key={i} variant="secondary" className="text-xs">{p}</Badge>
                           ))}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{j.emotional_tone || "—"}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{j.content_quality || "—"}</span>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1 max-w-[200px]">
