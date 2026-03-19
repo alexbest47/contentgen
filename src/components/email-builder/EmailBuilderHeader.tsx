@@ -33,7 +33,7 @@ export default function EmailBuilderHeader({
   title, subject, preheader, colorSchemeId, letterThemeTitle, saveStatus,
   onChangeTitle, onChangeSubject, onChangePreheader, onChangeColorScheme,
   onExportHtml, onSave, onChangeTheme, onGenerateLetter,
-  generatingSubject, generatingLetter, canGenerate,
+  generatingLetter, canGenerate,
 }: Props) {
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
