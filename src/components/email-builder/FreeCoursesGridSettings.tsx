@@ -33,9 +33,9 @@ export default function FreeCoursesGridSettings({ block, colorSchemeId, onUpdate
     enabled: !!colorSchemeId,
   });
 
-  const headingColor = schemeColors?.[0] || "#1A1A2E";
-  const accentColor = schemeColors?.[1] || "#888888";
-  const placeholderBg = schemeColors?.[2] || "#E8E0F0";
+  const headingColor = schemeColors?.[2] || "#1A1A2E";
+  const accentColor = schemeColors?.[0] || "#7B2FBE";
+  const placeholderBg = schemeColors?.[1] || "#F0EDF7";
 
   const { data: miniCourses } = useQuery({
     queryKey: ["mini_courses_for_grid"],
