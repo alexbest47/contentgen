@@ -1,6 +1,7 @@
 import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { blockTypeLabels, isGeneratedBlock, type EmailBlockType } from "./BlockLibrary";
+import { blockTypeLabels, isGeneratedBlock, isTemplateLocked, type EmailBlockType } from "./BlockLibrary";
+import { Lock } from "lucide-react";
 import type { ImagePlaceholder } from "./LetterGenerationPanel";
 
 export interface EmailBlock {

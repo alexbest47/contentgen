@@ -102,3 +102,9 @@ export const isGeneratedBlock = (type: string) =>
   ["testimonial_content", "objection_handling", "offer_collection",
    "lead_magnet", "reference_material", "expert_content", "provocative_content",
    "list_content", "myth_busting"].includes(type);
+
+/** Blocks whose content is fully determined by the prompt — no user settings */
+export const isTemplateLocked = (type: string) =>
+  ["expert_content", "lead_magnet", "reference_material",
+   "provocative_content", "list_content", "myth_busting",
+   "objection_handling"].includes(type);
