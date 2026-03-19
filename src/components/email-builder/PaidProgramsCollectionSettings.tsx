@@ -9,6 +9,7 @@ import { type EmailBlock } from "./BlockCanvas";
 
 interface Props {
   block: EmailBlock;
+  colorSchemeId?: string | null;
   onUpdateConfig: (config: Record<string, any>) => void;
 }
 
