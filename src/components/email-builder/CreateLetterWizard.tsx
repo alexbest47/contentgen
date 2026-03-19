@@ -321,8 +321,40 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Step 1: Topic */}
+          {/* Step 1: Template */}
           {step === 1 && (
+            <div className="space-y-3">
+              {templates?.map((tpl) => {
+                const blocks = (tpl.blocks as any[]) || [];
+                const isSelected = tpl.id === selectedTemplateId;
+                return (
+                  <div
+                    key={tpl.id}
+                    className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                      isSelected ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/40"
+                    }`}
+                    onClick={() => setSelectedTemplateId(tpl.id)}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-sm">{tpl.name}</h3>
+                      {isSelected && <Check className="h-4 w-4 text-primary" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2">{tpl.description}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {blocks.map((b: any, i: number) => (
+                        <Badge key={i} variant="outline" className="text-[10px]">
+                          {blockTypeLabels[b.block_type as keyof typeof blockTypeLabels] || b.block_type}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Step 2: Topic */}
+          {step === 2 && (
             <div className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -367,8 +399,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
             </div>
           )}
 
-          {/* Step 2: Audience */}
-          {step === 2 && (
+          {/* Step 3: Audience */}
+          {step === 3 && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Это поможет точнее настроить тон и контекст</p>
               <div className="space-y-3">
@@ -394,38 +426,6 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
                   );
                 })}
               </div>
-            </div>
-          )}
-
-          {/* Step 3: Template */}
-          {step === 3 && (
-            <div className="space-y-3">
-              {templates?.map((tpl) => {
-                const blocks = (tpl.blocks as any[]) || [];
-                const isSelected = tpl.id === selectedTemplateId;
-                return (
-                  <div
-                    key={tpl.id}
-                    className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                      isSelected ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/40"
-                    }`}
-                    onClick={() => setSelectedTemplateId(tpl.id)}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-sm">{tpl.name}</h3>
-                      {isSelected && <Check className="h-4 w-4 text-primary" />}
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-2">{tpl.description}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {blocks.map((b: any, i: number) => (
-                        <Badge key={i} variant="outline" className="text-[10px]">
-                          {blockTypeLabels[b.block_type as keyof typeof blockTypeLabels] || b.block_type}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           )}
 
