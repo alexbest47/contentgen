@@ -225,6 +225,7 @@ serve(async (req) => {
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_title\}\}/g, offerTitle)
       .replace(/\{\{offer_description\}\}/g, offerDesc)
+      .replace(/\{\{offer_image\}\}/g, offer?.image_url || "")
       .replace(/\{\{offer_type\}\}/g, offerType)
       .replace(/\{\{brand_style\}\}/g, brandStyle)
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)

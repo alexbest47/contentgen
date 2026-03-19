@@ -141,6 +141,7 @@ serve(async (req) => {
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_description\}\}/g, offerDescription)
+      .replace(/\{\{offer_image\}\}/g, offer.image_url || "")
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
       .replace(/\{\{reference_material\}\}/g, leadMagnetContext)
       .replace(/\{\{myth_topic\}\}/g, mythContext)

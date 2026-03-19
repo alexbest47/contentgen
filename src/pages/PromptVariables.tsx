@@ -34,7 +34,8 @@ const categories = [
     variables: [
       { name: "{{offer_type}}", description: "Тип оффера (мини-курс, вебинар, диагностика и т.д.)", source: "offers.offer_type" },
       { name: "{{offer_title}}", description: "Название оффера", source: "offers.title" },
-      { name: "{{offer_description}}", description: "Описание оффера (загружается из Google Docs)", source: "Google Docs → offers.doc_url" },
+      { name: "{{offer_description}}", description: "Описание оффера (обязательное поле, с фоллбэком на Google Docs)", source: "offers.description → Google Docs" },
+      { name: "{{offer_image}}", description: "URL изображения оффера (квадрат)", source: "offers.image_url" },
       { name: "{{brand_style}}", description: "Фирменный стиль (описание выбранной цветовой гаммы)", source: "Выбранная цветовая гамма (color_schemes.description)" },
       { name: "{{offer_tags}}", description: "Теги аудитории оффера (через запятую)", source: "offer_tags → tags.name" },
     ],
