@@ -28,6 +28,7 @@ interface Props {
   selectedBlockId: string | null;
   headerHtml: string;
   footerHtml: string;
+  colorSchemeId?: string | null;
   onSelectBlock: (id: string) => void;
   onMoveBlock: (id: string, direction: "up" | "down") => void;
   onDeleteBlock: (id: string) => void;
