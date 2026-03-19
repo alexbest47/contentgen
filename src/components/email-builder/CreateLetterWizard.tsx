@@ -300,11 +300,11 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const stepTitle = themeOnlyMode
     ? "Выбор темы письма"
     : step === 1
-    ? "Шаг 1 из 4 — О чём это письмо?"
+    ? "Шаг 1 из 4 — Как построить письмо?"
     : step === 2
-    ? "Шаг 2 из 4 — Для кого это письмо?"
+    ? "Шаг 2 из 4 — О чём это письмо?"
     : step === 3
-    ? "Шаг 3 из 4 — Как построить письмо?"
+    ? "Шаг 3 из 4 — Для кого это письмо?"
     : "Шаг 4 из 4 — Настройки";
 
   return (
