@@ -29,6 +29,7 @@ interface Props {
   imagePlaceholders?: ImagePlaceholder[];
   onGeneratePlaceholderImage?: (placeholderId: string) => void;
   generatingPlaceholderId?: string | null;
+  onUpdateGeneratedHtml?: (html: string) => void;
 }
 
 function renderHtmlWithPlaceholders(
