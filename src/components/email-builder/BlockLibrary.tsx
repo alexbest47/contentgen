@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import {
   MessageSquareQuote, Type, ImageIcon, MousePointerClick, Minus,
-  GraduationCap, BookOpen,
+  GraduationCap, BookOpen, ShieldQuestion,
 } from "lucide-react";
 
 export type EmailBlockType =
@@ -17,8 +17,13 @@ interface BlockDef {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const generatedBlocks: BlockDef[] = [
+const generatedBlocksDefault: BlockDef[] = [
   { type: "testimonial_content", label: "Кейс / отзыв", icon: MessageSquareQuote },
+];
+
+const generatedBlocksDirectOffer: BlockDef[] = [
+  { type: "testimonial_content", label: "Кейс / отзыв", icon: MessageSquareQuote },
+  { type: "objection_handling", label: "Возражение", icon: ShieldQuestion },
 ];
 
 const userBlocks: BlockDef[] = [
@@ -33,9 +38,13 @@ const userBlocks: BlockDef[] = [
 interface Props {
   onAddBlock: (type: EmailBlockType) => void;
   isFullLetterMode?: boolean;
+  templateName?: string;
 }
 
-export default function BlockLibrary({ onAddBlock, isFullLetterMode }: Props) {
+export default function BlockLibrary({ onAddBlock, isFullLetterMode, templateName }: Props) {
+  const isDirectOffer = templateName === "Прямой оффер";
+  const generatedBlocks = isDirectOffer ? generatedBlocksDirectOffer : generatedBlocksDefault;
+
   return (
     <div className="space-y-4">
       {!isFullLetterMode && (
@@ -84,6 +93,7 @@ export default function BlockLibrary({ onAddBlock, isFullLetterMode }: Props) {
 
 export const blockTypeLabels: Record<string, string> = {
   testimonial_content: "Кейс / отзыв",
+  objection_handling: "Возражение",
   paid_programs_collection: "Курсы на которые идёт набор",
   free_courses_grid: "Подборка бесплатных курсов",
   offer_collection: "Подборка офферов",
@@ -98,7 +108,6 @@ export const blockTypeLabels: Record<string, string> = {
   provocative_content: "Провокационный контент",
   list_content: "Пост-список",
   myth_busting: "Разбор мифа",
-  objection_handling: "Отработка возражения",
 };
 
 export const isGeneratedBlock = (type: string) =>
