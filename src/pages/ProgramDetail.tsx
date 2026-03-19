@@ -186,21 +186,45 @@ export default function ProgramDetail() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {OFFER_TYPES.map((type) => (
-          <Card
-            key={type.key}
-            className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
-            onClick={() => navigate(`/programs/${programId}/offers/${type.key}`)}
-          >
-            <CardContent className="flex items-center gap-4 py-6">
-              <div className="rounded-lg bg-accent p-3 text-accent-foreground group-hover:bg-primary/10 transition-colors">
-                <type.icon className="h-6 w-6" />
-              </div>
-              <span className="font-medium text-lg">{type.label}</span>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Контентные офферы</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {OFFER_TYPES.filter((t) => CONTENT_OFFER_KEYS.includes(t.key)).map((type) => (
+              <Card
+                key={type.key}
+                className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
+                onClick={() => navigate(`/programs/${programId}/offers/${type.key}`)}
+              >
+                <CardContent className="flex items-center gap-4 py-6">
+                  <div className="rounded-lg bg-accent p-3 text-accent-foreground group-hover:bg-primary/10 transition-colors">
+                    <type.icon className="h-6 w-6" />
+                  </div>
+                  <span className="font-medium text-lg">{type.label}</span>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Продающие офферы</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {OFFER_TYPES.filter((t) => SALES_OFFER_KEYS.includes(t.key)).map((type) => (
+              <Card
+                key={type.key}
+                className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
+                onClick={() => navigate(`/programs/${programId}/offers/${type.key}`)}
+              >
+                <CardContent className="flex items-center gap-4 py-6">
+                  <div className="rounded-lg bg-accent p-3 text-accent-foreground group-hover:bg-primary/10 transition-colors">
+                    <type.icon className="h-6 w-6" />
+                  </div>
+                  <span className="font-medium text-lg">{type.label}</span>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
