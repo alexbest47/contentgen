@@ -523,6 +523,8 @@ export default function EmailBuilder() {
               generating={generatingBlockId === selectedBlock.id}
               generatingImage={generatingImageBlockId === selectedBlock.id}
               userId={user?.id || ""}
+              caseId={caseId}
+              onChangeCaseId={handleChangeCaseId}
             />
           ) : (
             <LetterGenerationPanel
