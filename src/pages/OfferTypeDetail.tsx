@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,10 +15,16 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
 import { usePromptInfo } from "@/hooks/usePromptInfo";
+import { ImageUploadField } from "@/components/offer/ImageUploadField";
+import { uploadOfferImage } from "@/lib/uploadOfferImage";
+
+const CONTENT_OFFER_TYPES = ["mini_course", "webinar", "download_pdf"];
 
 interface OfferFormProps {
   title: string;
   setTitle: (v: string) => void;
+  description: string;
+  setDescription: (v: string) => void;
   docUrl: string;
   setDocUrl: (v: string) => void;
   selectedTags: string[];
@@ -28,15 +34,44 @@ interface OfferFormProps {
   isPending: boolean;
   submitLabel: string;
   pendingLabel: string;
+  showMediaFields: boolean;
+  imageFile: File | null;
+  setImageFile: (f: File | null) => void;
+  existingImageUrl?: string | null;
 }
 
-function OfferForm({ title, setTitle, docUrl, setDocUrl, selectedTags, toggleTag, allTags, onSubmit, isPending, submitLabel, pendingLabel }: OfferFormProps) {
+function OfferForm({
+  title, setTitle, description, setDescription,
+  docUrl, setDocUrl, selectedTags, toggleTag, allTags,
+  onSubmit, isPending, submitLabel, pendingLabel,
+  showMediaFields, imageFile, setImageFile, existingImageUrl,
+}: OfferFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label>Название</Label>
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название оффера" required />
       </div>
+
+      {showMediaFields && (
+        <>
+          <div className="space-y-2">
+            <Label>Описание *</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Описание оффера"
+              required
+            />
+          </div>
+          <ImageUploadField
+            imageFile={imageFile}
+            setImageFile={setImageFile}
+            existingUrl={existingImageUrl}
+          />
+        </>
+      )}
+
       <div className="space-y-2">
         <Label>Ссылка на Google Doc</Label>
         <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." required />
@@ -91,25 +126,26 @@ export default function OfferTypeDetail() {
   const navigate = useNavigate();
 
   const isDiagnosticType = offerType === "diagnostic";
+  const isContentType = CONTENT_OFFER_TYPES.includes(offerType ?? "");
 
-  // Archive dialog state
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archivingId, setArchivingId] = useState<string | null>(null);
 
-  // Create dialog state
   const [createOpen, setCreateOpen] = useState(false);
   const [createTitle, setCreateTitle] = useState("");
-  
+  const [createDescription, setCreateDescription] = useState("");
   const [createDocUrl, setCreateDocUrl] = useState("");
   const [createSelectedTags, setCreateSelectedTags] = useState<string[]>([]);
+  const [createImageFile, setCreateImageFile] = useState<File | null>(null);
 
-  // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
-  
+  const [editDescription, setEditDescription] = useState("");
   const [editDocUrl, setEditDocUrl] = useState("");
   const [editSelectedTags, setEditSelectedTags] = useState<string[]>([]);
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editExistingImageUrl, setEditExistingImageUrl] = useState<string | null>(null);
 
   const { data: program } = useQuery({
     queryKey: ["program", programId],
@@ -120,7 +156,6 @@ export default function OfferTypeDetail() {
     },
   });
 
-  // Diagnostics query (used when offerType === "diagnostic")
   const { data: diagnosticItems, isLoading: isDiagnosticsLoading } = useQuery({
     queryKey: ["diagnostics_for_program", programId],
     queryFn: async () => {
@@ -135,7 +170,6 @@ export default function OfferTypeDetail() {
     enabled: isDiagnosticType,
   });
 
-  // Offers query (used for all other offer types)
   const { data: offers, isLoading: isOffersLoading } = useQuery({
     queryKey: ["offers", programId, offerType],
     queryFn: async () => {
@@ -165,16 +199,27 @@ export default function OfferTypeDetail() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      if (isContentType) {
+        if (!createDescription.trim()) throw new Error("Укажите описание");
+        if (!createImageFile) throw new Error("Загрузите изображение");
+      }
+
+      let imageUrl: string | null = null;
+      if (createImageFile && user) {
+        imageUrl = await uploadOfferImage(createImageFile, user.id);
+      }
+
       const { data, error } = await supabase
         .from("offers")
         .insert({
           title: createTitle,
-          description: null,
+          description: isContentType ? createDescription : null,
           doc_url: createDocUrl || null,
           offer_type: offerType! as any,
           program_id: programId!,
           created_by: user!.id,
-        })
+          image_url: imageUrl,
+        } as any)
         .select("id")
         .single();
       if (error) throw error;
@@ -190,9 +235,10 @@ export default function OfferTypeDetail() {
       queryClient.invalidateQueries({ queryKey: ["offers", programId, offerType] });
       setCreateOpen(false);
       setCreateTitle("");
-      
+      setCreateDescription("");
       setCreateDocUrl("");
       setCreateSelectedTags([]);
+      setCreateImageFile(null);
       toast.success("Оффер создан");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -207,16 +253,28 @@ export default function OfferTypeDetail() {
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!editingId) return;
+
+      if (isContentType) {
+        if (!editDescription.trim()) throw new Error("Укажите описание");
+        if (!editImageFile && !editExistingImageUrl) throw new Error("Загрузите изображение");
+      }
+
+      let imageUrl = editExistingImageUrl;
+      if (editImageFile && user) {
+        imageUrl = await uploadOfferImage(editImageFile, user.id);
+      }
+
       const { error } = await supabase
         .from("offers")
         .update({
           title: editTitle,
+          description: isContentType ? editDescription : undefined,
           doc_url: editDocUrl || null,
-        })
+          image_url: imageUrl,
+        } as any)
         .eq("id", editingId);
       if (error) throw error;
 
-      // Replace tags: delete old, insert new
       await supabase.from("offer_tags").delete().eq("offer_id", editingId);
       if (editSelectedTags.length > 0) {
         const { error: tagErr } = await supabase.from("offer_tags").insert(
@@ -229,6 +287,7 @@ export default function OfferTypeDetail() {
       queryClient.invalidateQueries({ queryKey: ["offers", programId, offerType] });
       setEditOpen(false);
       setEditingId(null);
+      setEditImageFile(null);
       toast.success("Оффер обновлён");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -251,7 +310,6 @@ export default function OfferTypeDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Delete diagnostic mutation (also cleans up linked offer)
   const deleteDiagnosticMutation = useMutation({
     mutationFn: async ({ diagId, offerId }: { diagId: string; offerId: string | null }) => {
       const { error } = await supabase.from("diagnostics").delete().eq("id", diagId);
@@ -269,7 +327,6 @@ export default function OfferTypeDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-
   const openArchive = (offerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setArchivingId(offerId);
@@ -286,9 +343,11 @@ export default function OfferTypeDetail() {
     e.stopPropagation();
     setEditingId(offer.id);
     setEditTitle(offer.title);
-    
+    setEditDescription(offer.description ?? "");
     setEditDocUrl(offer.doc_url ?? "");
     setEditSelectedTags(offer.offer_tags?.map((ot: any) => ot.tag_id) ?? []);
+    setEditImageFile(null);
+    setEditExistingImageUrl(offer.image_url ?? null);
     setEditOpen(true);
   };
 
@@ -299,7 +358,6 @@ export default function OfferTypeDetail() {
     enabled: !isDiagnosticType,
   });
 
-  // Find diagnostic by archivingId for deletion
   const archivingDiagnostic = isDiagnosticType
     ? diagnosticItems?.find((d) => d.id === archivingId)
     : null;
@@ -327,39 +385,44 @@ export default function OfferTypeDetail() {
         )}
       </div>
 
-      {/* Create dialog (non-diagnostic only) */}
       {!isDiagnosticType && (
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Новый оффер</DialogTitle>
             </DialogHeader>
             <OfferForm
               title={createTitle} setTitle={setCreateTitle}
+              description={createDescription} setDescription={setCreateDescription}
               docUrl={createDocUrl} setDocUrl={setCreateDocUrl}
               selectedTags={createSelectedTags} toggleTag={toggleCreateTag}
               allTags={allTags} isPending={createMutation.isPending}
               onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }}
               submitLabel="Создать" pendingLabel="Создание..."
+              showMediaFields={isContentType}
+              imageFile={createImageFile} setImageFile={setCreateImageFile}
             />
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Edit dialog (non-diagnostic only) */}
       {!isDiagnosticType && (
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Редактировать оффер</DialogTitle>
             </DialogHeader>
             <OfferForm
               title={editTitle} setTitle={setEditTitle}
+              description={editDescription} setDescription={setEditDescription}
               docUrl={editDocUrl} setDocUrl={setEditDocUrl}
               selectedTags={editSelectedTags} toggleTag={toggleEditTag}
               allTags={allTags} isPending={updateMutation.isPending}
               onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }}
               submitLabel="Сохранить" pendingLabel="Сохранение..."
+              showMediaFields={isContentType}
+              imageFile={editImageFile} setImageFile={setEditImageFile}
+              existingImageUrl={editExistingImageUrl}
             />
           </DialogContent>
         </Dialog>
@@ -368,7 +431,6 @@ export default function OfferTypeDetail() {
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
       ) : isDiagnosticType ? (
-        /* Diagnostic items list */
         !diagnosticItems?.length ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
@@ -414,7 +476,6 @@ export default function OfferTypeDetail() {
           </div>
         )
       ) : (
-        /* Regular offers list */
         offers?.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
@@ -429,17 +490,22 @@ export default function OfferTypeDetail() {
                 className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => navigate(`/programs/${programId}/offers/${offerType}/${o.id}`)}
               >
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium">{o.title}</div>
-                  {o.offer_tags?.length > 0 && (
-                    <div className="flex gap-1 mt-1">
-                      {o.offer_tags.map((ot: any) => (
-                        <Badge key={ot.tag_id} variant="secondary" className="text-xs">
-                          {ot.tags?.name}
-                        </Badge>
-                      ))}
-                    </div>
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  {o.image_url && (
+                    <img src={o.image_url} alt="" className="w-10 h-10 rounded object-cover shrink-0" />
                   )}
+                  <div className="min-w-0">
+                    <div className="font-medium">{o.title}</div>
+                    {o.offer_tags?.length > 0 && (
+                      <div className="flex gap-1 mt-1">
+                        {o.offer_tags.map((ot: any) => (
+                          <Badge key={ot.tag_id} variant="secondary" className="text-xs">
+                            {ot.tags?.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
                   <span>{new Date(o.created_at).toLocaleDateString("ru-RU")}</span>
@@ -457,7 +523,6 @@ export default function OfferTypeDetail() {
         )
       )}
 
-      {/* Archive/Delete confirmation */}
       <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
