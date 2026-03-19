@@ -15,6 +15,7 @@ const GRID_OPTIONS = [
 
 interface Props {
   block: EmailBlock;
+  colorSchemeId?: string | null;
   onUpdateConfig: (config: Record<string, any>) => void;
 }
 
