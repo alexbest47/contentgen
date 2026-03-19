@@ -344,7 +344,7 @@ export default function BlockCanvas({
           Добавьте блоки из библиотеки слева или сгенерируйте письмо целиком
         </div>
       ) : visibleBlocks.length > 0 ? (
-        <div className={`space-y-2 ${isFullLetterMode ? "mt-4" : ""}`}>
+        <div className={isFullLetterMode ? "" : "space-y-2"}>
           {visibleBlocks.map((block, idx) => {
             const isTextImage = isGeneratedBlock(block.block_type) && (block.config.mode === "header_image" || block.config.mode === "schema_image");
             const needsImagePlaceholder = isTextImage && !block.banner_image_url && block.generated_html;
