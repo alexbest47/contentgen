@@ -179,40 +179,6 @@ export default function LetterGenerationPanel({
   }
 
   // Pre-generation mode — search + filter case selection
-  const [search, setSearch] = useState("");
-  const [activeTypes, setActiveTypes] = useState<string[]>([]);
-
-  const videoTypes = useMemo(() => {
-    if (!cases) return [];
-    const set = new Set<string>();
-    cases.forEach((c) => {
-      const vt = (c.classification_json as any)?.video_type;
-      if (vt) set.add(vt);
-    });
-    return Array.from(set).sort();
-  }, [cases]);
-
-  const filteredCases = useMemo(() => {
-    if (!cases) return [];
-    const q = search.toLowerCase();
-    return cases.filter((c) => {
-      const json = c.classification_json as any;
-      const vt = json?.video_type || "";
-      if (activeTypes.length > 0 && !activeTypes.includes(vt)) return false;
-      if (!q) return true;
-      const name = (json?.student_name || "").toLowerCase();
-      const file = c.file_name.toLowerCase();
-      const tags: string[] = json?.tags || [];
-      return name.includes(q) || file.includes(q) || tags.some((t: string) => t.toLowerCase().includes(q));
-    });
-  }, [cases, search, activeTypes]);
-
-  const toggleType = (t: string) =>
-    setActiveTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
-
-  const selectedCase = cases?.find((c) => c.id === caseId);
-  const selectedJson = selectedCase ? (selectedCase.classification_json as any) : null;
-
   return (
     <div className="space-y-4">
       <div>
