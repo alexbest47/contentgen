@@ -26,9 +26,9 @@ export default function PaidProgramsCollectionSettings({ block, colorSchemeId, o
     enabled: !!colorSchemeId,
   });
 
-  const headingColor = schemeColors?.[0] || "#1A1A2E";
-  const accentColor = schemeColors?.[1] || "#888888";
-  const dividerColor = schemeColors?.[1] || "#E0E0E0";
+  const headingColor = schemeColors?.[2] || "#1A1A2E";
+  const accentColor = schemeColors?.[0] || "#7B2FBE";
+  const dividerColor = "#E8E8E8";
 
   const { data: programs } = useQuery({
     queryKey: ["paid_programs_for_block"],
