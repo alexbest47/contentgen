@@ -13,6 +13,8 @@ export default function Tags() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [newTag, setNewTag] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   const { data: tags, isLoading } = useQuery({
     queryKey: ["tags"],
@@ -37,6 +39,19 @@ export default function Tags() {
       queryClient.invalidateQueries({ queryKey: ["tags"] });
       setNewTag("");
       toast.success("Тег создан");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase.from("tags").update({ name: name.trim() }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tags"] });
+      setEditingId(null);
+      toast.success("Тег обновлён");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -98,7 +113,38 @@ export default function Tags() {
               variant="secondary"
               className="text-sm py-1.5 px-3 gap-1.5"
             >
-              {tag.name}
+              {editingId === tag.id ? (
+                <input
+                  autoFocus
+                  className="bg-transparent border-none outline-none w-20 text-sm"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && editingName.trim()) {
+                      updateMutation.mutate({ id: tag.id, name: editingName });
+                    } else if (e.key === "Escape") {
+                      setEditingId(null);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (editingName.trim() && editingName.trim() !== tag.name) {
+                      updateMutation.mutate({ id: tag.id, name: editingName });
+                    } else {
+                      setEditingId(null);
+                    }
+                  }}
+                />
+              ) : (
+                <span
+                  className="cursor-pointer"
+                  onDoubleClick={() => {
+                    setEditingId(tag.id);
+                    setEditingName(tag.name);
+                  }}
+                >
+                  {tag.name}
+                </span>
+              )}
               <button
                 onClick={() => deleteMutation.mutate(tag.id)}
                 className="hover:text-destructive transition-colors"
