@@ -350,6 +350,7 @@ export default function BlockCanvas({
             const needsImagePlaceholder = isTextImage && !block.banner_image_url && block.generated_html;
             const isGeneratingImage = generatingImageBlockId === block.id;
             const locked = isTemplateLocked(block.block_type);
+            const hasTemplateLabel = !!block.config?.label && !block.generated_html;
 
             return (
               <div
