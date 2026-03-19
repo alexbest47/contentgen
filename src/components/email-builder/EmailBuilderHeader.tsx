@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Download, Loader2, Tag } from "lucide-react";
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,12 +19,12 @@ interface Props {
   onChangeSubject: (v: string) => void;
   onChangePreheader: (v: string) => void;
   onChangeColorScheme: (v: string) => void;
-  onGenerateSubject: () => void;
+  
   onExportHtml: () => void;
   onSave: () => void;
   onChangeTheme: () => void;
   onGenerateLetter: () => void;
-  generatingSubject: boolean;
+  
   generatingLetter: boolean;
   canGenerate: boolean;
 }
@@ -31,8 +32,8 @@ interface Props {
 export default function EmailBuilderHeader({
   title, subject, preheader, colorSchemeId, letterThemeTitle, saveStatus,
   onChangeTitle, onChangeSubject, onChangePreheader, onChangeColorScheme,
-  onGenerateSubject, onExportHtml, onSave, onChangeTheme, onGenerateLetter,
-  generatingSubject, generatingLetter, canGenerate,
+  onExportHtml, onSave, onChangeTheme, onGenerateLetter,
+  generatingLetter, canGenerate,
 }: Props) {
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
@@ -82,12 +83,7 @@ export default function EmailBuilderHeader({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Тема письма</Label>
-          <div className="flex gap-1">
-            <Input value={subject} onChange={(e) => onChangeSubject(e.target.value)} placeholder="40-60 символов" maxLength={80} />
-            <Button variant="ghost" size="icon" className="shrink-0" onClick={onGenerateSubject} disabled={generatingSubject}>
-              {generatingSubject ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            </Button>
-          </div>
+          <Input value={subject} onChange={(e) => onChangeSubject(e.target.value)} placeholder="40-60 символов" maxLength={80} />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Прехедер</Label>

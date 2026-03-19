@@ -37,7 +37,7 @@ export default function EmailBuilder() {
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [exportOpen, setExportOpen] = useState(false);
   const [exportHtml, setExportHtml] = useState("");
-  const [generatingSubject, setGeneratingSubject] = useState(false);
+  
   const [generatingBlockId, setGeneratingBlockId] = useState<string | null>(null);
   const [generatingImageBlockId, setGeneratingImageBlockId] = useState<string | null>(null);
   const [themeWizardOpen, setThemeWizardOpen] = useState(false);
@@ -425,23 +425,6 @@ export default function EmailBuilder() {
     }
   };
 
-  const generateSubjectHandler = async () => {
-    if (!letterId) return;
-    setGeneratingSubject(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-email-subject", {
-        body: { letter_id: letterId, letter_blocks_summary: blocks.map((b) => ({ type: b.block_type, config: b.config })) },
-      });
-      if (error) throw error;
-      if (data?.subject) setSubject(data.subject);
-      if (data?.preheader) setPreheader(data.preheader);
-      toast.success("Тема и прехедер сгенерированы");
-    } catch (e: any) {
-      toast.error(e.message || "Ошибка генерации");
-    } finally {
-      setGeneratingSubject(false);
-    }
-  };
 
   const handleExport = () => {
     const header = emailSettings?.email_header_html || "";
@@ -533,12 +516,12 @@ export default function EmailBuilder() {
         onChangeSubject={setSubject}
         onChangePreheader={setPreheader}
         onChangeColorScheme={setColorSchemeId}
-        onGenerateSubject={generateSubjectHandler}
+        
         onExportHtml={handleExport}
         onSave={save}
         onChangeTheme={() => setThemeWizardOpen(true)}
         onGenerateLetter={generateLetter}
-        generatingSubject={generatingSubject}
+        
         generatingLetter={generatingLetter}
         canGenerate={!!caseId}
       />
