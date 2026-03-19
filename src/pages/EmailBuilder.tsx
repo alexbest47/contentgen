@@ -565,6 +565,7 @@ export default function EmailBuilder() {
             onGeneratePlaceholderImage={generatePlaceholderImage}
             generatingPlaceholderId={generatingPlaceholderId}
             onUpdateGeneratedHtml={setGeneratedHtml}
+            onUploadPlaceholderImage={uploadPlaceholderImage}
           />
         </div>
 
