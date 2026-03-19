@@ -51,7 +51,8 @@ export default function EmailBuilder() {
   const [generatingLetter, setGeneratingLetter] = useState(false);
   const [casePickerOpen, setCasePickerOpen] = useState(false);
   const [generatingPlaceholderId, setGeneratingPlaceholderId] = useState<string | null>(null);
-  const [settingsMode, setSettingsMode] = useState(false); // true = show pre-generation panel even after generation
+  const [settingsMode, setSettingsMode] = useState(false);
+  const [selectedObjectionIds, setSelectedObjectionIds] = useState<string[]>([]);
 
   const handleChangeCaseId = useCallback(async (id: string | null) => {
     setCaseId(id);
