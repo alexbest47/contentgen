@@ -111,17 +111,19 @@ export default function BlockCanvas({
   const measurePlaceholders = useCallback(() => {
     if (!contentRef.current) return;
     const container = contentRef.current;
+    const containerRect = container.getBoundingClientRect();
     const els = container.querySelectorAll<HTMLElement>("[data-placeholder-id]");
     const rects: PlaceholderRect[] = [];
     els.forEach(el => {
       const id = el.getAttribute("data-placeholder-id");
       if (!id) return;
+      const elRect = el.getBoundingClientRect();
       rects.push({
         id,
-        top: el.offsetTop,
-        left: el.offsetLeft,
-        width: el.offsetWidth,
-        height: el.offsetHeight,
+        top: elRect.top - containerRect.top + container.scrollTop,
+        left: elRect.left - containerRect.left + container.scrollLeft,
+        width: elRect.width,
+        height: elRect.height,
       });
     });
     setPlaceholderRects(rects);
