@@ -192,6 +192,7 @@ export default function EmailBuilder() {
         extra_offer_ids: extraOfferIds,
         generated_html: generatedHtmlRef.current,
         image_placeholders: imagePlaceholdersRef.current,
+        selected_objection_ids: selectedObjectionIds,
       } as any).eq("id", letterId);
 
       for (const block of blocks) {
