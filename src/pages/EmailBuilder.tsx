@@ -526,7 +526,7 @@ export default function EmailBuilder() {
         onGenerateLetter={generateLetter}
         
         generatingLetter={generatingLetter}
-        canGenerate={!!caseId}
+        canGenerate={template?.name === "Прямой оффер" ? (!!caseId && selectedObjectionIds.length > 0) : !!caseId}
       />
 
       <div className="flex flex-1 overflow-hidden">
