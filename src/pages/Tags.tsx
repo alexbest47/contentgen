@@ -13,6 +13,8 @@ export default function Tags() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [newTag, setNewTag] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   const { data: tags, isLoading } = useQuery({
     queryKey: ["tags"],
