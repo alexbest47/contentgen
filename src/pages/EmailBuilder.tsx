@@ -64,6 +64,12 @@ export default function EmailBuilder() {
   const initialLoadRef = useRef(false);
   const blocksLoadedRef = useRef(false);
 
+  // Refs to always have fresh values for autosave (avoids race conditions)
+  const imagePlaceholdersRef = useRef(imagePlaceholders);
+  useEffect(() => { imagePlaceholdersRef.current = imagePlaceholders; }, [imagePlaceholders]);
+  const generatedHtmlRef = useRef(generatedHtml);
+  useEffect(() => { generatedHtmlRef.current = generatedHtml; }, [generatedHtml]);
+
   // Load letter
   const { data: letter } = useQuery({
     queryKey: ["email_letter", letterId],
@@ -182,8 +188,8 @@ export default function EmailBuilder() {
         offer_id: offerId,
         case_id: caseId,
         extra_offer_ids: extraOfferIds,
-        generated_html: generatedHtml,
-        image_placeholders: imagePlaceholders,
+        generated_html: generatedHtmlRef.current,
+        image_placeholders: imagePlaceholdersRef.current,
       } as any).eq("id", letterId);
 
       for (const block of blocks) {
@@ -375,14 +381,16 @@ export default function EmailBuilder() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      const newPlaceholders = imagePlaceholders.map((p) =>
-        p.id === placeholderId ? { ...p, image_url: data.image_url } : p
-      );
-      setImagePlaceholders(newPlaceholders);
-      // Save to DB
-      await supabase.from("email_letters").update({
-        image_placeholders: newPlaceholders,
-      } as any).eq("id", letterId);
+      setImagePlaceholders(prev => {
+        const updated = prev.map((p) =>
+          p.id === placeholderId ? { ...p, image_url: data.image_url } : p
+        );
+        // Save to DB immediately with the fresh value
+        supabase.from("email_letters").update({
+          image_placeholders: updated,
+        } as any).eq("id", letterId);
+        return updated;
+      });
       toast.success("Изображение сгенерировано");
     } catch (e: any) {
       toast.error(e.message || "Ошибка генерации изображения");
@@ -402,13 +410,15 @@ export default function EmailBuilder() {
         .upload(fileName, file, { upsert: true });
       if (uploadErr) throw uploadErr;
       const { data: pub } = supabase.storage.from("generated-images").getPublicUrl(fileName);
-      const newPlaceholders = imagePlaceholders.map((p) =>
-        p.id === placeholderId ? { ...p, image_url: pub.publicUrl } : p
-      );
-      setImagePlaceholders(newPlaceholders);
-      await supabase.from("email_letters").update({
-        image_placeholders: newPlaceholders,
-      } as any).eq("id", letterId);
+      setImagePlaceholders(prev => {
+        const updated = prev.map((p) =>
+          p.id === placeholderId ? { ...p, image_url: pub.publicUrl } : p
+        );
+        supabase.from("email_letters").update({
+          image_placeholders: updated,
+        } as any).eq("id", letterId);
+        return updated;
+      });
       toast.success("Изображение загружено");
     } catch (e: any) {
       toast.error(e.message || "Ошибка загрузки изображения");
