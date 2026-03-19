@@ -126,7 +126,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(themeOnlyMode ? 2 : 1);
   const [selectedTopic, setSelectedTopic] = useState<TreeNode | null>(null);
   const [manualTopic, setManualTopic] = useState("");
   const [topicSearch, setTopicSearch] = useState("");
