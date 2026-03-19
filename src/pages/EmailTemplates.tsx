@@ -66,7 +66,7 @@ export default function EmailTemplates() {
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-mono text-muted-foreground w-5">{i + 1}.</span>
-                          <span>{blockTypeLabels[b.block_type as keyof typeof blockTypeLabels] || b.block_type}</span>
+                          <span>{b.label || blockTypeLabels[b.block_type as keyof typeof blockTypeLabels] || b.block_type}</span>
                         </div>
                         <Badge variant="outline" className="text-[10px]">
                           {MODE_LABELS[b.mode] || b.mode}
