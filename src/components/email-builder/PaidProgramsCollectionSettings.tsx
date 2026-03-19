@@ -74,7 +74,9 @@ export default function PaidProgramsCollectionSettings({ block, onUpdateConfig }
 </table>
 <hr style="border:none;border-top:1px solid #E0E0E0;margin:0 0 24px 0;">`);
     }
-    return htmlParts.join("\n");
+    return `<p style="font-family:Arial,sans-serif;font-size:20px;font-weight:bold;color:#1A1A2E;margin:0 0 8px 0;">Программы, на которые открыт набор</p>
+<p style="font-family:Arial,sans-serif;font-size:15px;color:#444444;margin:0 0 24px 0;line-height:1.5;">Выберите программу, которая подходит именно вам.</p>
+${htmlParts.join("\n")}`;
   };
 
   const handleUpdateBlock = () => {
