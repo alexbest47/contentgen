@@ -35,7 +35,7 @@ interface Props {
   isFullLetterMode?: boolean;
 }
 
-export default function BlockLibrary({ onAddBlock }: Props) {
+export default function BlockLibrary({ onAddBlock, isFullLetterMode }: Props) {
   return (
     <div className="space-y-4">
       <div>
