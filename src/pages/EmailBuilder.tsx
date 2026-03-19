@@ -188,8 +188,8 @@ export default function EmailBuilder() {
         offer_id: offerId,
         case_id: caseId,
         extra_offer_ids: extraOfferIds,
-        generated_html: generatedHtml,
-        image_placeholders: imagePlaceholders,
+        generated_html: generatedHtmlRef.current,
+        image_placeholders: imagePlaceholdersRef.current,
       } as any).eq("id", letterId);
 
       for (const block of blocks) {
