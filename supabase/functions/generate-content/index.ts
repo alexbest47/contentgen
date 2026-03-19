@@ -88,9 +88,9 @@ serve(async (req) => {
       } catch (e) { console.error("Error fetching program doc:", e); }
     }
 
-    // Get offer description from doc
-    let offerDescription = offer.description || "";
-    if (offer.doc_url && !offerDescription) {
+    // Get offer description from Google Doc (full description)
+    let offerDescription = "";
+    if (offer.doc_url) {
       try {
         const docMatch = offer.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
         if (docMatch) {
