@@ -45,13 +45,17 @@ export default function LetterGenerationPanel({
   onGenerate, onRegenerate, onEditSettings,
   selectedBlockHtml, onChangeSelectedBlockHtml,
 }: Props) {
-  // Load cases for the selected program
+  // Load cases filtered by program
   const { data: cases } = useQuery({
-    queryKey: ["cases_for_letter"],
+    queryKey: ["cases_for_letter", programId],
     queryFn: async () => {
-      const { data } = await supabase.from("case_classifications").select("id, file_name, classification_json");
+      const { data } = await supabase
+        .from("case_classifications")
+        .select("id, file_name, classification_json, case_files!inner(job_id, case_jobs!inner(id))")
+        .order("created_at", { ascending: false });
       return data ?? [];
     },
+    enabled: !!programId,
   });
 
   // Load program name
