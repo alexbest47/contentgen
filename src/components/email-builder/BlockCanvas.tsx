@@ -149,7 +149,7 @@ export default function BlockCanvas({
       )}
 
       {/* Full letter mode */}
-      {isFullLetterMode ? (
+      {isFullLetterMode && (
         <div className="p-4">
           {imagePlaceholders && imagePlaceholders.length > 0 ? (
             renderHtmlWithPlaceholders(
@@ -159,13 +159,23 @@ export default function BlockCanvas({
               generatingPlaceholderId,
             )
           ) : (
-            <div dangerouslySetInnerHTML={{ __html: generatedHtml! }} />
+            <div
+              contentEditable
+              suppressContentEditableWarning
+              className="outline-none focus:ring-2 focus:ring-primary/20 rounded"
+              dangerouslySetInnerHTML={{ __html: generatedHtml! }}
+              onBlur={(e) => onUpdateGeneratedHtml?.(e.currentTarget.innerHTML)}
+            />
           )}
         </div>
-      ) : (
-        <>
-          {/* Block mode */}
-          {blocks.length === 0 ? (
+      )}
+
+      {/* Block mode / user blocks after generated HTML */}
+      {!isFullLetterMode && blocks.length === 0 ? (
+        <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+          Добавьте блоки из библиотеки слева или сгенерируйте письмо целиком
+        </div>
+      ) : blocks.length > 0 ? (
             <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
               Добавьте блоки из библиотеки слева или сгенерируйте письмо целиком
             </div>
