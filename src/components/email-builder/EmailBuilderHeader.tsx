@@ -25,6 +25,7 @@ interface Props {
   onGenerateLetter: () => void;
   generatingSubject: boolean;
   generatingLetter: boolean;
+  canGenerate: boolean;
 }
 
 export default function EmailBuilderHeader({
