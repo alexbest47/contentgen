@@ -96,11 +96,13 @@ serve(async (req) => {
     }
 
     // 3. Load offer
-    let offerTitle = "", offerDesc = "", offerTypeLabel = "";
+    let offerTitle = "", offerDesc = "", offerTypeLabel = "", offerValue = "", offerImageUrl = "";
     if (offerId) {
       const { data: offer } = await sb.from("offers").select("*").eq("id", offerId).single();
       if (offer) {
         offerTitle = offer.title;
+        offerValue = offer.description || "";
+        offerImageUrl = offer.image_url || "";
         offerDesc = offer.doc_url ? await fetchGoogleDoc(offer.doc_url) : "";
         offerTypeLabel = OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type;
       }
