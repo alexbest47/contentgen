@@ -48,18 +48,47 @@ serve(async (req) => {
     // ── Image generation mode ──
     if (body.generate_image && body.prompt) {
       const placeholderId = body.placeholder_id;
-      const imageResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+      const imgApiKey = lovableKey || openrouterKey;
+      const imgApiUrl = lovableKey
+        ? "https://ai.gateway.lovable.dev/v1/chat/completions"
+        : "https://openrouter.ai/api/v1/chat/completions";
+
+      const imageResp = await fetch(imgApiUrl, {
         method: "POST",
-        headers: { Authorization: `Bearer ${openrouterKey}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${imgApiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "google/gemini-3-pro-image-preview",
           messages: [{ role: "user", content: body.prompt }],
           modalities: ["image", "text"],
         }),
       });
+
+      if (!imageResp.ok) {
+        const errText = await imageResp.text();
+        console.error("Image API error:", imageResp.status, errText);
+        if (imageResp.status === 429) throw new Error("Превышен лимит запросов, попробуйте позже");
+        if (imageResp.status === 402) throw new Error("Недостаточно средств для генерации изображения");
+        throw new Error(`Ошибка API генерации изображений: ${imageResp.status}`);
+      }
+
       const imageData = await imageResp.json();
-      const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-      if (!imageUrl) throw new Error("Не удалось сгенерировать изображение");
+      const message = imageData.choices?.[0]?.message;
+      let imageUrl = message?.images?.[0]?.image_url?.url || "";
+
+      if (!imageUrl && Array.isArray(message?.content)) {
+        for (const part of message.content) {
+          if (part.type === "image_url" && part.image_url?.url) {
+            imageUrl = part.image_url.url;
+            break;
+          }
+        }
+      }
+
+      if (!imageUrl) {
+        console.error("No image in response:", JSON.stringify(imageData).substring(0, 500));
+        throw new Error("Не удалось сгенерировать изображение");
+      }
 
       const base64 = imageUrl.split(",")[1];
       const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
