@@ -250,7 +250,7 @@ export default function BlockCanvas({
             ref={contentRef}
             contentEditable
             suppressContentEditableWarning
-            className="p-4 outline-none focus:ring-2 focus:ring-primary/20 rounded"
+            className="outline-none focus:ring-2 focus:ring-primary/20 rounded"
             style={{ maxWidth: "100%", overflow: "hidden", wordBreak: "break-word" }}
             dangerouslySetInnerHTML={{ __html: processedHtml }}
             onBlur={(e) => {
@@ -388,7 +388,7 @@ export default function BlockCanvas({
                 </div>
 
                 {/* Block content */}
-                <div className={isFullLetterMode ? "px-4 py-1" : "p-4"}>
+                <div className={isFullLetterMode ? "py-1" : "p-4"}>
                   {needsImagePlaceholder && (
                     <div className="mb-3 bg-muted/50 border border-dashed border-muted-foreground/30 rounded-lg p-6 flex flex-col items-center gap-3">
                       <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
