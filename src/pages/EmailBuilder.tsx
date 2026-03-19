@@ -213,7 +213,7 @@ export default function EmailBuilder() {
     } catch {
       setSaveStatus("unsaved");
     }
-  }, [letterId, title, subject, preheader, colorSchemeId, letterThemeTitle, letterThemeDescription, programId, offerType, offerId, caseId, extraOfferIds, generatedHtml, imagePlaceholders, blocks]);
+  }, [letterId, title, subject, preheader, colorSchemeId, letterThemeTitle, letterThemeDescription, programId, offerType, offerId, caseId, extraOfferIds, generatedHtml, imagePlaceholders, blocks, selectedObjectionIds]);
 
   useEffect(() => {
     const interval = setInterval(save, 30000);
