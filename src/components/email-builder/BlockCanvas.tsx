@@ -32,101 +32,46 @@ interface Props {
   onUpdateGeneratedHtml?: (html: string) => void;
 }
 
-function renderHtmlWithPlaceholders(
+/** Replace {{placeholder_id}} markers with real <img> or styled placeholders in-string */
+function preprocessHtmlWithPlaceholders(
   html: string,
   placeholders: ImagePlaceholder[],
-  onGenerate?: (id: string) => void,
-  generatingId?: string | null,
 ) {
-  // Build a map of placeholder_id -> ImagePlaceholder for quick lookup
   const phMap = new Map<string, ImagePlaceholder>();
-  for (const ph of placeholders) {
-    phMap.set(ph.id, ph);
-  }
+  for (const ph of placeholders) phMap.set(ph.id, ph);
 
-  // Split HTML by {{image_placeholder_N}} markers inside img src attributes
-  // Pattern matches <img ...src="{{placeholder_id}}"...> or standalone {{placeholder_id}}
-  const markerRegex = /(<img[^>]*src\s*=\s*["'])\{\{([^}]+)\}\}(["'][^>]*\/?>)|\{\{(image_placeholder_\w+)\}\}/g;
-  
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let idx = 0;
-  let match: RegExpExecArray | null;
+  let result = html;
 
-  while ((match = markerRegex.exec(html)) !== null) {
-    const placeholderId = match[2] || match[4];
-    const ph = phMap.get(placeholderId);
-    if (!ph) continue;
-
-    // Add HTML before the marker
-    if (match.index > lastIndex) {
-      parts.push(
-        <div key={`html-${idx}`} dangerouslySetInnerHTML={{ __html: html.substring(lastIndex, match.index) }} />
-      );
+  // Replace img src="{{id}}" patterns
+  result = result.replace(
+    /(<img[^>]*src\s*=\s*["'])\{\{([^}]+)\}\}(["'][^>]*\/?>)/g,
+    (_match, before, id, after) => {
+      const ph = phMap.get(id);
+      if (!ph) return _match;
+      if (ph.image_url) {
+        return `${before}${ph.image_url}${after}`;
+      }
+      return `<div data-placeholder-id="${id}" style="display:block;width:100%;min-height:200px;background:#f0f0f0;border:2px dashed #ccc;border-radius:8px;text-align:center;padding:40px 20px;color:#999;font-size:14px;">${ph.type || "Изображение"} — ${ph.size || "нажмите сгенерировать"}</div>`;
     }
+  );
 
-    // Add placeholder or image
-    if (ph.image_url) {
-      parts.push(
-        <div key={`img-${ph.id}`} className="my-3">
-          <img src={ph.image_url} alt="" style={{ maxWidth: "100%", borderRadius: "6px" }} />
-          {onGenerate && (
-            <div className="mt-1 text-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs gap-1"
-                disabled={generatingId === ph.id}
-                onClick={(e) => { e.stopPropagation(); onGenerate(ph.id); }}
-              >
-                {generatingId === ph.id ? (
-                  <><Loader2 className="h-3 w-3 animate-spin" /> Генерация…</>
-                ) : (
-                  <><ImageIcon className="h-3 w-3" /> Перегенерировать</>
-                )}
-              </Button>
-            </div>
-          )}
-        </div>
-      );
-    } else {
-      parts.push(
-        <div
-          key={`ph-${ph.id}`}
-          className="my-3 bg-muted/50 border border-dashed border-muted-foreground/30 rounded-lg p-6 flex flex-col items-center gap-2"
-        >
-          <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
-          <p className="text-sm text-muted-foreground">{ph.type} — {ph.size}</p>
-          {onGenerate && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              disabled={generatingId === ph.id}
-              onClick={(e) => { e.stopPropagation(); onGenerate(ph.id); }}
-            >
-              {generatingId === ph.id ? (
-                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Генерация…</>
-              ) : (
-                <><ImageIcon className="h-3.5 w-3.5" /> Сгенерировать изображение</>
-              )}
-            </Button>
-          )}
-        </div>
-      );
+  // Replace standalone {{id}} patterns
+  result = result.replace(
+    /\{\{(image_placeholder_\w+)\}\}/g,
+    (_match, id) => {
+      const ph = phMap.get(id);
+      if (!ph) return _match;
+      if (ph.image_url) {
+        return `<img src="${ph.image_url}" style="max-width:100%;border-radius:6px;" />`;
+      }
+      return `<div data-placeholder-id="${id}" style="display:block;width:100%;min-height:200px;background:#f0f0f0;border:2px dashed #ccc;border-radius:8px;text-align:center;padding:40px 20px;color:#999;font-size:14px;">${ph.type || "Изображение"} — ${ph.size || "нажмите сгенерировать"}</div>`;
     }
+  );
 
-    lastIndex = match.index + match[0].length;
-    idx++;
-  }
-
-  // Add remaining HTML
-  if (lastIndex < html.length) {
-    parts.push(<div key={`html-end`} dangerouslySetInnerHTML={{ __html: html.substring(lastIndex) }} />);
-  }
-
-  return parts;
+  return result;
 }
+
+const USER_BLOCK_TYPES = ["text", "image", "cta", "divider", "paid_programs_collection", "free_courses_grid"];
 
 export default function BlockCanvas({
   blocks, selectedBlockId, headerHtml, footerHtml,
@@ -138,6 +83,19 @@ export default function BlockCanvas({
 }: Props) {
   const isFullLetterMode = !!generatedHtml;
 
+  // In full letter mode, only show user blocks
+  const visibleBlocks = isFullLetterMode
+    ? blocks.filter(b => USER_BLOCK_TYPES.includes(b.block_type))
+    : blocks;
+
+  // Build unfilled placeholders list for generation buttons
+  const unfilledPlaceholders = (imagePlaceholders || []).filter(ph => !ph.image_url);
+
+  // Preprocess HTML for unified rendering
+  const processedHtml = isFullLetterMode && generatedHtml
+    ? preprocessHtmlWithPlaceholders(generatedHtml, imagePlaceholders || [])
+    : "";
+
   return (
     <div className="mx-auto" style={{ maxWidth: 600 }}>
       {/* Header */}
@@ -148,36 +106,57 @@ export default function BlockCanvas({
         />
       )}
 
-      {/* Full letter mode */}
+      {/* Full letter mode — single editable container */}
       {isFullLetterMode && (
-        <div className="p-4">
-          {imagePlaceholders && imagePlaceholders.length > 0 ? (
-            renderHtmlWithPlaceholders(
-              generatedHtml!,
-              imagePlaceholders,
-              onGeneratePlaceholderImage,
-              generatingPlaceholderId,
-            )
-          ) : (
-            <div
-              contentEditable
-              suppressContentEditableWarning
-              className="outline-none focus:ring-2 focus:ring-primary/20 rounded"
-              dangerouslySetInnerHTML={{ __html: generatedHtml! }}
-              onBlur={(e) => onUpdateGeneratedHtml?.(e.currentTarget.innerHTML)}
-            />
+        <>
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            className="p-4 outline-none focus:ring-2 focus:ring-primary/20 rounded"
+            style={{ maxWidth: "100%", overflow: "hidden", wordBreak: "break-word" }}
+            dangerouslySetInnerHTML={{ __html: processedHtml }}
+            onBlur={(e) => onUpdateGeneratedHtml?.(e.currentTarget.innerHTML)}
+          />
+
+          {/* Image placeholder generation buttons */}
+          {unfilledPlaceholders.length > 0 && onGeneratePlaceholderImage && (
+            <div className="mt-3 space-y-2 border border-dashed border-muted-foreground/30 rounded-lg p-4">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Изображения для генерации
+              </p>
+              {unfilledPlaceholders.map(ph => (
+                <div key={ph.id} className="flex items-center justify-between gap-2 bg-muted/50 rounded-md px-3 py-2">
+                  <span className="text-sm text-muted-foreground truncate">
+                    {ph.type} — {ph.size}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 shrink-0"
+                    disabled={generatingPlaceholderId === ph.id}
+                    onClick={() => onGeneratePlaceholderImage(ph.id)}
+                  >
+                    {generatingPlaceholderId === ph.id ? (
+                      <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Генерация…</>
+                    ) : (
+                      <><ImageIcon className="h-3.5 w-3.5" /> Сгенерировать</>
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
           )}
-        </div>
+        </>
       )}
 
-      {/* Block mode / user blocks after generated HTML */}
-      {!isFullLetterMode && blocks.length === 0 ? (
+      {/* Blocks (all in block mode, user-only in full letter mode) */}
+      {!isFullLetterMode && visibleBlocks.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
           Добавьте блоки из библиотеки слева или сгенерируйте письмо целиком
         </div>
-      ) : blocks.length > 0 ? (
-        <div className="space-y-2">
-          {blocks.map((block, idx) => {
+      ) : visibleBlocks.length > 0 ? (
+        <div className={`space-y-2 ${isFullLetterMode ? "mt-4" : ""}`}>
+          {visibleBlocks.map((block, idx) => {
             const isTextImage = isGeneratedBlock(block.block_type) && (block.config.mode === "header_image" || block.config.mode === "schema_image");
             const needsImagePlaceholder = isTextImage && !block.banner_image_url && block.generated_html;
             const isGeneratingImage = generatingImageBlockId === block.id;
@@ -207,7 +186,7 @@ export default function BlockCanvas({
                   <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === 0} onClick={(e) => { e.stopPropagation(); onMoveBlock(block.id, "up"); }}>
                     <ArrowUp className="h-3 w-3" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === blocks.length - 1} onClick={(e) => { e.stopPropagation(); onMoveBlock(block.id, "down"); }}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === visibleBlocks.length - 1} onClick={(e) => { e.stopPropagation(); onMoveBlock(block.id, "down"); }}>
                     <ArrowDown className="h-3 w-3" />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onDeleteBlock(block.id); }}>
