@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 
 interface TemplateBlock {
   block_type: string;
+  label?: string;
   mode: string;
 }
 
@@ -14,6 +15,12 @@ const MODE_LABELS: Record<string, string> = {
   text_only: "Только текст",
   header_image: "Заголовок + текст",
   schema_image: "Текст + схема",
+  card_text: "Карточка + текст",
+  schema_text: "Схема + текст",
+  html_cards: "HTML-карточки",
+  accent_block: "Акцентный блок",
+  text_button: "Текст + кнопка",
+  qa_cards: "Карточки Q&A",
 };
 
 export default function EmailTemplates() {
@@ -59,7 +66,7 @@ export default function EmailTemplates() {
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-mono text-muted-foreground w-5">{i + 1}.</span>
-                          <span>{blockTypeLabels[b.block_type as keyof typeof blockTypeLabels] || b.block_type}</span>
+                          <span>{b.label || blockTypeLabels[b.block_type as keyof typeof blockTypeLabels] || b.block_type}</span>
                         </div>
                         <Badge variant="outline" className="text-[10px]">
                           {MODE_LABELS[b.mode] || b.mode}
