@@ -51,7 +51,8 @@ export default function EmailBuilder() {
   const [generatingLetter, setGeneratingLetter] = useState(false);
   const [casePickerOpen, setCasePickerOpen] = useState(false);
   const [generatingPlaceholderId, setGeneratingPlaceholderId] = useState<string | null>(null);
-  const [settingsMode, setSettingsMode] = useState(false); // true = show pre-generation panel even after generation
+  const [settingsMode, setSettingsMode] = useState(false);
+  const [selectedObjectionIds, setSelectedObjectionIds] = useState<string[]>([]);
 
   const handleChangeCaseId = useCallback(async (id: string | null) => {
     setCaseId(id);
@@ -146,6 +147,7 @@ export default function EmailBuilder() {
       setAudienceSegment((letter as any).audience_segment || "");
       setGeneratedHtml((letter as any).generated_html || "");
       setImagePlaceholders(((letter as any).image_placeholders as ImagePlaceholder[]) || []);
+      setSelectedObjectionIds((letter as any).selected_objection_ids || []);
       initialLoadRef.current = true;
     }
   }, [letter]);
@@ -171,7 +173,7 @@ export default function EmailBuilder() {
       dirtyRef.current = true;
       setSaveStatus("unsaved");
     }
-  }, [title, subject, preheader, colorSchemeId, blocks, generatedHtml, imagePlaceholders, caseId, extraOfferIds]);
+  }, [title, subject, preheader, colorSchemeId, blocks, generatedHtml, imagePlaceholders, caseId, extraOfferIds, selectedObjectionIds]);
 
   // Save
   const save = useCallback(async () => {
@@ -190,6 +192,7 @@ export default function EmailBuilder() {
         extra_offer_ids: extraOfferIds,
         generated_html: generatedHtmlRef.current,
         image_placeholders: imagePlaceholdersRef.current,
+        selected_objection_ids: selectedObjectionIds,
       } as any).eq("id", letterId);
 
       for (const block of blocks) {
@@ -210,7 +213,7 @@ export default function EmailBuilder() {
     } catch {
       setSaveStatus("unsaved");
     }
-  }, [letterId, title, subject, preheader, colorSchemeId, letterThemeTitle, letterThemeDescription, programId, offerType, offerId, caseId, extraOfferIds, generatedHtml, imagePlaceholders, blocks]);
+  }, [letterId, title, subject, preheader, colorSchemeId, letterThemeTitle, letterThemeDescription, programId, offerType, offerId, caseId, extraOfferIds, generatedHtml, imagePlaceholders, blocks, selectedObjectionIds]);
 
   useEffect(() => {
     const interval = setInterval(save, 30000);
@@ -349,6 +352,7 @@ export default function EmailBuilder() {
         case_id: caseId,
         extra_offer_ids: extraOfferIds,
         audience_segment: audienceSegment,
+        selected_objection_ids: selectedObjectionIds,
       } as any).eq("id", letterId);
 
       const { data, error } = await supabase.functions.invoke("generate-email-letter", {
@@ -523,13 +527,13 @@ export default function EmailBuilder() {
         onGenerateLetter={generateLetter}
         
         generatingLetter={generatingLetter}
-        canGenerate={!!caseId}
+        canGenerate={template?.name === "Прямой оффер" ? (!!caseId && selectedObjectionIds.length > 0) : !!caseId}
       />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Block Library */}
         <div className="w-60 border-r p-3 overflow-y-auto shrink-0">
-          <BlockLibrary onAddBlock={addBlock} isFullLetterMode={!!generatedHtml} />
+          <BlockLibrary onAddBlock={addBlock} isFullLetterMode={!!generatedHtml} templateName={template?.name || ""} />
         </div>
 
         {/* Center: Canvas */}
@@ -594,6 +598,8 @@ export default function EmailBuilder() {
               onEditSettings={() => setSettingsMode(true)}
               selectedBlockHtml={null}
               onChangeSelectedBlockHtml={() => {}}
+              selectedObjectionIds={selectedObjectionIds}
+              onChangeObjectionIds={setSelectedObjectionIds}
             />
           )}
         </div>

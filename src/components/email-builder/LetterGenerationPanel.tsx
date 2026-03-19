@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Settings2, UserSearch, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Settings2, UserSearch, X, GripVertical } from "lucide-react";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
 import CasePickerDialog from "./CasePickerDialog";
 
@@ -32,6 +33,9 @@ interface Props {
   onEditSettings: () => void;
   selectedBlockHtml: string | null;
   onChangeSelectedBlockHtml: (html: string) => void;
+  // Objections support (for "Прямой оффер")
+  selectedObjectionIds?: string[];
+  onChangeObjectionIds?: (ids: string[]) => void;
 }
 
 export default function LetterGenerationPanel({
@@ -40,8 +44,12 @@ export default function LetterGenerationPanel({
   generatedHtml, imagePlaceholders, generatingLetter,
   onGenerate, onRegenerate, onEditSettings,
   selectedBlockHtml, onChangeSelectedBlockHtml,
+  selectedObjectionIds = [],
+  onChangeObjectionIds,
 }: Props) {
   const [casePickerOpen, setCasePickerOpen] = useState(false);
+
+  const isDirectOffer = templateName === "Прямой оффер";
 
   // Load program name
   const { data: program } = useQuery({
@@ -76,8 +84,41 @@ export default function LetterGenerationPanel({
     enabled: !!caseId,
   });
 
+  // Load objections for the program (for direct offer)
+  const { data: objections } = useQuery({
+    queryKey: ["objections_for_program", programId],
+    queryFn: async () => {
+      if (!programId) return [];
+      const { data } = await supabase.from("objections").select("id, objection_text").eq("program_id", programId).order("created_at");
+      return data ?? [];
+    },
+    enabled: isDirectOffer && !!programId,
+  });
+
   const isGenerated = !!generatedHtml;
   const selectedJson = selectedCase?.classification_json;
+
+  const toggleObjection = (id: string) => {
+    if (!onChangeObjectionIds) return;
+    if (selectedObjectionIds.includes(id)) {
+      onChangeObjectionIds(selectedObjectionIds.filter((x) => x !== id));
+    } else if (selectedObjectionIds.length < 7) {
+      onChangeObjectionIds([...selectedObjectionIds, id]);
+    }
+  };
+
+  const moveObjection = (idx: number, dir: "up" | "down") => {
+    if (!onChangeObjectionIds) return;
+    const newIdx = dir === "up" ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= selectedObjectionIds.length) return;
+    const arr = [...selectedObjectionIds];
+    [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+    onChangeObjectionIds(arr);
+  };
+
+  const canGenerate = isDirectOffer
+    ? !!caseId && selectedObjectionIds.length > 0
+    : !!caseId;
 
   // Inline editing a block
   if (selectedBlockHtml !== null) {
@@ -101,10 +142,12 @@ export default function LetterGenerationPanel({
         <div>
           <h3 className="font-semibold text-sm mb-3">Настройки письма</h3>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Тема:</span>
-              <span className="text-right max-w-[140px] truncate">{letterThemeTitle || "—"}</span>
-            </div>
+            {!isDirectOffer && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Тема:</span>
+                <span className="text-right max-w-[140px] truncate">{letterThemeTitle || "—"}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Шаблон:</span>
               <span className="text-right max-w-[140px] truncate">{templateName || "—"}</span>
@@ -129,6 +172,12 @@ export default function LetterGenerationPanel({
                 <Badge variant="secondary" className="text-xs">Выбран</Badge>
               </div>
             )}
+            {isDirectOffer && selectedObjectionIds.length > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Возражения:</span>
+                <Badge variant="secondary" className="text-xs">{selectedObjectionIds.length}</Badge>
+              </div>
+            )}
           </div>
           <Button variant="outline" size="sm" className="w-full mt-3 gap-1.5" onClick={onEditSettings}>
             <Settings2 className="h-3.5 w-3.5" /> Изменить настройки
@@ -138,13 +187,16 @@ export default function LetterGenerationPanel({
     );
   }
 
-  // Pre-generation mode — case selection via dialog
+  // Pre-generation mode
   return (
     <div className="space-y-4">
+      {/* Block A: Case selection */}
       <div>
-        <h3 className="font-semibold text-sm">Кейс для письма</h3>
+        <h3 className="font-semibold text-sm">Кейс студента</h3>
         <p className="text-xs text-muted-foreground mt-1">
-          История кейса — основа письма. Без кейса письмо не будет содержать реальную историю студента
+          {isDirectOffer
+            ? "Кейс студента — обязательный элемент письма"
+            : "История кейса — основа письма. Без кейса письмо не будет содержать реальную историю студента"}
         </p>
       </div>
 
@@ -180,6 +232,86 @@ export default function LetterGenerationPanel({
           <UserSearch className="h-4 w-4" />
           Выбрать кейс
         </Button>
+      )}
+
+      {/* Block B: Objections (only for direct offer) */}
+      {isDirectOffer && (
+        <div className="space-y-3 pt-2 border-t">
+          <div>
+            <h3 className="font-semibold text-sm">Возражения для отработки</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Выберите возражения для отработки (до 7)
+            </p>
+          </div>
+
+          {!programId ? (
+            <p className="text-xs text-muted-foreground italic">Сначала выберите программу в настройках письма</p>
+          ) : objections && objections.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic">Нет возражений для этой программы</p>
+          ) : (
+            <>
+              {/* Selected objections with reorder */}
+              {selectedObjectionIds.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Выбранные ({selectedObjectionIds.length}/7):</p>
+                  {selectedObjectionIds.map((id, idx) => {
+                    const obj = objections?.find((o) => o.id === id);
+                    if (!obj) return null;
+                    return (
+                      <div key={id} className="flex items-center gap-1.5 p-2 rounded border bg-accent/30 text-xs">
+                        <div className="flex flex-col gap-0.5 shrink-0">
+                          <button
+                            className="p-0 h-3 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                            disabled={idx === 0}
+                            onClick={() => moveObjection(idx, "up")}
+                          >▲</button>
+                          <button
+                            className="p-0 h-3 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                            disabled={idx === selectedObjectionIds.length - 1}
+                            onClick={() => moveObjection(idx, "down")}
+                          >▼</button>
+                        </div>
+                        <span className="flex-1 line-clamp-2">{obj.objection_text}</span>
+                        <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => toggleObjection(id)}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Available objections */}
+              <div className="border rounded-lg max-h-[200px] overflow-y-auto">
+                {objections?.filter((o) => !selectedObjectionIds.includes(o.id)).map((obj) => (
+                  <div
+                    key={obj.id}
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-muted/50 cursor-pointer border-b last:border-b-0"
+                    onClick={() => toggleObjection(obj.id)}
+                  >
+                    <Checkbox
+                      checked={selectedObjectionIds.includes(obj.id)}
+                      disabled={selectedObjectionIds.length >= 7}
+                      className="shrink-0"
+                    />
+                    <span className="text-xs line-clamp-2">{obj.objection_text}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Generate button hint */}
+      {isDirectOffer && (
+        <div className="pt-2">
+          <p className="text-xs text-muted-foreground text-center">
+            {canGenerate
+              ? "Письмо будет создано целиком — от приветствия до CTA"
+              : "Выберите кейс и хотя бы одно возражение для генерации"}
+          </p>
+        </div>
       )}
 
       <CasePickerDialog

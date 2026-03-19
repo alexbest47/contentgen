@@ -137,6 +137,7 @@ serve(async (req) => {
     const extraOfferIds: string[] = letter.extra_offer_ids || [];
     const colorSchemeId = letter.selected_color_scheme_id;
     const templateId = letter.template_id;
+    const selectedObjectionIds: string[] = (letter as any).selected_objection_ids || [];
 
     // 2. Load program
     let program: any = null;
@@ -191,27 +192,44 @@ serve(async (req) => {
       }
     }
 
-    // 7. Load prompt
+    // 7. Load objections for direct offer
+    let objectionDataMassive = "[]";
+    if (selectedObjectionIds.length > 0) {
+      const { data: objRows } = await sb.from("objections").select("id, objection_text").in("id", selectedObjectionIds);
+      if (objRows && objRows.length > 0) {
+        // Preserve user-specified order
+        const ordered = selectedObjectionIds
+          .map((id) => objRows.find((r: any) => r.id === id))
+          .filter(Boolean)
+          .map((r: any) => ({ id: r.id, objection: r.objection_text }));
+        objectionDataMassive = JSON.stringify(ordered, null, 2);
+      }
+    }
+
+    // 8. Determine prompt slug based on template
+    const promptSlug = templateName === "Прямой оффер" ? "email-builder-direct-offer" : "email-builder-full-letter";
+
+    // 9. Load prompt
     const { data: prompt } = await sb.from("prompts")
       .select("*")
-      .eq("slug", "email-builder-full-letter")
+      .eq("slug", promptSlug)
       .eq("is_active", true)
       .single();
-    if (!prompt) throw new Error("Промпт email-builder-full-letter не найден. Создайте его в разделе «Управление промптами».");
+    if (!prompt) throw new Error(`Промпт ${promptSlug} не найден. Создайте его в разделе «Управление промптами».`);
 
-    // 8. Load global variables
+    // 10. Load global variables
     const { data: gvRows } = await sb.from("prompt_global_variables").select("key, value");
     const gv: Record<string, string> = {};
     gvRows?.forEach((r: any) => { gv[r.key] = r.value; });
 
-    // 9. Load color scheme
+    // 11. Load color scheme
     let brandStyle = "";
     if (colorSchemeId) {
       const { data: cs } = await sb.from("color_schemes").select("description").eq("id", colorSchemeId).single();
       if (cs) brandStyle = cs.description;
     }
 
-    // 10. Fetch audience description from audience_segment global variable
+    // 12. Fetch audience description from audience_segment global variable
     let audienceDescription = "";
     const audienceSegment = (letter as any).audience_segment || "";
     if (audienceSegment && gv[audienceSegment]) {
@@ -231,10 +249,10 @@ serve(async (req) => {
       programDocDescription = await fetchGoogleDoc(program.program_doc_url);
     }
 
-    // 11. Build letter theme
+    // 13. Build letter theme
     const letterTheme = `${letter.letter_theme_title}\n${letter.letter_theme_description || ""}`;
 
-    // 12. Build user prompt with variable substitution
+    // 14. Build user prompt with variable substitution
     let userPrompt = prompt.user_prompt_template || "";
     userPrompt = userPrompt
       .replace(/\{\{program_title\}\}/g, program?.title || "")
@@ -255,7 +273,8 @@ serve(async (req) => {
       .replace(/\{\{extra_offers\}\}/g, offersSelectionContext) // backward compat
       .replace(/\{\{offer_rules\}\}/g, gv.offer_rules || "")
       .replace(/\{\{antiAI_rules\}\}/g, gv.antiAI_rules || "")
-      .replace(/\{\{brand_voice\}\}/g, gv.brand_voice || "");
+      .replace(/\{\{brand_voice\}\}/g, gv.brand_voice || "")
+      .replace(/\{\{objection_data_massive\}\}/g, objectionDataMassive);
 
     // Replace remaining global variables
     for (const [k, v] of Object.entries(gv)) {

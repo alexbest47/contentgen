@@ -152,7 +152,23 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const tree = useMemo(() => buildTree(topicRows ?? []), [topicRows]);
   const filtered = useMemo(() => filterTree(tree, topicSearch), [tree, topicSearch]);
 
-  // Load audience variable descriptions
+  // Load templates
+  const { data: templates } = useQuery({
+    queryKey: ["email_templates"],
+    queryFn: async () => {
+      const { data } = await supabase.from("email_templates").select("*").order("sort_order");
+      return data ?? [];
+    },
+    enabled: open && step >= 1,
+  });
+
+  // Determine if selected template is "Прямой оффер"
+  const selectedTemplateName = templates?.find((t) => t.id === selectedTemplateId)?.name || "";
+  const isDirectOffer = selectedTemplateName === "Прямой оффер";
+  const totalSteps = isDirectOffer ? 3 : 4;
+
+  // Load audience variable descriptions — needed on audience step
+  const audienceStepNum = isDirectOffer ? 2 : 3;
   const { data: audienceVars } = useQuery({
     queryKey: ["audience_global_vars"],
     queryFn: async () => {
@@ -164,27 +180,18 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       data?.forEach((r: any) => { map[r.key] = r.value; });
       return map;
     },
-    enabled: open && step >= 3,
+    enabled: open && step >= audienceStepNum,
   });
 
-  // Load templates
-  const { data: templates } = useQuery({
-    queryKey: ["email_templates"],
-    queryFn: async () => {
-      const { data } = await supabase.from("email_templates").select("*").order("sort_order");
-      return data ?? [];
-    },
-    enabled: open && step >= 1,
-  });
-
-  // Load color schemes
+  // Load color schemes — needed on settings step
+  const settingsStepNum = isDirectOffer ? 3 : 4;
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
       const { data } = await supabase.from("color_schemes").select("id, name, preview_colors").eq("is_active", true).order("name");
       return data ?? [];
     },
-    enabled: open && step >= 4,
+    enabled: open && step >= settingsStepNum,
   });
 
   // Load programs
@@ -194,7 +201,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       const { data } = await supabase.from("paid_programs").select("id, title").order("created_at", { ascending: false });
       return data ?? [];
     },
-    enabled: open && step >= 4,
+    enabled: open && step >= settingsStepNum,
   });
 
   // Load offers for selected program + type
@@ -207,7 +214,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
     },
-    enabled: open && step >= 4 && !!programId,
+    enabled: open && step >= settingsStepNum && !!programId,
   });
 
   const handleSelectTopic = (node: TreeNode) => {
@@ -222,7 +229,10 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
 
   const themeTitle = selectedTopic?.title || manualTopic;
   const themeDescription = selectedTopic?.description || manualTopic;
-  const canNext1 = !!themeTitle.trim();
+  const canNext1 = !!themeTitle.trim(); // topic selected
+  const canNext2 = !!audienceSegment;   // audience selected
+  const canNext3 = !!selectedTemplateId; // template selected
+  const canCreate = !!letterTitle.trim();
 
   const handleNext1 = () => {
     if (themeOnlyMode && onThemeChanged) {
@@ -232,10 +242,6 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     }
     setStep(3);
   };
-
-  const canNext2 = !!audienceSegment;
-  const canNext3 = !!selectedTemplateId;
-  const canCreate = !!letterTitle.trim();
 
   const handleCreate = async () => {
     if (!user) return;
@@ -248,8 +254,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           created_by: user.id,
           title: letterTitle,
           selected_color_scheme_id: colorSchemeId,
-          letter_theme_title: themeTitle,
-          letter_theme_description: themeDescription,
+          letter_theme_title: isDirectOffer ? "" : themeTitle,
+          letter_theme_description: isDirectOffer ? "" : themeDescription,
           template_id: selectedTemplateId,
           program_id: programId,
           offer_type: offerType,
@@ -297,15 +303,31 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
 
   const offerTypes = OFFER_TYPES.map((t) => [t.key, t.label] as const);
 
-  const stepTitle = themeOnlyMode
-    ? "Выбор темы письма"
-    : step === 1
-    ? "Шаг 1 из 4 — Как построить письмо?"
-    : step === 2
-    ? "Шаг 2 из 4 — О чём это письмо?"
-    : step === 3
-    ? "Шаг 3 из 4 — Для кого это письмо?"
-    : "Шаг 4 из 4 — Настройки";
+  // ─── Step titles ───
+  const getStepTitle = () => {
+    if (themeOnlyMode) return "Выбор темы письма";
+
+    if (isDirectOffer) {
+      if (step === 1) return "Шаг 1 из 3 — Как построить письмо?";
+      if (step === 2) return "Шаг 2 из 3 — Для кого это письмо?";
+      if (step === 3) return "Шаг 3 из 3 — Настройки";
+      return "";
+    }
+
+    // Default 4-step flow
+    if (step === 1) return "Шаг 1 из 4 — Как построить письмо?";
+    if (step === 2) return "Шаг 2 из 4 — О чём это письмо?";
+    if (step === 3) return "Шаг 3 из 4 — Для кого это письмо?";
+    return "Шаг 4 из 4 — Настройки";
+  };
+
+  // ─── Step content mapping for "Прямой оффер" ───
+  // Direct offer: step 1 = template, step 2 = audience, step 3 = settings
+  // Default:      step 1 = template, step 2 = topic,    step 3 = audience, step 4 = settings
+  const showTemplateStep = step === 1;
+  const showTopicStep = !isDirectOffer && step === 2;
+  const showAudienceStep = isDirectOffer ? step === 2 : step === 3;
+  const showSettingsStep = isDirectOffer ? step === 3 : step === 4;
 
   return (
     <Dialog
@@ -317,12 +339,12 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     >
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>{stepTitle}</DialogTitle>
+          <DialogTitle>{getStepTitle()}</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Step 1: Template */}
-          {step === 1 && (
+          {/* Step: Template */}
+          {showTemplateStep && (
             <div className="space-y-3">
               {templates?.map((tpl) => {
                 const blocks = (tpl.blocks as any[]) || [];
@@ -340,21 +362,23 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
                       {isSelected && <Check className="h-4 w-4 text-primary" />}
                     </div>
                     <p className="text-xs text-muted-foreground mb-2">{tpl.description}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {blocks.map((b: any, i: number) => (
-                        <Badge key={i} variant="outline" className="text-[10px]">
-                          {blockTypeLabels[b.block_type as keyof typeof blockTypeLabels] || b.block_type}
-                        </Badge>
-                      ))}
-                    </div>
+                    {blocks.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {blocks.map((b: any, i: number) => (
+                          <Badge key={i} variant="outline" className="text-[10px]">
+                            {blockTypeLabels[b.block_type as keyof typeof blockTypeLabels] || b.block_type}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
           )}
 
-          {/* Step 2: Topic */}
-          {step === 2 && (
+          {/* Step: Topic (only for non-direct-offer) */}
+          {showTopicStep && (
             <div className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -399,8 +423,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
             </div>
           )}
 
-          {/* Step 3: Audience */}
-          {step === 3 && (
+          {/* Step: Audience */}
+          {showAudienceStep && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Это поможет точнее настроить тон и контекст</p>
               <div className="space-y-3">
@@ -429,8 +453,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
             </div>
           )}
 
-          {/* Step 4: Settings */}
-          {step === 4 && (
+          {/* Step: Settings */}
+          {showSettingsStep && (
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Название письма (внутреннее)</Label>
@@ -519,22 +543,51 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
               Назад
             </Button>
           )}
+
+          {/* Step 1 → next */}
           {step === 1 && !themeOnlyMode && (
             <Button onClick={() => setStep(2)} disabled={!canNext3}>
               Далее
             </Button>
           )}
+
+          {/* Step 2 */}
           {step === 2 && (
-            <Button onClick={handleNext1} disabled={!canNext1}>
-              {themeOnlyMode ? "Применить" : "Далее"}
-            </Button>
+            <>
+              {isDirectOffer ? (
+                /* Direct offer: step 2 = audience → step 3 */
+                <Button onClick={() => setStep(3)} disabled={!canNext2}>
+                  Далее
+                </Button>
+              ) : (
+                /* Default: step 2 = topic */
+                <Button onClick={handleNext1} disabled={!canNext1}>
+                  {themeOnlyMode ? "Применить" : "Далее"}
+                </Button>
+              )}
+            </>
           )}
+
+          {/* Step 3 */}
           {step === 3 && (
-            <Button onClick={() => setStep(4)} disabled={!canNext2}>
-              Далее
-            </Button>
+            <>
+              {isDirectOffer ? (
+                /* Direct offer: step 3 = settings → create */
+                <Button onClick={handleCreate} disabled={!canCreate || creating}>
+                  {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+                  Создать письмо
+                </Button>
+              ) : (
+                /* Default: step 3 = audience → step 4 */
+                <Button onClick={() => setStep(4)} disabled={!canNext2}>
+                  Далее
+                </Button>
+              )}
+            </>
           )}
-          {step === 4 && (
+
+          {/* Step 4 (only for default 4-step flow) */}
+          {step === 4 && !isDirectOffer && (
             <Button onClick={handleCreate} disabled={!canCreate || creating}>
               {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
               Создать письмо
