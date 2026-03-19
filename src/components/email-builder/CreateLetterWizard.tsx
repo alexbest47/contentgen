@@ -126,7 +126,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(themeOnlyMode ? 2 : 1);
   const [selectedTopic, setSelectedTopic] = useState<TreeNode | null>(null);
   const [manualTopic, setManualTopic] = useState("");
   const [topicSearch, setTopicSearch] = useState("");
@@ -164,7 +164,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       data?.forEach((r: any) => { map[r.key] = r.value; });
       return map;
     },
-    enabled: open && step >= 2,
+    enabled: open && step >= 3,
   });
 
   // Load templates
@@ -174,7 +174,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       const { data } = await supabase.from("email_templates").select("*").order("sort_order");
       return data ?? [];
     },
-    enabled: open && step >= 3,
+    enabled: open && step >= 1,
   });
 
   // Load color schemes
@@ -282,7 +282,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   };
 
   const resetState = () => {
-    setStep(1);
+    setStep(themeOnlyMode ? 2 : 1);
     setSelectedTopic(null);
     setManualTopic("");
     setTopicSearch("");
@@ -300,11 +300,11 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const stepTitle = themeOnlyMode
     ? "Выбор темы письма"
     : step === 1
-    ? "Шаг 1 из 4 — О чём это письмо?"
+    ? "Шаг 1 из 4 — Как построить письмо?"
     : step === 2
-    ? "Шаг 2 из 4 — Для кого это письмо?"
+    ? "Шаг 2 из 4 — О чём это письмо?"
     : step === 3
-    ? "Шаг 3 из 4 — Как построить письмо?"
+    ? "Шаг 3 из 4 — Для кого это письмо?"
     : "Шаг 4 из 4 — Настройки";
 
   return (
@@ -321,8 +321,40 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Step 1: Topic */}
+          {/* Step 1: Template */}
           {step === 1 && (
+            <div className="space-y-3">
+              {templates?.map((tpl) => {
+                const blocks = (tpl.blocks as any[]) || [];
+                const isSelected = tpl.id === selectedTemplateId;
+                return (
+                  <div
+                    key={tpl.id}
+                    className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                      isSelected ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/40"
+                    }`}
+                    onClick={() => setSelectedTemplateId(tpl.id)}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-sm">{tpl.name}</h3>
+                      {isSelected && <Check className="h-4 w-4 text-primary" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2">{tpl.description}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {blocks.map((b: any, i: number) => (
+                        <Badge key={i} variant="outline" className="text-[10px]">
+                          {blockTypeLabels[b.block_type as keyof typeof blockTypeLabels] || b.block_type}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Step 2: Topic */}
+          {step === 2 && (
             <div className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -367,8 +399,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
             </div>
           )}
 
-          {/* Step 2: Audience */}
-          {step === 2 && (
+          {/* Step 3: Audience */}
+          {step === 3 && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Это поможет точнее настроить тон и контекст</p>
               <div className="space-y-3">
@@ -394,38 +426,6 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
                   );
                 })}
               </div>
-            </div>
-          )}
-
-          {/* Step 3: Template */}
-          {step === 3 && (
-            <div className="space-y-3">
-              {templates?.map((tpl) => {
-                const blocks = (tpl.blocks as any[]) || [];
-                const isSelected = tpl.id === selectedTemplateId;
-                return (
-                  <div
-                    key={tpl.id}
-                    className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                      isSelected ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/40"
-                    }`}
-                    onClick={() => setSelectedTemplateId(tpl.id)}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-sm">{tpl.name}</h3>
-                      {isSelected && <Check className="h-4 w-4 text-primary" />}
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-2">{tpl.description}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {blocks.map((b: any, i: number) => (
-                        <Badge key={i} variant="outline" className="text-[10px]">
-                          {blockTypeLabels[b.block_type as keyof typeof blockTypeLabels] || b.block_type}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           )}
 
@@ -519,18 +519,18 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
               Назад
             </Button>
           )}
-          {(step === 1 || themeOnlyMode) && (
+          {step === 1 && !themeOnlyMode && (
+            <Button onClick={() => setStep(2)} disabled={!canNext3}>
+              Далее
+            </Button>
+          )}
+          {step === 2 && (
             <Button onClick={handleNext1} disabled={!canNext1}>
               {themeOnlyMode ? "Применить" : "Далее"}
             </Button>
           )}
-          {step === 2 && (
-            <Button onClick={() => setStep(3)} disabled={!canNext2}>
-              Далее
-            </Button>
-          )}
           {step === 3 && (
-            <Button onClick={() => setStep(4)} disabled={!canNext3}>
+            <Button onClick={() => setStep(4)} disabled={!canNext2}>
               Далее
             </Button>
           )}
