@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Pencil, ShieldQuestion } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Pencil, ShieldQuestion, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { OFFER_TYPES } from "@/lib/offerTypes";
 
@@ -21,6 +22,7 @@ export default function ProgramDetail() {
   const [editDescription, setEditDescription] = useState("");
   const [editAudienceUrl, setEditAudienceUrl] = useState("");
   const [editProgramDocUrl, setEditProgramDocUrl] = useState("");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   const { data: program } = useQuery({
     queryKey: ["program", programId],
@@ -29,6 +31,28 @@ export default function ProgramDetail() {
       if (error) throw error;
       return data;
     },
+  });
+
+  const { data: allTags } = useQuery({
+    queryKey: ["tags"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tags").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: programTags } = useQuery({
+    queryKey: ["program_tags", programId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("program_tags" as any)
+        .select("tag_id")
+        .eq("program_id", programId!);
+      if (error) throw error;
+      return (data as any[]).map((r: any) => r.tag_id as string);
+    },
+    enabled: !!programId,
   });
 
   const updateMutation = useMutation({
@@ -40,9 +64,18 @@ export default function ProgramDetail() {
         program_doc_url: editProgramDocUrl || null,
       } as any).eq("id", programId!);
       if (error) throw error;
+
+      // Sync tags: delete old, insert new
+      await (supabase.from("program_tags" as any) as any).delete().eq("program_id", programId!);
+      if (selectedTagIds.length > 0) {
+        const rows = selectedTagIds.map((tag_id) => ({ program_id: programId!, tag_id }));
+        const { error: tagErr } = await (supabase.from("program_tags" as any) as any).insert(rows);
+        if (tagErr) throw tagErr;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["program", programId] });
+      queryClient.invalidateQueries({ queryKey: ["program_tags", programId] });
       setEditOpen(false);
       toast.success("Программа обновлена");
     },
@@ -55,9 +88,18 @@ export default function ProgramDetail() {
       setEditDescription(program.description || "");
       setEditAudienceUrl(program.audience_doc_url || "");
       setEditProgramDocUrl((program as any).program_doc_url || "");
+      setSelectedTagIds(programTags || []);
       setEditOpen(true);
     }
   };
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const assignedTagNames = allTags?.filter((t) => programTags?.includes(t.id)).map((t) => t.name) || [];
 
   return (
     <div className="space-y-6">
@@ -85,6 +127,14 @@ export default function ProgramDetail() {
               </p>
             )}
           </div>
+          {assignedTagNames.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              <Tag className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
+              {assignedTagNames.map((name) => (
+                <Badge key={name} variant="secondary" className="text-xs">{name}</Badge>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -109,6 +159,25 @@ export default function ProgramDetail() {
             <div className="space-y-2">
               <Label>Ссылка на Google Doc описания программы</Label>
               <Input value={editProgramDocUrl} onChange={(e) => setEditProgramDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Теги аудитории</Label>
+              {allTags && allTags.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {allTags.map((tag) => (
+                    <Badge
+                      key={tag.id}
+                      variant={selectedTagIds.includes(tag.id) ? "default" : "outline"}
+                      className="cursor-pointer select-none"
+                      onClick={() => toggleTag(tag.id)}
+                    >
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Нет тегов. Создайте их в разделе «Теги».</p>
+              )}
             </div>
             <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
               {updateMutation.isPending ? "Сохранение..." : "Сохранить"}

@@ -746,6 +746,39 @@ export type Database = {
         }
         Relationships: []
       }
+      program_tags: {
+        Row: {
+          id: string
+          program_id: string
+          tag_id: string
+        }
+        Insert: {
+          id?: string
+          program_id: string
+          tag_id: string
+        }
+        Update: {
+          id?: string
+          program_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_tags_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "paid_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "program_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           content_type: string
