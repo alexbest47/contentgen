@@ -5,7 +5,6 @@ import UserBlockSettings from "./UserBlockSettings";
 import OfferCollectionSettings from "./OfferCollectionSettings";
 import PaidProgramsCollectionSettings from "./PaidProgramsCollectionSettings";
 import FreeCoursesGridSettings from "./FreeCoursesGridSettings";
-import TestimonialCaseSelector from "./TestimonialCaseSelector";
 
 interface Props {
   block: EmailBlock;
@@ -28,9 +27,7 @@ export default function BlockSettingsPanel({
     <div className="space-y-4">
       <h3 className="font-semibold text-sm">{blockTypeLabels[block.block_type]}</h3>
 
-      {block.block_type === "testimonial_content" && onChangeCaseId ? (
-        <TestimonialCaseSelector caseId={caseId ?? null} onChangeCaseId={onChangeCaseId} />
-      ) : block.block_type === "paid_programs_collection" ? (
+      {block.block_type === "paid_programs_collection" ? (
         <PaidProgramsCollectionSettings
           block={block}
           colorSchemeId={colorSchemeId}

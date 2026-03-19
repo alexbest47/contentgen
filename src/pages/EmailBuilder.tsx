@@ -13,6 +13,7 @@ import BlockSettingsPanel from "@/components/email-builder/BlockSettingsPanel";
 import EmailBuilderHeader from "@/components/email-builder/EmailBuilderHeader";
 import CreateLetterWizard from "@/components/email-builder/CreateLetterWizard";
 import LetterGenerationPanel, { type ImagePlaceholder } from "@/components/email-builder/LetterGenerationPanel";
+import CasePickerDialog from "@/components/email-builder/CasePickerDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function EmailBuilder() {
@@ -48,6 +49,7 @@ export default function EmailBuilder() {
   const [extraOfferIds, setExtraOfferIds] = useState<string[]>([]);
   const [audienceSegment, setAudienceSegment] = useState("");
   const [generatingLetter, setGeneratingLetter] = useState(false);
+  const [casePickerOpen, setCasePickerOpen] = useState(false);
   const [generatingPlaceholderId, setGeneratingPlaceholderId] = useState<string | null>(null);
   const [settingsMode, setSettingsMode] = useState(false); // true = show pre-generation panel even after generation
 
@@ -523,6 +525,10 @@ export default function EmailBuilder() {
             colorSchemeId={colorSchemeId}
             onSelectBlock={(id) => {
               const block = blocks.find(b => b.id === id);
+              if (block && block.block_type === "testimonial_content") {
+                setCasePickerOpen(true);
+                return;
+              }
               if (block && isTemplateLocked(block.block_type)) return;
               setSelectedBlockId(id);
             }}
@@ -597,6 +603,13 @@ export default function EmailBuilder() {
         onOpenChange={setThemeWizardOpen}
         themeOnlyMode
         onThemeChanged={handleThemeChanged}
+      />
+
+      <CasePickerDialog
+        open={casePickerOpen}
+        onOpenChange={setCasePickerOpen}
+        onSelect={(id) => handleChangeCaseId(id)}
+        selectedCaseId={caseId}
       />
     </div>
   );
