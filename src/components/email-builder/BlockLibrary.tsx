@@ -32,30 +32,33 @@ const userBlocks: BlockDef[] = [
 
 interface Props {
   onAddBlock: (type: EmailBlockType) => void;
+  isFullLetterMode?: boolean;
 }
 
-export default function BlockLibrary({ onAddBlock }: Props) {
+export default function BlockLibrary({ onAddBlock, isFullLetterMode }: Props) {
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-          Генерируемые
-        </h3>
-        <div className="space-y-1">
-          {generatedBlocks.map((b) => (
-            <Button
-              key={b.type}
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start gap-2 text-sm h-9"
-              onClick={() => onAddBlock(b.type)}
-            >
-              <b.icon className="h-4 w-4 shrink-0" />
-              <span className="truncate">{b.label}</span>
-            </Button>
-          ))}
+      {!isFullLetterMode && (
+        <div>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Генерируемые
+          </h3>
+          <div className="space-y-1">
+            {generatedBlocks.map((b) => (
+              <Button
+                key={b.type}
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-2 text-sm h-9"
+                onClick={() => onAddBlock(b.type)}
+              >
+                <b.icon className="h-4 w-4 shrink-0" />
+                <span className="truncate">{b.label}</span>
+              </Button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       <div>
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
           Пользовательские

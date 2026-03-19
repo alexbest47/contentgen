@@ -500,7 +500,7 @@ export default function EmailBuilder() {
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Block Library */}
         <div className="w-60 border-r p-3 overflow-y-auto shrink-0">
-          <BlockLibrary onAddBlock={addBlock} />
+          <BlockLibrary onAddBlock={addBlock} isFullLetterMode={!!generatedHtml} />
         </div>
 
         {/* Center: Canvas */}
