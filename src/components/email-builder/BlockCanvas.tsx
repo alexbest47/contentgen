@@ -250,7 +250,7 @@ export default function BlockCanvas({
             ref={contentRef}
             contentEditable
             suppressContentEditableWarning
-            className="p-4 outline-none focus:ring-2 focus:ring-primary/20 rounded"
+            className="outline-none focus:ring-2 focus:ring-primary/20 rounded"
             style={{ maxWidth: "100%", overflow: "hidden", wordBreak: "break-word" }}
             dangerouslySetInnerHTML={{ __html: processedHtml }}
             onBlur={(e) => {
