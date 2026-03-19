@@ -95,6 +95,8 @@ const categories = [
   {
     title: "Конструктор email",
     variables: [
+      { name: "{{letter_theme}}", description: "Тема письма (название + описание из дерева тем или введённое вручную)", source: "email_letters.letter_theme_title + letter_theme_description" },
+      { name: "{{template_name}}", description: "Название выбранного шаблона письма", source: "email_templates.name" },
       { name: "{{letter_blocks_summary}}", description: "JSON-сводка всех блоков письма (типы, офферы, темы) — заполняется автоматически при генерации темы", source: "Системная переменная (email_letter_blocks)" },
     ],
   },
