@@ -1,0 +1,1 @@
+ALTER TABLE public.email_letters ADD COLUMN selected_objection_ids uuid[] NOT NULL DEFAULT '{}'::uuid[];

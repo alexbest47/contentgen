@@ -346,6 +346,7 @@ export type Database = {
           preheader: string
           program_id: string | null
           selected_color_scheme_id: string | null
+          selected_objection_ids: string[]
           status: string
           subject: string
           template_id: string | null
@@ -368,6 +369,7 @@ export type Database = {
           preheader?: string
           program_id?: string | null
           selected_color_scheme_id?: string | null
+          selected_objection_ids?: string[]
           status?: string
           subject?: string
           template_id?: string | null
@@ -390,6 +392,7 @@ export type Database = {
           preheader?: string
           program_id?: string | null
           selected_color_scheme_id?: string | null
+          selected_objection_ids?: string[]
           status?: string
           subject?: string
           template_id?: string | null
