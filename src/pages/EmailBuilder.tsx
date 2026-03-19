@@ -597,6 +597,8 @@ export default function EmailBuilder() {
               onEditSettings={() => setSettingsMode(true)}
               selectedBlockHtml={null}
               onChangeSelectedBlockHtml={() => {}}
+              selectedObjectionIds={selectedObjectionIds}
+              onChangeObjectionIds={setSelectedObjectionIds}
             />
           )}
         </div>
