@@ -91,8 +91,8 @@ serve(async (req) => {
       }
     }
 
-    // Also fetch offer-level doc if present
-    let offerDescription = offer.description || "";
+    // Fetch offer full description from Google Doc
+    let offerDescription = "";
     if (offer.doc_url) {
       try {
         const docMatch = offer.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
