@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Pencil, Tag } from "lucide-react";
 import { toast } from "sonner";
-import { OFFER_TYPES } from "@/lib/offerTypes";
+import { OFFER_TYPES, CONTENT_OFFER_KEYS, SALES_OFFER_KEYS } from "@/lib/offerTypes";
 
 export default function ProgramDetail() {
   const { programId } = useParams();
