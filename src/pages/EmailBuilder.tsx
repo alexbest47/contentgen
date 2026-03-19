@@ -37,7 +37,7 @@ export default function EmailBuilder() {
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [exportOpen, setExportOpen] = useState(false);
   const [exportHtml, setExportHtml] = useState("");
-  const [generatingSubject, setGeneratingSubject] = useState(false);
+  
   const [generatingBlockId, setGeneratingBlockId] = useState<string | null>(null);
   const [generatingImageBlockId, setGeneratingImageBlockId] = useState<string | null>(null);
   const [themeWizardOpen, setThemeWizardOpen] = useState(false);
