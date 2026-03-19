@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
 import {
   MessageSquareQuote, Type, ImageIcon, MousePointerClick, Minus,
-  LayoutGrid,
+  GraduationCap, BookOpen,
 } from "lucide-react";
 
 export type EmailBlockType =
   | "lead_magnet" | "reference_material" | "expert_content" | "provocative_content"
   | "list_content" | "testimonial_content" | "myth_busting" | "objection_handling"
   | "offer_collection"
+  | "paid_programs_collection" | "free_courses_grid"
   | "text" | "image" | "cta" | "divider";
 
 interface BlockDef {
@@ -18,10 +19,11 @@ interface BlockDef {
 
 const generatedBlocks: BlockDef[] = [
   { type: "testimonial_content", label: "Кейс / отзыв", icon: MessageSquareQuote },
-  { type: "offer_collection", label: "Подборка офферов", icon: LayoutGrid },
 ];
 
 const userBlocks: BlockDef[] = [
+  { type: "paid_programs_collection", label: "Курсы на которые идёт набор", icon: GraduationCap },
+  { type: "free_courses_grid", label: "Подборка бесплатных курсов", icon: BookOpen },
   { type: "text", label: "Текстовый блок", icon: Type },
   { type: "image", label: "Изображение", icon: ImageIcon },
   { type: "cta", label: "Кнопка CTA", icon: MousePointerClick },
@@ -79,6 +81,8 @@ export default function BlockLibrary({ onAddBlock }: Props) {
 
 export const blockTypeLabels: Record<string, string> = {
   testimonial_content: "Кейс / отзыв",
+  paid_programs_collection: "Курсы на которые идёт набор",
+  free_courses_grid: "Подборка бесплатных курсов",
   offer_collection: "Подборка офферов",
   text: "Текстовый блок",
   image: "Изображение",

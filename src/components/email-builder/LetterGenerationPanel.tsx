@@ -26,8 +26,6 @@ interface Props {
   // Pre-generation settings
   caseId: string | null;
   onChangeCaseId: (v: string | null) => void;
-  extraOfferIds: string[];
-  onChangeExtraOfferIds: (v: string[]) => void;
   // Generation
   generatedHtml: string;
   imagePlaceholders: ImagePlaceholder[];
@@ -42,7 +40,7 @@ interface Props {
 
 export default function LetterGenerationPanel({
   programId, offerId, offerType, letterThemeTitle, templateName,
-  caseId, onChangeCaseId, extraOfferIds, onChangeExtraOfferIds,
+  caseId, onChangeCaseId,
   generatedHtml, imagePlaceholders, generatingLetter,
   onGenerate, onRegenerate, onEditSettings,
   selectedBlockHtml, onChangeSelectedBlockHtml,
@@ -52,19 +50,6 @@ export default function LetterGenerationPanel({
     queryKey: ["cases_for_letter"],
     queryFn: async () => {
       const { data } = await supabase.from("case_classifications").select("id, file_name, classification_json");
-      return data ?? [];
-    },
-  });
-
-  // Load all offers for multi-select
-  const { data: allOffers } = useQuery({
-    queryKey: ["all_offers_for_letter"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("offers")
-        .select("id, title, program_id, offer_type")
-        .eq("is_archived", false)
-        .order("created_at", { ascending: false });
       return data ?? [];
     },
   });
@@ -143,12 +128,6 @@ export default function LetterGenerationPanel({
                 <Badge variant="secondary" className="text-xs">Выбран</Badge>
               </div>
             )}
-            {extraOfferIds.length > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Доп. офферы:</span>
-                <Badge variant="secondary" className="text-xs">{extraOfferIds.length}</Badge>
-              </div>
-            )}
           </div>
           <Button variant="outline" size="sm" className="w-full mt-3 gap-1.5" onClick={onEditSettings}>
             <Settings2 className="h-3.5 w-3.5" /> Изменить настройки
@@ -173,17 +152,7 @@ export default function LetterGenerationPanel({
     );
   }
 
-  // Pre-generation mode
-  const availableExtraOffers = allOffers?.filter((o) => o.id !== offerId) ?? [];
-
-  const toggleExtraOffer = (id: string) => {
-    if (extraOfferIds.includes(id)) {
-      onChangeExtraOfferIds(extraOfferIds.filter((x) => x !== id));
-    } else if (extraOfferIds.length < 3) {
-      onChangeExtraOfferIds([...extraOfferIds, id]);
-    }
-  };
-
+  // Pre-generation mode — only case selection + generate button
   return (
     <div className="space-y-5">
       {/* Section 1: Case */}
@@ -205,42 +174,7 @@ export default function LetterGenerationPanel({
         </Select>
       </div>
 
-      {/* Section 2: Extra offers */}
-      <div className="space-y-2">
-        <h3 className="font-semibold text-sm">Дополнительные офферы</h3>
-        <p className="text-xs text-muted-foreground">
-          Выберите до 3 офферов для блока в конце письма
-        </p>
-        <div className="space-y-1 max-h-[200px] overflow-y-auto border rounded-md p-2">
-          {availableExtraOffers.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-2">Нет доступных офферов</p>
-          ) : (
-            availableExtraOffers.map((o) => {
-              const isChecked = extraOfferIds.includes(o.id);
-              const isDisabled = !isChecked && extraOfferIds.length >= 3;
-              return (
-                <label
-                  key={o.id}
-                  className={`flex items-center gap-2 text-sm py-1.5 px-2 rounded cursor-pointer transition-colors ${
-                    isChecked ? "bg-primary/10" : "hover:bg-muted/50"
-                  } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    disabled={isDisabled}
-                    onChange={() => toggleExtraOffer(o.id)}
-                    className="rounded"
-                  />
-                  <span className="truncate flex-1">{o.title}</span>
-                </label>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* Section 3: Generate */}
+      {/* Section 2: Generate */}
       <div className="space-y-2 border-t pt-4">
         <Button
           className="w-full gap-1.5"

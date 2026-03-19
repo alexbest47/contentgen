@@ -161,12 +161,19 @@ serve(async (req) => {
       if (cs) brandStyle = cs.description;
     }
 
-    // 10. Fetch audience/program docs
-    let audienceDescription = program?.audience_description || "";
-    if (program?.audience_doc_url && !audienceDescription) {
-      audienceDescription = await fetchGoogleDoc(program.audience_doc_url);
-      if (audienceDescription) {
-        await sb.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
+    // 10. Fetch audience description from audience_segment global variable
+    let audienceDescription = "";
+    const audienceSegment = (letter as any).audience_segment || "";
+    if (audienceSegment && gv[audienceSegment]) {
+      audienceDescription = gv[audienceSegment];
+    } else {
+      // Fallback to program audience
+      audienceDescription = program?.audience_description || "";
+      if (program?.audience_doc_url && !audienceDescription) {
+        audienceDescription = await fetchGoogleDoc(program.audience_doc_url);
+        if (audienceDescription) {
+          await sb.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
+        }
       }
     }
     let programDocDescription = "";

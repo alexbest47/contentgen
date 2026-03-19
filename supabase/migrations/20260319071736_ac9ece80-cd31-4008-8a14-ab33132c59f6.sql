@@ -1,0 +1,1 @@
+ALTER TABLE public.email_letters ADD COLUMN audience_segment text NOT NULL DEFAULT '';

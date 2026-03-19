@@ -46,6 +46,7 @@ export default function EmailBuilder() {
   const [imagePlaceholders, setImagePlaceholders] = useState<ImagePlaceholder[]>([]);
   const [caseId, setCaseId] = useState<string | null>(null);
   const [extraOfferIds, setExtraOfferIds] = useState<string[]>([]);
+  const [audienceSegment, setAudienceSegment] = useState("");
   const [generatingLetter, setGeneratingLetter] = useState(false);
   const [generatingPlaceholderId, setGeneratingPlaceholderId] = useState<string | null>(null);
   const [settingsMode, setSettingsMode] = useState(false); // true = show pre-generation panel even after generation
@@ -116,6 +117,7 @@ export default function EmailBuilder() {
       setTemplateId(letter.template_id);
       setCaseId((letter as any).case_id || null);
       setExtraOfferIds((letter as any).extra_offer_ids || []);
+      setAudienceSegment((letter as any).audience_segment || "");
       setGeneratedHtml((letter as any).generated_html || "");
       setImagePlaceholders(((letter as any).image_placeholders as ImagePlaceholder[]) || []);
       initialLoadRef.current = true;
@@ -235,7 +237,14 @@ export default function EmailBuilder() {
   };
 
   const updateBlockConfig = (blockId: string, config: Record<string, any>) => {
-    setBlocks((prev) => prev.map((b) => b.id === blockId ? { ...b, config } : b));
+    // Handle _generated_html from static block components
+    const generatedHtmlFromConfig = config._generated_html;
+    if (generatedHtmlFromConfig !== undefined) {
+      const { _generated_html, ...cleanConfig } = config;
+      setBlocks((prev) => prev.map((b) => b.id === blockId ? { ...b, config: cleanConfig, generated_html: _generated_html } : b));
+    } else {
+      setBlocks((prev) => prev.map((b) => b.id === blockId ? { ...b, config } : b));
+    }
   };
 
   const generateBlock = async (blockId: string) => {
@@ -304,6 +313,7 @@ export default function EmailBuilder() {
       await supabase.from("email_letters").update({
         case_id: caseId,
         extra_offer_ids: extraOfferIds,
+        audience_segment: audienceSegment,
       } as any).eq("id", letterId);
 
       const { data, error } = await supabase.functions.invoke("generate-email-letter", {
@@ -515,8 +525,6 @@ export default function EmailBuilder() {
               templateName={template?.name || ""}
               caseId={caseId}
               onChangeCaseId={setCaseId}
-              extraOfferIds={extraOfferIds}
-              onChangeExtraOfferIds={setExtraOfferIds}
               generatedHtml={settingsMode ? "" : generatedHtml}
               imagePlaceholders={imagePlaceholders}
               generatingLetter={generatingLetter}
