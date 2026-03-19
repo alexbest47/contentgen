@@ -134,20 +134,6 @@ export default function LetterGenerationPanel({
           </Button>
         </div>
 
-        <div className="border-t pt-4">
-          <Button
-            variant="outline"
-            className="w-full gap-1.5"
-            onClick={onRegenerate}
-            disabled={generatingLetter}
-          >
-            {generatingLetter ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Генерирую…</>
-            ) : (
-              <><Sparkles className="h-4 w-4" /> Перегенерировать письмо</>
-            )}
-          </Button>
-        </div>
       </div>
     );
   }
