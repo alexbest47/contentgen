@@ -2,33 +2,27 @@
 
 ## Задача
 
-Заменить inline-селектор кейсов в правой панели на кнопку «Выбрать кейс», которая открывает модальное окно с таблицей классификаций (как в CaseManagement), с фильтрами по продуктам и тегам.
+Заменить Badge-фильтры на выпадающие списки (Select) для продуктов, типа и тегов в `CasePickerDialog`.
 
 ## Изменения
 
-### 1. Новый компонент `src/components/email-builder/CasePickerDialog.tsx`
+### `src/components/email-builder/CasePickerDialog.tsx`
 
-Модальное окно (`Dialog`, `max-w-5xl`) с:
-- **Поиск** — `<Input>` по имени студента, файлу, тегам
-- **Фильтр по продуктам** — Badge-кнопки из уникальных `classification_json.products`
-- **Фильтр по тегам** — Badge-кнопки из наиболее частых тегов (топ-15)
-- **Таблица** — копия таблицы из CaseManagement (Файл, Тип, Студент, Продукты, Тон, Качество, Теги, Дата) + кнопка «Выбрать» в каждой строке
-- Данные загружаются из `case_classifications` (все, без привязки к программе)
-- Клик «Выбрать» → `onSelect(id)` → закрытие диалога
+1. **Добавить состояние** `activeProducts: string[]` и извлечение уникальных продуктов через `useMemo` (аналогично `videoTypes`)
 
-Props: `open`, `onOpenChange`, `onSelect: (caseId: string) => void`, `selectedCaseId: string | null`
+2. **Заменить строки 122-163** (Badge-фильтры) на горизонтальный ряд из трёх `<Select>`:
+   - **Тип** — single-select из `videoTypes`, значение `""` = «Все типы»
+   - **Продукт** — single-select из уникальных `products`, значение `""` = «Все продукты»  
+   - **Теги** — single-select из `topTags`, значение `""` = «Все теги»
+   - Кнопка «Сбросить» если хотя бы один фильтр активен
 
-### 2. `src/components/email-builder/LetterGenerationPanel.tsx`
+3. **Обновить фильтрацию** (`filtered` memo, строки 67-90): добавить проверку по `activeProducts`
 
-- Удалить весь inline-селектор кейсов (search, badge-фильтры, ScrollArea со списком — строки 182-275)
-- Удалить состояния `search`, `activeTypes`, `videoTypes`, `filteredCases` и связанные memo
-- Удалить запрос `cases_for_letter`
-- Добавить состояние `casePickerOpen`
-- В pre-generation режиме показывать:
-  - Выбранный кейс (имя + файл) или кнопку «Выбрать кейс»
-  - `<CasePickerDialog>` с привязкой к `casePickerOpen`
+4. **Упростить состояния**: `activeTypes` и `activeTags` станут `string` (одно значение), `activeProduct` — `string`. Или оставить массивы, но select будет выбирать одно значение.
+
+Компоновка: поиск сверху, под ним три Select в ряд (`flex gap-2`), затем счётчик и таблица.
 
 ---
 
-2 файла: 1 новый (~150 строк), 1 упрощённый.
+1 файл, ~30 строк изменений.
 
