@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Check, X } from "lucide-react";
 
 interface Props {
@@ -18,8 +19,9 @@ interface Props {
 
 export default function CasePickerDialog({ open, onOpenChange, onSelect, selectedCaseId }: Props) {
   const [search, setSearch] = useState("");
-  const [activeTypes, setActiveTypes] = useState<string[]>([]);
-  const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [activeType, setActiveType] = useState("");
+  const [activeProduct, setActiveProduct] = useState("");
+  const [activeTag, setActiveTag] = useState("");
 
   const { data: classifications } = useQuery({
     queryKey: ["case-classifications-picker"],
@@ -39,7 +41,6 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
     enabled: open,
   });
 
-  // Extract unique video types
   const videoTypes = useMemo(() => {
     if (!classifications) return [];
     const set = new Set<string>();
@@ -50,7 +51,16 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
     return Array.from(set).sort();
   }, [classifications]);
 
-  // Extract top-15 most frequent tags
+  const products = useMemo(() => {
+    if (!classifications) return [];
+    const set = new Set<string>();
+    classifications.forEach((c) => {
+      const prods: string[] = c.classification_json?.products || [];
+      prods.forEach((p) => set.add(p));
+    });
+    return Array.from(set).sort();
+  }, [classifications]);
+
   const topTags = useMemo(() => {
     if (!classifications) return [];
     const counts = new Map<string, number>();
@@ -60,11 +70,10 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
     });
     return Array.from(counts.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 15)
+      .slice(0, 25)
       .map(([tag]) => tag);
   }, [classifications]);
 
-  // Filter
   const filtered = useMemo(() => {
     if (!classifications) return [];
     const q = search.toLowerCase();
@@ -72,28 +81,25 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
       const j = c.classification_json || {};
       const vt = j.video_type || "";
       const tags: string[] = j.tags || [];
+      const prods: string[] = j.products || [];
 
-      if (activeTypes.length > 0 && !activeTypes.includes(vt)) return false;
-      if (activeTags.length > 0 && !activeTags.some((at) => tags.includes(at))) return false;
+      if (activeType && vt !== activeType) return false;
+      if (activeProduct && !prods.includes(activeProduct)) return false;
+      if (activeTag && !tags.includes(activeTag)) return false;
 
       if (!q) return true;
       const name = (j.student_name || "").toLowerCase();
       const file = c.file_name.toLowerCase();
-      const products: string[] = j.products || [];
       return (
         name.includes(q) ||
         file.includes(q) ||
         tags.some((t: string) => t.toLowerCase().includes(q)) ||
-        products.some((p: string) => p.toLowerCase().includes(q))
+        prods.some((p: string) => p.toLowerCase().includes(q))
       );
     });
-  }, [classifications, search, activeTypes, activeTags]);
+  }, [classifications, search, activeType, activeProduct, activeTag]);
 
-  const toggleType = (t: string) =>
-    setActiveTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
-
-  const toggleTag = (t: string) =>
-    setActiveTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+  const hasFilters = activeType || activeProduct || activeTag;
 
   const handleSelect = (id: string) => {
     onSelect(id);
@@ -119,46 +125,52 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
             />
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-col gap-2">
-            {videoTypes.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 items-center">
-                <span className="text-xs text-muted-foreground mr-1">Тип:</span>
+          {/* Dropdown filters */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={activeType} onValueChange={(v) => setActiveType(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-[180px] h-9 text-sm">
+                <SelectValue placeholder="Все типы" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все типы</SelectItem>
                 {videoTypes.map((vt) => (
-                  <Badge
-                    key={vt}
-                    variant={activeTypes.includes(vt) ? "default" : "outline"}
-                    className="cursor-pointer text-xs"
-                    onClick={() => toggleType(vt)}
-                  >
-                    {vt}
-                  </Badge>
+                  <SelectItem key={vt} value={vt}>{vt}</SelectItem>
                 ))}
-              </div>
-            )}
-            {topTags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 items-center">
-                <span className="text-xs text-muted-foreground mr-1">Теги:</span>
+              </SelectContent>
+            </Select>
+
+            <Select value={activeProduct} onValueChange={(v) => setActiveProduct(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-[200px] h-9 text-sm">
+                <SelectValue placeholder="Все продукты" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все продукты</SelectItem>
+                {products.map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={activeTag} onValueChange={(v) => setActiveTag(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-[200px] h-9 text-sm">
+                <SelectValue placeholder="Все теги" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все теги</SelectItem>
                 {topTags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant={activeTags.includes(tag) ? "default" : "outline"}
-                    className="cursor-pointer text-xs"
-                    onClick={() => toggleTag(tag)}
-                  >
-                    {tag}
-                  </Badge>
+                  <SelectItem key={tag} value={tag}>{tag}</SelectItem>
                 ))}
-              </div>
-            )}
-            {(activeTypes.length > 0 || activeTags.length > 0) && (
+              </SelectContent>
+            </Select>
+
+            {hasFilters && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="self-start h-7 text-xs gap-1"
-                onClick={() => { setActiveTypes([]); setActiveTags([]); }}
+                className="h-9 text-xs gap-1"
+                onClick={() => { setActiveType(""); setActiveProduct(""); setActiveTag(""); }}
               >
-                <X className="h-3 w-3" /> Сбросить фильтры
+                <X className="h-3 w-3" /> Сбросить
               </Button>
             )}
           </div>
