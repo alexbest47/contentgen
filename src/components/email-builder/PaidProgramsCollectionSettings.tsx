@@ -13,9 +13,22 @@ interface Props {
   onUpdateConfig: (config: Record<string, any>) => void;
 }
 
-export default function PaidProgramsCollectionSettings({ block, onUpdateConfig }: Props) {
+export default function PaidProgramsCollectionSettings({ block, colorSchemeId, onUpdateConfig }: Props) {
   const config = block.config;
   const selectedProgramIds: string[] = config.program_ids || [];
+
+  const { data: schemeColors } = useQuery({
+    queryKey: ["color_scheme_colors", colorSchemeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("color_schemes").select("preview_colors").eq("id", colorSchemeId!).single();
+      return data?.preview_colors || null;
+    },
+    enabled: !!colorSchemeId,
+  });
+
+  const headingColor = schemeColors?.[0] || "#1A1A2E";
+  const accentColor = schemeColors?.[1] || "#888888";
+  const dividerColor = schemeColors?.[1] || "#E0E0E0";
 
   const { data: programs } = useQuery({
     queryKey: ["paid_programs_for_block"],
