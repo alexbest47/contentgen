@@ -32,6 +32,7 @@ const userBlocks: BlockDef[] = [
 
 interface Props {
   onAddBlock: (type: EmailBlockType) => void;
+  isFullLetterMode?: boolean;
 }
 
 export default function BlockLibrary({ onAddBlock }: Props) {
