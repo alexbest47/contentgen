@@ -17,6 +17,9 @@ export const OFFER_TYPES = [
 
 export type OfferTypeKey = typeof OFFER_TYPES[number]["key"];
 
+export const CONTENT_OFFER_KEYS: OfferTypeKey[] = ["mini_course", "diagnostic", "webinar", "download_pdf"];
+export const SALES_OFFER_KEYS: OfferTypeKey[] = ["pre_list", "new_stream", "spot_available", "sale", "discount"];
+
 export function getOfferTypeLabel(key: string): string {
   return OFFER_TYPES.find((t) => t.key === key)?.label ?? key;
 }
