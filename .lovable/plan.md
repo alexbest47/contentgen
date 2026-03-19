@@ -1,59 +1,24 @@
 
 
-## Проблема
+## Удаление промпта «Тема и прехедер письма» и edge-функции `generate-email-subject`
 
-Изображения генерируются успешно (edge-функция возвращает URL), но **не отображаются** в письме. В БД `image_url` остаётся пустым.
+Согласно memory, тема и прехедер теперь генерируются в рамках основного промпта `email-builder-full-letter`. Отдельная функция и промпт больше не нужны.
 
-**Причина — race condition между генерацией и автосохранением:**
+### Изменения
 
-1. Пользователь нажимает «Сгенерировать» → `generatePlaceholderImage` стартует
-2. Edge-функция работает ~30-60 сек
-3. За это время **автосохранение** (каждые 30 сек) записывает в БД `image_placeholders` из текущего state — **где URL ещё пустые**
-4. Edge-функция возвращает URL → `setImagePlaceholders(newPlaceholders)` обновляет state → прямой DB update записывает URL ✓
-5. Но `setImagePlaceholders` триггерит `useEffect` (строка 163-168), который ставит `dirtyRef.current = true`
-6. При следующем тике `save()` в `useEffect(() => () => { save(); }, [save])` (строка 214) **перезаписывает** `save` и может сработать с промежуточным состоянием
-7. Кроме того, `generatePlaceholderImage` использует `imagePlaceholders` из **замкнутого scope** (строка 378) — если за время ожидания были другие обновления state, они теряются
+**1. Удалить файл** `supabase/functions/generate-email-subject/index.ts`
 
-## Решение
+**2. Удалить конфигурацию** из `supabase/config.toml` (секция `[functions.generate-email-subject]`)
 
-### `src/pages/EmailBuilder.tsx`
-
-**1. Добавить `useRef` для imagePlaceholders** — чтобы autosave и генерация всегда читали актуальное значение:
-
-```ts
-const imagePlaceholdersRef = useRef(imagePlaceholders);
-useEffect(() => { imagePlaceholdersRef.current = imagePlaceholders; }, [imagePlaceholders]);
+**3. Удалить промпт из БД:**
+```sql
+DELETE FROM prompts WHERE slug = 'email-builder-subject';
 ```
 
-**2. В `save()` использовать ref вместо closure-переменной:**
-```ts
-image_placeholders: imagePlaceholdersRef.current,
-```
+**4. Удалить кнопку генерации темы из UI:**
 
-**3. В `generatePlaceholderImage` использовать функциональное обновление state:**
-```ts
-setImagePlaceholders(prev => {
-  const updated = prev.map(p =>
-    p.id === placeholderId ? { ...p, image_url: data.image_url } : p
-  );
-  // Save to DB inline
-  supabase.from("email_letters").update({
-    image_placeholders: updated,
-  } as any).eq("id", letterId);
-  return updated;
-});
-```
+- **`src/components/email-builder/EmailBuilderHeader.tsx`** — убрать props `onGenerateSubject`, `generatingSubject` и кнопку со Sparkles рядом с полем «Тема письма»
+- **`src/pages/EmailBuilder.tsx`** — убрать функцию `generateSubjectHandler`, state `generatingSubject`, и передачу этих props в `EmailBuilderHeader`
 
-**4. Аналогично для `uploadPlaceholderImage`** — тот же паттерн с `prev =>`.
-
-**5. Для `generatedHtml` добавить аналогичный ref** — та же проблема может возникать при редактировании текста + автосохранении:
-```ts
-const generatedHtmlRef = useRef(generatedHtml);
-useEffect(() => { generatedHtmlRef.current = generatedHtml; }, [generatedHtml]);
-```
-И в `save()`: `generated_html: generatedHtmlRef.current`.
-
-## Объём
-
-1 файл (`EmailBuilder.tsx`), ~20 строк правок. Логика edge-функций и `BlockCanvas` не меняется.
+5 точек правки: 1 удаление файла, 1 config, 1 SQL, 2 файла кода.
 
