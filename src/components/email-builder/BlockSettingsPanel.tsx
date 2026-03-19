@@ -22,13 +22,15 @@ interface Props {
 
 export default function BlockSettingsPanel({
   block, colorSchemeId, onUpdateConfig, onGenerate, onGenerateImage,
-  generating, generatingImage, userId,
+  generating, generatingImage, userId, caseId, onChangeCaseId,
 }: Props) {
   return (
     <div className="space-y-4">
       <h3 className="font-semibold text-sm">{blockTypeLabels[block.block_type]}</h3>
 
-      {block.block_type === "paid_programs_collection" ? (
+      {block.block_type === "testimonial_content" && onChangeCaseId ? (
+        <TestimonialCaseSelector caseId={caseId ?? null} onChangeCaseId={onChangeCaseId} />
+      ) : block.block_type === "paid_programs_collection" ? (
         <PaidProgramsCollectionSettings
           block={block}
           onUpdateConfig={(config) => onUpdateConfig(block.id, config)}
