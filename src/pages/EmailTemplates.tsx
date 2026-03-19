@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 
 interface TemplateBlock {
   block_type: string;
+  label?: string;
   mode: string;
 }
 
@@ -14,6 +15,12 @@ const MODE_LABELS: Record<string, string> = {
   text_only: "Только текст",
   header_image: "Заголовок + текст",
   schema_image: "Текст + схема",
+  card_text: "Карточка + текст",
+  schema_text: "Схема + текст",
+  html_cards: "HTML-карточки",
+  accent_block: "Акцентный блок",
+  text_button: "Текст + кнопка",
+  qa_cards: "Карточки Q&A",
 };
 
 export default function EmailTemplates() {
