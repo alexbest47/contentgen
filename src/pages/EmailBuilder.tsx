@@ -88,6 +88,16 @@ export default function EmailBuilder() {
     enabled: !!letterId,
   });
 
+  // Load accent color from color scheme
+  const { data: accentColor } = useQuery({
+    queryKey: ["color_scheme_accent", colorSchemeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("color_schemes").select("preview_colors").eq("id", colorSchemeId!).single();
+      return data?.preview_colors?.[1] || null;
+    },
+    enabled: !!colorSchemeId,
+  });
+
   // Load email settings (header/footer)
   const { data: emailSettings } = useQuery({
     queryKey: ["email_settings"],
