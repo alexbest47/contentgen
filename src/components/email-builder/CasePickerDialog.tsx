@@ -182,23 +182,21 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
 
           {/* Table */}
           <ScrollArea className="min-h-0 flex-1 border rounded-md">
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Файл</TableHead>
-                  <TableHead>Тип</TableHead>
-                  <TableHead>Студент</TableHead>
-                  <TableHead>Продукты</TableHead>
-                  <TableHead>Тон</TableHead>
-                  <TableHead>Качество</TableHead>
-                  <TableHead>Теги</TableHead>
+                  <TableHead className="w-[180px]">Файл</TableHead>
+                  <TableHead className="w-[100px]">Тип</TableHead>
+                  <TableHead className="w-[140px]">Студент</TableHead>
+                  <TableHead className="w-[140px]">Продукты</TableHead>
+                  <TableHead className="w-[160px]">Теги</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       Кейсы не найдены
                     </TableCell>
                   </TableRow>
@@ -213,7 +211,7 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
                       onClick={() => handleSelect(c.id)}
                     >
                       <TableCell>
-                        <div className="max-w-[200px]">
+                        <div className="max-w-[180px]">
                           <span className="text-sm font-medium truncate block">{c.file_name}</span>
                           {j.summary && (
                             <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{j.summary}</p>
@@ -233,25 +231,19 @@ export default function CasePickerDialog({ open, onOpenChange, onSelect, selecte
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1 max-w-[180px]">
+                        <div className="flex flex-wrap gap-1 max-w-[140px]">
                           {(j.products || []).map((p: string, i: number) => (
                             <Badge key={i} variant="secondary" className="text-xs">{p}</Badge>
                           ))}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm">{j.emotional_tone || "—"}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{j.content_quality || "—"}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1 max-w-[200px]">
-                          {(j.tags || []).slice(0, 5).map((t: string, i: number) => (
+                        <div className="flex flex-wrap gap-1 max-w-[160px]">
+                          {(j.tags || []).slice(0, 3).map((t: string, i: number) => (
                             <Badge key={i} variant="outline" className="text-xs">{t}</Badge>
                           ))}
-                          {(j.tags || []).length > 5 && (
-                            <span className="text-xs text-muted-foreground">+{j.tags.length - 5}</span>
+                          {(j.tags || []).length > 3 && (
+                            <span className="text-xs text-muted-foreground">+{j.tags.length - 3}</span>
                           )}
                         </div>
                       </TableCell>
