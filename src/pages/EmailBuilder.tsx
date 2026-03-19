@@ -313,6 +313,7 @@ export default function EmailBuilder() {
       await supabase.from("email_letters").update({
         case_id: caseId,
         extra_offer_ids: extraOfferIds,
+        audience_segment: audienceSegment,
       } as any).eq("id", letterId);
 
       const { data, error } = await supabase.functions.invoke("generate-email-letter", {
