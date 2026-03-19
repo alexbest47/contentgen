@@ -351,6 +351,7 @@ export default function EmailBuilder() {
         case_id: caseId,
         extra_offer_ids: extraOfferIds,
         audience_segment: audienceSegment,
+        selected_objection_ids: selectedObjectionIds,
       } as any).eq("id", letterId);
 
       const { data, error } = await supabase.functions.invoke("generate-email-letter", {
