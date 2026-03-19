@@ -1,30 +1,21 @@
 
 
-## Проблема
+## Задача
 
-`el.offsetTop` / `el.offsetLeft` считаются относительно ближайшего `offsetParent` элемента, а не контейнера `contentRef`. Поскольку плейсхолдеры находятся внутри вложенных `<table>` / `<td>`, их `offsetParent` — это ячейка таблицы, а не наш div. В итоге все кнопки получают одинаковые маленькие координаты и накладываются друг на друга.
+Добавить статичный заголовок в блок «Курсы на которые идёт набор», аналогично блоку «Подборка бесплатных курсов».
 
-## Решение
+## Изменение
 
-### `BlockCanvas.tsx` — `measurePlaceholders`
+### `src/components/email-builder/PaidProgramsCollectionSettings.tsx` — `buildHtml()`
 
-Заменить `el.offsetTop` / `el.offsetLeft` на расчёт через `getBoundingClientRect()`:
+Добавить перед списком программ заголовок и подзаголовок:
 
-```ts
-const containerRect = container.getBoundingClientRect();
-els.forEach(el => {
-  const elRect = el.getBoundingClientRect();
-  rects.push({
-    id,
-    top: elRect.top - containerRect.top + container.scrollTop,
-    left: elRect.left - containerRect.left + container.scrollLeft,
-    width: elRect.width,
-    height: elRect.height,
-  });
-});
+```html
+<p style="...font-size:20px;font-weight:bold;...">Программы, на которые открыт набор</p>
+<p style="...font-size:15px;color:#444444;...">Выберите программу, которая подходит именно вам.</p>
 ```
 
-`getBoundingClientRect()` всегда возвращает координаты относительно viewport, поэтому разница `elRect - containerRect` даёт правильное смещение внутри контейнера независимо от вложенности таблиц.
+Аналогично тому, как сделано в `FreeCoursesGridSettings` (строки 80-81).
 
-Один файл, ~5 строк изменений.
+Один файл, ~3 строки.
 
