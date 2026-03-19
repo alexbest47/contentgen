@@ -418,6 +418,7 @@ export default function PromptVariables() {
       </Card>
 
       <GlobalVariablesCard />
+      <AudienceVariablesCard />
       <ColorSchemesCard />
 
       {categories.map((cat) => (
