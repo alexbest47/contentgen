@@ -134,6 +134,7 @@ export default function BlockCanvas({
   onGenerateImage, generatingImageBlockId,
   generatedHtml, imagePlaceholders,
   onGeneratePlaceholderImage, generatingPlaceholderId,
+  onUpdateGeneratedHtml,
 }: Props) {
   const isFullLetterMode = !!generatedHtml;
 
