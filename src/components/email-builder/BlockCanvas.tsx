@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { blockTypeLabels, isGeneratedBlock, isTemplateLocked, type EmailBlockType } from "./BlockLibrary";
 import { Lock } from "lucide-react";
 import type { ImagePlaceholder } from "./LetterGenerationPanel";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PlaceholderRect {
   id: string;
