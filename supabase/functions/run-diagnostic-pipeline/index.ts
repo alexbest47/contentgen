@@ -176,6 +176,7 @@ serve(async (req) => {
       audience_description: program?.audience_description || "",
       offer_title: name || "",
       offer_description: description || "",
+      offer_image: "",
       program_doc_description: programDocDescription,
       test_description: diagnosticDocDescription,
     };
