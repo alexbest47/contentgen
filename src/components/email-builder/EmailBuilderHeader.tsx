@@ -83,12 +83,7 @@ export default function EmailBuilderHeader({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Тема письма</Label>
-          <div className="flex gap-1">
-            <Input value={subject} onChange={(e) => onChangeSubject(e.target.value)} placeholder="40-60 символов" maxLength={80} />
-            <Button variant="ghost" size="icon" className="shrink-0" onClick={onGenerateSubject} disabled={generatingSubject}>
-              {generatingSubject ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            </Button>
-          </div>
+          <Input value={subject} onChange={(e) => onChangeSubject(e.target.value)} placeholder="40-60 символов" maxLength={80} />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Прехедер</Label>

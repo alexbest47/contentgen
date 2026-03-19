@@ -521,7 +521,7 @@ export default function EmailBuilder() {
         onSave={save}
         onChangeTheme={() => setThemeWizardOpen(true)}
         onGenerateLetter={generateLetter}
-        generatingSubject={generatingSubject}
+        
         generatingLetter={generatingLetter}
         canGenerate={!!caseId}
       />
