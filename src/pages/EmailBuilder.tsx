@@ -13,6 +13,7 @@ import BlockSettingsPanel from "@/components/email-builder/BlockSettingsPanel";
 import EmailBuilderHeader from "@/components/email-builder/EmailBuilderHeader";
 import CreateLetterWizard from "@/components/email-builder/CreateLetterWizard";
 import LetterGenerationPanel, { type ImagePlaceholder } from "@/components/email-builder/LetterGenerationPanel";
+import CasePickerDialog from "@/components/email-builder/CasePickerDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function EmailBuilder() {
