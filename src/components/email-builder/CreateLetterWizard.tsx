@@ -273,7 +273,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           letter_id: letter.id,
           block_type: b.block_type,
           sort_order: i,
-          config: { mode: b.mode || "text_only" },
+          config: { mode: b.mode || "text_only", label: b.label },
         }));
         await supabase.from("email_letter_blocks").insert(insertBlocks);
       }

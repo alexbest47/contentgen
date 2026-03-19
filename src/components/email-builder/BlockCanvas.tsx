@@ -350,6 +350,7 @@ export default function BlockCanvas({
             const needsImagePlaceholder = isTextImage && !block.banner_image_url && block.generated_html;
             const isGeneratingImage = generatingImageBlockId === block.id;
             const locked = isTemplateLocked(block.block_type);
+            const hasTemplateLabel = !!block.config?.label && !block.generated_html;
 
             return (
               <div
@@ -358,7 +359,7 @@ export default function BlockCanvas({
                   isFullLetterMode
                     ? ""
                     : `border rounded-lg ${
-                      locked
+                      locked || hasTemplateLabel
                         ? "border-muted-foreground/20 cursor-default"
                         : `cursor-pointer ${
                             selectedBlockId === block.id
@@ -367,25 +368,27 @@ export default function BlockCanvas({
                           }`
                     }`
                 }`}
-                onClick={() => !locked && onSelectBlock(block.id)}
+                onClick={() => !locked && !hasTemplateLabel && onSelectBlock(block.id)}
               >
-                {/* Hover controls */}
-                <div className="absolute -top-3 right-2 hidden group-hover:flex items-center gap-1 bg-background border rounded-md shadow-sm px-1 py-0.5 z-10">
-                  {!locked && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onSelectBlock(block.id); }}>
-                      <Settings className="h-3 w-3" />
+                {/* Hover controls — hidden for template-label-only blocks */}
+                {!hasTemplateLabel && (
+                  <div className="absolute -top-3 right-2 hidden group-hover:flex items-center gap-1 bg-background border rounded-md shadow-sm px-1 py-0.5 z-10">
+                    {!locked && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onSelectBlock(block.id); }}>
+                        <Settings className="h-3 w-3" />
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === 0} onClick={(e) => { e.stopPropagation(); onMoveBlock(block.id, "up"); }}>
+                      <ArrowUp className="h-3 w-3" />
                     </Button>
-                  )}
-                  <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === 0} onClick={(e) => { e.stopPropagation(); onMoveBlock(block.id, "up"); }}>
-                    <ArrowUp className="h-3 w-3" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === visibleBlocks.length - 1} onClick={(e) => { e.stopPropagation(); onMoveBlock(block.id, "down"); }}>
-                    <ArrowDown className="h-3 w-3" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onDeleteBlock(block.id); }}>
-                    <Trash2 className="h-3 w-3 text-destructive" />
-                  </Button>
-                </div>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === visibleBlocks.length - 1} onClick={(e) => { e.stopPropagation(); onMoveBlock(block.id, "down"); }}>
+                      <ArrowDown className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onDeleteBlock(block.id); }}>
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
+                )}
 
                 {/* Block content */}
                 <div className={isFullLetterMode ? "py-1" : "p-4"}>
@@ -447,6 +450,14 @@ export default function BlockCanvas({
                         alt={block.config.alt || ""}
                         style={{ maxWidth: "100%", width: "600px" }}
                       />
+                    </div>
+                  ) : hasTemplateLabel ? (
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm py-3">
+                      <Lock className="h-3.5 w-3.5 text-muted-foreground/50" />
+                      <span className="bg-muted px-2 py-1 rounded text-xs font-medium">
+                        {block.config.label}
+                      </span>
+                      <span className="text-xs text-muted-foreground/60">— будет сгенерировано</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground text-sm py-3">
