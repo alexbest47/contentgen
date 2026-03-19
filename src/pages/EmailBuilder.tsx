@@ -525,8 +525,6 @@ export default function EmailBuilder() {
               templateName={template?.name || ""}
               caseId={caseId}
               onChangeCaseId={setCaseId}
-              extraOfferIds={extraOfferIds}
-              onChangeExtraOfferIds={setExtraOfferIds}
               generatedHtml={settingsMode ? "" : generatedHtml}
               imagePlaceholders={imagePlaceholders}
               generatingLetter={generatingLetter}
