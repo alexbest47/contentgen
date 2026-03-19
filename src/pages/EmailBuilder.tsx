@@ -410,13 +410,15 @@ export default function EmailBuilder() {
         .upload(fileName, file, { upsert: true });
       if (uploadErr) throw uploadErr;
       const { data: pub } = supabase.storage.from("generated-images").getPublicUrl(fileName);
-      const newPlaceholders = imagePlaceholders.map((p) =>
-        p.id === placeholderId ? { ...p, image_url: pub.publicUrl } : p
-      );
-      setImagePlaceholders(newPlaceholders);
-      await supabase.from("email_letters").update({
-        image_placeholders: newPlaceholders,
-      } as any).eq("id", letterId);
+      setImagePlaceholders(prev => {
+        const updated = prev.map((p) =>
+          p.id === placeholderId ? { ...p, image_url: pub.publicUrl } : p
+        );
+        supabase.from("email_letters").update({
+          image_placeholders: updated,
+        } as any).eq("id", letterId);
+        return updated;
+      });
       toast.success("Изображение загружено");
     } catch (e: any) {
       toast.error(e.message || "Ошибка загрузки изображения");
