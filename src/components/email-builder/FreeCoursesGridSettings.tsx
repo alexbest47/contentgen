@@ -73,11 +73,11 @@ export default function FreeCoursesGridSettings({ block, colorSchemeId, onUpdate
     const imgSrc = offer.image_url || "";
     const imgHtml = imgSrc
       ? `<img src="${imgSrc}" width="100%" style="display:block;border-radius:8px;margin:0 0 12px 0;" alt="${offer.title}">`
-      : `<div style="width:100%;padding-top:100%;background:#E8E0F0;border-radius:8px;margin:0 0 12px 0;"></div>`;
+      : `<div style="width:100%;padding-top:100%;background:${placeholderBg};border-radius:8px;margin:0 0 12px 0;"></div>`;
     return `${imgHtml}
-    <p style="font-family:Arial,sans-serif;font-size:15px;font-weight:bold;color:#1A1A2E;margin:0 0 6px 0;">${offer.title}</p>
+    <p style="font-family:Arial,sans-serif;font-size:15px;font-weight:bold;color:${headingColor};margin:0 0 6px 0;">${offer.title}</p>
     <p style="font-family:Arial,sans-serif;font-size:14px;color:#444444;margin:0 0 10px 0;line-height:1.5;">${offer.description || ""}</p>
-    <a href="#" style="font-family:Arial,sans-serif;font-size:14px;color:#888888;text-decoration:none;">Пройти бесплатно →</a>`;
+    <a href="#" style="font-family:Arial,sans-serif;font-size:14px;color:${accentColor};text-decoration:none;">Пройти бесплатно →</a>`;
   };
 
   const buildHtml = () => {
