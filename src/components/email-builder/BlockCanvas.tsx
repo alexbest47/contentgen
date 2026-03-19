@@ -354,14 +354,18 @@ export default function BlockCanvas({
             return (
               <div
                 key={block.id}
-                className={`group relative border rounded-lg transition-colors ${
-                  locked
-                    ? "border-muted-foreground/20 cursor-default"
-                    : `cursor-pointer ${
-                        selectedBlockId === block.id
-                          ? "border-primary ring-2 ring-primary/20"
-                          : "border-border hover:border-primary/40"
-                      }`
+                className={`group relative transition-colors ${
+                  isFullLetterMode
+                    ? ""
+                    : `border rounded-lg ${
+                      locked
+                        ? "border-muted-foreground/20 cursor-default"
+                        : `cursor-pointer ${
+                            selectedBlockId === block.id
+                              ? "border-primary ring-2 ring-primary/20"
+                              : "border-border hover:border-primary/40"
+                          }`
+                    }`
                 }`}
                 onClick={() => !locked && onSelectBlock(block.id)}
               >
