@@ -1,8 +1,17 @@
+import { useRef, useEffect, useState, useCallback } from "react";
 import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { blockTypeLabels, isGeneratedBlock, isTemplateLocked, type EmailBlockType } from "./BlockLibrary";
 import { Lock } from "lucide-react";
 import type { ImagePlaceholder } from "./LetterGenerationPanel";
+
+interface PlaceholderRect {
+  id: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
 
 export interface EmailBlock {
   id: string;
