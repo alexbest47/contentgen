@@ -88,17 +88,15 @@ serve(async (req) => {
     const { data: program } = await sb.from("paid_programs").select("*").eq("id", config.program_id).single();
 
     // Load offer
-    let offerTitle = "", offerDesc = "", offerType = "";
+    let offerTitle = "", offerDesc = "", offerType = "", offerValue = "", offerImageUrl = "";
     if (config.offer_id) {
       const { data: offer } = await sb.from("offers").select("*").eq("id", config.offer_id).single();
       if (offer) {
         offerTitle = offer.title;
-        offerDesc = offer.description || "";
+        offerValue = offer.description || "";
+        offerImageUrl = offer.image_url || "";
+        offerDesc = offer.doc_url ? await fetchGoogleDoc(offer.doc_url) : "";
         offerType = OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type;
-        // Fetch offer description from Google Doc if needed
-        if (offer.doc_url && !offerDesc) {
-          offerDesc = await fetchGoogleDoc(offer.doc_url);
-        }
       }
     }
 
@@ -224,8 +222,9 @@ serve(async (req) => {
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{offer_title\}\}/g, offerTitle)
+      .replace(/\{\{offer_value\}\}/g, offerValue)
       .replace(/\{\{offer_description\}\}/g, offerDesc)
-      .replace(/\{\{offer_image\}\}/g, offer?.image_url || "")
+      .replace(/\{\{offer_image\}\}/g, offerImageUrl)
       .replace(/\{\{offer_type\}\}/g, offerType)
       .replace(/\{\{brand_style\}\}/g, brandStyle)
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)

@@ -91,8 +91,8 @@ serve(async (req) => {
       }
     }
 
-    // Also fetch offer-level doc if present
-    let offerDescription = offer.description || "";
+    // Fetch offer full description from Google Doc
+    let offerDescription = "";
     if (offer.doc_url) {
       try {
         const docMatch = offer.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
@@ -135,6 +135,7 @@ serve(async (req) => {
       .replace(/\{\{offer_type\}\}/g, OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type)
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
+      .replace(/\{\{offer_value\}\}/g, offer.description || "")
       .replace(/\{\{offer_description\}\}/g, offerDescription)
       .replace(/\{\{offer_image\}\}/g, offer.image_url || "")
       .replace(/\{\{program_doc_description\}\}/g, programDocDescription)

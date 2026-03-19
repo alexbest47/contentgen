@@ -83,9 +83,9 @@ serve(async (req) => {
       } catch (e) { console.error("Error fetching program doc:", e); }
     }
 
-    // Get offer description
-    let offerDescription = offer.description || "";
-    if (offer.doc_url && !offerDescription) {
+    // Get offer full description from Google Doc
+    let offerDescription = "";
+    if (offer.doc_url) {
       try {
         const docMatch = offer.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
         if (docMatch) {
@@ -166,6 +166,7 @@ serve(async (req) => {
       .replace(/\{\{offer_type\}\}/g, OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type)
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
+      .replace(/\{\{offer_value\}\}/g, offer.description || "")
       .replace(/\{\{offer_description\}\}/g, offerDescription)
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
       .replace(/\{\{reference_material\}\}/g, leadMagnetContext)

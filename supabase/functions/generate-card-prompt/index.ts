@@ -107,12 +107,33 @@ serve(async (req) => {
       } catch (e) { console.error("[card-prompt] Error fetching program doc:", e); }
     }
 
+    // Fetch diagnostic doc for full offer_description
+    let diagnosticDocDescription = "";
+    const { data: diagDoc } = await supabase
+      .from("diagnostics")
+      .select("doc_url")
+      .eq("id", diagnostic_id)
+      .single();
+    if (diagDoc?.doc_url) {
+      try {
+        const docMatch = diagDoc.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        if (docMatch) {
+          const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`;
+          const docResponse = await fetch(exportUrl);
+          if (docResponse.ok) {
+            diagnosticDocDescription = await docResponse.text();
+          }
+        }
+      } catch (e) { console.error("[card-prompt] Error fetching diagnostic doc:", e); }
+    }
+
     const templateVars: Record<string, string> = {
       program_title: program?.title || "",
       program_description: program?.description || "",
       audience_description: program?.audience_description || "",
       offer_title: name || "",
-      offer_description: description || "",
+      offer_value: description || "",
+      offer_description: diagnosticDocDescription,
       program_doc_description: programDocDescription,
     };
 
