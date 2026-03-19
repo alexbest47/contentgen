@@ -81,14 +81,14 @@ export default function PaidProgramsCollectionSettings({ block, colorSchemeId, o
       htmlParts.push(`<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
 <tr><td>
   ${tagsHtml ? `<p style="margin:0 0 8px 0;">${tagsHtml}</p>` : ""}
-  <p style="font-family:Arial,sans-serif;font-size:17px;font-weight:bold;color:#1A1A2E;margin:0 0 8px 0;">🎓 ${prog.title}</p>
+  <p style="font-family:Arial,sans-serif;font-size:17px;font-weight:bold;color:${headingColor};margin:0 0 8px 0;">🎓 ${prog.title}</p>
   <p style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#444444;margin:0 0 12px 0;">${prog.description || ""}</p>
-  <p style="margin:0 0 0 0;"><a href="#" style="font-family:Arial,sans-serif;font-size:14px;color:#888888;text-decoration:none;">Получить консультацию →</a></p>
+  <p style="margin:0 0 0 0;"><a href="#" style="font-family:Arial,sans-serif;font-size:14px;color:${accentColor};text-decoration:none;">Получить консультацию →</a></p>
 </td></tr>
 </table>
-<hr style="border:none;border-top:1px solid #E0E0E0;margin:0 0 24px 0;">`);
+<hr style="border:none;border-top:1px solid ${dividerColor};margin:0 0 24px 0;">`);
     }
-    return `<p style="font-family:Arial,sans-serif;font-size:20px;font-weight:bold;color:#1A1A2E;margin:0 0 8px 0;">Программы, на которые открыт набор</p>
+    return `<p style="font-family:Arial,sans-serif;font-size:20px;font-weight:bold;color:${headingColor};margin:0 0 8px 0;">Программы, на которые открыт набор</p>
 <p style="font-family:Arial,sans-serif;font-size:15px;color:#444444;margin:0 0 24px 0;line-height:1.5;">Выберите программу, которая подходит именно вам.</p>
 ${htmlParts.join("\n")}`;
   };
