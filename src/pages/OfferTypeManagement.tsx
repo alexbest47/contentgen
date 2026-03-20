@@ -12,12 +12,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Pencil, Trash2, Plus, Loader2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Eye, Pencil, Trash2, Plus, Loader2, CalendarIcon } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { getOfferTypeLabel, CONTENT_OFFER_KEYS, type OfferTypeKey } from "@/lib/offerTypes";
 import { ImageUploadField } from "@/components/offer/ImageUploadField";
 import { uploadOfferImage } from "@/lib/uploadOfferImage";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export default function OfferTypeManagement() {
   const { offerType } = useParams<{ offerType: string }>();
@@ -26,8 +30,10 @@ export default function OfferTypeManagement() {
   const navigate = useNavigate();
 
   const isContentType = CONTENT_OFFER_KEYS.includes(offerType as OfferTypeKey);
+  const isDiscount = offerType === "discount";
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
+  // --- Create state ---
   const [createOpen, setCreateOpen] = useState(false);
   const [createTitle, setCreateTitle] = useState("");
   const [createDescription, setCreateDescription] = useState("");
@@ -35,7 +41,10 @@ export default function OfferTypeManagement() {
   const [createProgramId, setCreateProgramId] = useState("");
   const [createSelectedTags, setCreateSelectedTags] = useState<string[]>([]);
   const [createImageFile, setCreateImageFile] = useState<File | null>(null);
+  const [createPromoCode, setCreatePromoCode] = useState("");
+  const [createExpiresAt, setCreateExpiresAt] = useState<Date | undefined>();
 
+  // --- Edit state ---
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -44,7 +53,10 @@ export default function OfferTypeManagement() {
   const [editSelectedTags, setEditSelectedTags] = useState<string[]>([]);
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editExistingImageUrl, setEditExistingImageUrl] = useState<string | null>(null);
+  const [editPromoCode, setEditPromoCode] = useState("");
+  const [editExpiresAt, setEditExpiresAt] = useState<Date | undefined>();
 
+  // --- Archive state ---
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archivingId, setArchivingId] = useState<string | null>(null);
 
@@ -78,11 +90,20 @@ export default function OfferTypeManagement() {
       if (error) throw error;
       return data;
     },
+    enabled: !isDiscount,
   });
 
+  // --- Create mutation ---
   const createMutation = useMutation({
     mutationFn: async () => {
       if (!createProgramId) throw new Error("Выберите программу");
+
+      if (isDiscount) {
+        if (!createDescription.trim()) throw new Error("Укажите описание");
+        if (!createPromoCode.trim()) throw new Error("Укажите промо-код");
+        if (!createExpiresAt) throw new Error("Укажите дату истечения");
+      }
+
       if (isContentType) {
         if (!createDescription.trim()) throw new Error("Укажите описание");
         if (!createImageFile) throw new Error("Загрузите изображение");
@@ -96,19 +117,21 @@ export default function OfferTypeManagement() {
       const { data, error } = await supabase
         .from("offers")
         .insert({
-          title: createTitle,
-          description: isContentType ? createDescription : null,
-          doc_url: createDocUrl || null,
+          title: isDiscount ? createDescription.slice(0, 100) : createTitle,
+          description: (isContentType || isDiscount) ? createDescription : null,
+          doc_url: isDiscount ? null : (createDocUrl || null),
           offer_type: offerType! as any,
           program_id: createProgramId,
           created_by: user!.id,
           image_url: imageUrl,
+          promo_code: isDiscount ? createPromoCode : null,
+          expires_at: isDiscount && createExpiresAt ? format(createExpiresAt, "yyyy-MM-dd") : null,
         } as any)
         .select("id")
         .single();
       if (error) throw error;
 
-      if (createSelectedTags.length > 0) {
+      if (!isDiscount && createSelectedTags.length > 0) {
         const { error: tagErr } = await supabase.from("offer_tags").insert(
           createSelectedTags.map((tag_id) => ({ offer_id: data.id, tag_id }))
         );
@@ -124,9 +147,17 @@ export default function OfferTypeManagement() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // --- Update mutation ---
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!editingId) return;
+
+      if (isDiscount) {
+        if (!editDescription.trim()) throw new Error("Укажите описание");
+        if (!editPromoCode.trim()) throw new Error("Укажите промо-код");
+        if (!editExpiresAt) throw new Error("Укажите дату истечения");
+      }
+
       if (isContentType) {
         if (!editDescription.trim()) throw new Error("Укажите описание");
         if (!editImageFile && !editExistingImageUrl) throw new Error("Загрузите изображение");
@@ -140,20 +171,24 @@ export default function OfferTypeManagement() {
       const { error } = await supabase
         .from("offers")
         .update({
-          title: editTitle,
-          description: isContentType ? editDescription : undefined,
-          doc_url: editDocUrl || null,
+          title: isDiscount ? editDescription.slice(0, 100) : editTitle,
+          description: (isContentType || isDiscount) ? editDescription : undefined,
+          doc_url: isDiscount ? undefined : (editDocUrl || null),
           image_url: imageUrl,
+          promo_code: isDiscount ? editPromoCode : undefined,
+          expires_at: isDiscount && editExpiresAt ? format(editExpiresAt, "yyyy-MM-dd") : undefined,
         } as any)
         .eq("id", editingId);
       if (error) throw error;
 
-      await supabase.from("offer_tags").delete().eq("offer_id", editingId);
-      if (editSelectedTags.length > 0) {
-        const { error: tagErr } = await supabase.from("offer_tags").insert(
-          editSelectedTags.map((tag_id) => ({ offer_id: editingId, tag_id }))
-        );
-        if (tagErr) throw tagErr;
+      if (!isDiscount) {
+        await supabase.from("offer_tags").delete().eq("offer_id", editingId);
+        if (editSelectedTags.length > 0) {
+          const { error: tagErr } = await supabase.from("offer_tags").insert(
+            editSelectedTags.map((tag_id) => ({ offer_id: editingId, tag_id }))
+          );
+          if (tagErr) throw tagErr;
+        }
       }
     },
     onSuccess: () => {
@@ -165,6 +200,7 @@ export default function OfferTypeManagement() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // --- Archive mutation ---
   const archiveMutation = useMutation({
     mutationFn: async (offerId: string) => {
       const { error } = await supabase
@@ -189,6 +225,8 @@ export default function OfferTypeManagement() {
     setCreateProgramId("");
     setCreateSelectedTags([]);
     setCreateImageFile(null);
+    setCreatePromoCode("");
+    setCreateExpiresAt(undefined);
   }
 
   const toggleCreateTag = (tagId: string) => {
@@ -212,6 +250,8 @@ export default function OfferTypeManagement() {
     setEditSelectedTags(offer.offer_tags?.map((ot: any) => ot.tag_id) ?? []);
     setEditImageFile(null);
     setEditExistingImageUrl(offer.image_url ?? null);
+    setEditPromoCode((offer as any).promo_code ?? "");
+    setEditExpiresAt((offer as any).expires_at ? new Date((offer as any).expires_at) : undefined);
     setEditOpen(true);
   };
 
@@ -219,6 +259,110 @@ export default function OfferTypeManagement() {
     e.stopPropagation();
     setArchivingId(offerId);
     setArchiveOpen(true);
+  };
+
+  // --- Render discount create/edit form fields ---
+  const renderDiscountFields = (mode: "create" | "edit") => {
+    const desc = mode === "create" ? createDescription : editDescription;
+    const setDesc = mode === "create" ? setCreateDescription : setEditDescription;
+    const code = mode === "create" ? createPromoCode : editPromoCode;
+    const setCode = mode === "create" ? setCreatePromoCode : setEditPromoCode;
+    const expiresAt = mode === "create" ? createExpiresAt : editExpiresAt;
+    const setExpiresAt = mode === "create" ? setCreateExpiresAt : setEditExpiresAt;
+
+    return (
+      <>
+        <div className="space-y-2">
+          <Label>Описание промо-кода *</Label>
+          <Textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Краткое описание промо-кода" required />
+        </div>
+        <div className="space-y-2">
+          <Label>Промо-код *</Label>
+          <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="SPRING2025" required />
+        </div>
+        <div className="space-y-2">
+          <Label>Дата истечения *</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !expiresAt && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {expiresAt ? format(expiresAt, "dd.MM.yyyy") : "Выберите дату"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={expiresAt}
+                onSelect={setExpiresAt}
+                disabled={(date) => date < new Date()}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </>
+    );
+  };
+
+  // --- Render default (non-discount) create/edit form fields ---
+  const renderDefaultFields = (mode: "create" | "edit") => {
+    const title = mode === "create" ? createTitle : editTitle;
+    const setTitle = mode === "create" ? setCreateTitle : setEditTitle;
+    const desc = mode === "create" ? createDescription : editDescription;
+    const setDesc = mode === "create" ? setCreateDescription : setEditDescription;
+    const docUrl = mode === "create" ? createDocUrl : editDocUrl;
+    const setDocUrl = mode === "create" ? setCreateDocUrl : setEditDocUrl;
+    const selectedTags = mode === "create" ? createSelectedTags : editSelectedTags;
+    const toggleTag = mode === "create" ? toggleCreateTag : toggleEditTag;
+    const imageFile = mode === "create" ? createImageFile : editImageFile;
+    const setImageFile = mode === "create" ? setCreateImageFile : setEditImageFile;
+
+    return (
+      <>
+        <div className="space-y-2">
+          <Label>Название *</Label>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название оффера" required />
+        </div>
+        {isContentType && (
+          <>
+            <div className="space-y-2">
+              <Label>Описание *</Label>
+              <Textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Описание оффера" required />
+            </div>
+            <ImageUploadField
+              imageFile={imageFile}
+              setImageFile={setImageFile}
+              existingUrl={mode === "edit" ? editExistingImageUrl : undefined}
+            />
+          </>
+        )}
+        <div className="space-y-2">
+          <Label>Ссылка на Google Doc</Label>
+          <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
+        </div>
+        <div className="space-y-2">
+          <Label>Теги аудитории</Label>
+          {allTags && allTags.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {allTags.map((tag) => (
+                <Badge key={tag.id} variant={selectedTags.includes(tag.id) ? "default" : "outline"} className="cursor-pointer" onClick={() => toggleTag(tag.id)}>
+                  {tag.name}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Нет тегов.</p>
+          )}
+        </div>
+      </>
+    );
   };
 
   return (
@@ -254,37 +398,7 @@ export default function OfferTypeManagement() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Название *</Label>
-              <Input value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="Название оффера" required />
-            </div>
-            {isContentType && (
-              <>
-                <div className="space-y-2">
-                  <Label>Описание *</Label>
-                  <Textarea value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} placeholder="Описание оффера" required />
-                </div>
-                <ImageUploadField imageFile={createImageFile} setImageFile={setCreateImageFile} />
-              </>
-            )}
-            <div className="space-y-2">
-              <Label>Ссылка на Google Doc</Label>
-              <Input value={createDocUrl} onChange={(e) => setCreateDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Теги аудитории</Label>
-              {allTags && allTags.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {allTags.map((tag) => (
-                    <Badge key={tag.id} variant={createSelectedTags.includes(tag.id) ? "default" : "outline"} className="cursor-pointer" onClick={() => toggleCreateTag(tag.id)}>
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Нет тегов.</p>
-              )}
-            </div>
+            {isDiscount ? renderDiscountFields("create") : renderDefaultFields("create")}
             <Button type="submit" className="w-full" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Создание..." : "Создать"}
             </Button>
@@ -299,37 +413,7 @@ export default function OfferTypeManagement() {
             <DialogTitle>Редактировать оффер</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Название</Label>
-              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required />
-            </div>
-            {isContentType && (
-              <>
-                <div className="space-y-2">
-                  <Label>Описание *</Label>
-                  <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} required />
-                </div>
-                <ImageUploadField imageFile={editImageFile} setImageFile={setEditImageFile} existingUrl={editExistingImageUrl} />
-              </>
-            )}
-            <div className="space-y-2">
-              <Label>Ссылка на Google Doc</Label>
-              <Input value={editDocUrl} onChange={(e) => setEditDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Теги аудитории</Label>
-              {allTags && allTags.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {allTags.map((tag) => (
-                    <Badge key={tag.id} variant={editSelectedTags.includes(tag.id) ? "default" : "outline"} className="cursor-pointer" onClick={() => toggleEditTag(tag.id)}>
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Нет тегов.</p>
-              )}
-            </div>
+            {isDiscount ? renderDiscountFields("edit") : renderDefaultFields("edit")}
             <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
               {updateMutation.isPending ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -355,7 +439,15 @@ export default function OfferTypeManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Программа</TableHead>
-                  <TableHead>Название</TableHead>
+                  {isDiscount ? (
+                    <>
+                      <TableHead>Описание</TableHead>
+                      <TableHead>Промо-код</TableHead>
+                      <TableHead>Истекает</TableHead>
+                    </>
+                  ) : (
+                    <TableHead>Название</TableHead>
+                  )}
                   <TableHead className="text-right">Действия</TableHead>
                 </TableRow>
               </TableHeader>
@@ -365,16 +457,30 @@ export default function OfferTypeManagement() {
                     <TableCell className="font-medium">
                       {(o as any).paid_programs?.title || "—"}
                     </TableCell>
-                    <TableCell>{o.title}</TableCell>
+                    {isDiscount ? (
+                      <>
+                        <TableCell>{o.description || "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="font-mono">{o.promo_code || "—"}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {o.expires_at ? format(new Date(o.expires_at), "dd.MM.yyyy") : "—"}
+                        </TableCell>
+                      </>
+                    ) : (
+                      <TableCell>{o.title}</TableCell>
+                    )}
                     <TableCell className="text-right space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/programs/${o.program_id}/offers/${offerType}/${o.id}`)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Открыть
-                      </Button>
+                      {!isDiscount && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/programs/${o.program_id}/offers/${offerType}/${o.id}`)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Открыть
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
