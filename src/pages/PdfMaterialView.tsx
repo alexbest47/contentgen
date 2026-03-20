@@ -45,7 +45,9 @@ export default function PdfMaterialView() {
 
   let landingHtml = material.landing_html || "";
   if (material.background_image_url) {
-    landingHtml = landingHtml.replace(/BACKGROUND_IMAGE_URL/g, material.background_image_url);
+    landingHtml = landingHtml
+      .replace(/BACKGROUND_IMAGE_URL/g, material.background_image_url)
+      .replace(/CHARACTER_IMAGE_URL/g, material.background_image_url);
   }
 
   const landingSrc = `data:text/html;charset=utf-8,${encodeURIComponent(landingHtml)}`;
