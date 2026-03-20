@@ -112,6 +112,11 @@ export default function OfferTypeManagement() {
         if (!createTitle.trim()) throw new Error("Укажите название");
       }
 
+      if (isNewStream) {
+        if (!createTitle.trim()) throw new Error("Укажите название");
+        if (!createStreamStartDate) throw new Error("Укажите дату старта потока");
+      }
+
       if (isContentType) {
         if (!createDescription.trim()) throw new Error("Укажите описание");
         if (!createImageFile) throw new Error("Загрузите изображение");
