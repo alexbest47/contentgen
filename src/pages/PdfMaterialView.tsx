@@ -50,8 +50,7 @@ export default function PdfMaterialView() {
       .replace(/CHARACTER_IMAGE_URL/g, material.background_image_url);
   }
 
-  const landingSrc = `data:text/html;charset=utf-8,${encodeURIComponent(landingHtml)}`;
-  const pdfSrc = `data:text/html;charset=utf-8,${encodeURIComponent(material.html_content || "")}`;
+  // Use srcDoc instead of data: URLs to avoid cross-origin restrictions on contentWindow.print()
 
   return (
     <div className="space-y-4">
@@ -79,7 +78,7 @@ export default function PdfMaterialView() {
             </Button>
           </div>
           <iframe
-            src={landingSrc}
+            srcDoc={landingHtml}
             className="w-full border rounded-md"
             style={{ minHeight: "80vh" }}
             title="Landing Preview"
@@ -104,7 +103,7 @@ export default function PdfMaterialView() {
           </div>
           <iframe
             ref={pdfIframeRef}
-            src={pdfSrc}
+            srcDoc={material.html_content || ""}
             className="w-full border rounded-md"
             style={{ minHeight: "80vh" }}
             title="PDF Preview"
