@@ -242,6 +242,7 @@ export default function OfferTypeManagement() {
     setCreateImageFile(null);
     setCreatePromoCode("");
     setCreateExpiresAt(undefined);
+    setCreateStreamStartDate(undefined);
   }
 
   const toggleCreateTag = (tagId: string) => {
