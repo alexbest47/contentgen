@@ -1058,7 +1058,6 @@ export type Database = {
         | "pre_list"
         | "new_stream"
         | "spot_available"
-        | "sale"
         | "discount"
         | "download_pdf"
       project_status:
@@ -1224,7 +1223,6 @@ export const Constants = {
         "pre_list",
         "new_stream",
         "spot_available",
-        "sale",
         "discount",
         "download_pdf",
       ],

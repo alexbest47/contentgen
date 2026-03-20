@@ -10,7 +10,7 @@ const corsHeaders = {
 const OFFER_TYPE_LABELS: Record<string, string> = {
   mini_course: "Мини-курс", diagnostic: "Диагностика", webinar: "Вебинар",
   pre_list: "Предсписок", new_stream: "Старт нового потока", spot_available: "Освободилось место",
-  sale: "Распродажа", discount: "Скидка", download_pdf: "Скачай PDF",
+  discount: "Промокод", download_pdf: "Скачай PDF",
 };
 
 const IMAGE_CATEGORIES = ["image_carousel", "image_post", "image_email"];
