@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronRight, Pencil, Trash2, Plus } from "lucide-react";
+import { Eye, Pencil, Trash2, Plus, Loader2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { getOfferTypeLabel, CONTENT_OFFER_KEYS, type OfferTypeKey } from "@/lib/offerTypes";
@@ -338,50 +339,64 @@ export default function OfferTypeManagement() {
 
       {/* List */}
       {isLoading ? (
-        <div className="text-muted-foreground">Загрузка...</div>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
       ) : !offers?.length ? (
         <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
+          <CardContent className="py-12 text-center text-muted-foreground">
             Нет офферов типа «{typeLabel.toLowerCase()}».
           </CardContent>
         </Card>
       ) : (
-        <div className="border rounded-lg divide-y">
-          {offers.map((o: any) => (
-            <div
-              key={o.id}
-              className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => navigate(`/programs/${o.program_id}/offers/${offerType}/${o.id}`)}
-            >
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                {o.image_url && (
-                  <img src={o.image_url} alt="" className="w-10 h-10 rounded object-cover shrink-0" />
-                )}
-                <div className="min-w-0">
-                  <div className="font-medium">{o.title}</div>
-                  <div className="text-sm text-muted-foreground">{(o as any).paid_programs?.title}</div>
-                  {o.offer_tags?.length > 0 && (
-                    <div className="flex gap-1 mt-1">
-                      {o.offer_tags.map((ot: any) => (
-                        <Badge key={ot.tag_id} variant="secondary" className="text-xs">{ot.tags?.name}</Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
-                <span>{new Date(o.created_at).toLocaleDateString("ru-RU")}</span>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => openEdit(o, e)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => openArchive(o.id, e)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                <ChevronRight className="h-4 w-4" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Программа</TableHead>
+                  <TableHead>Название</TableHead>
+                  <TableHead className="text-right">Действия</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {offers.map((o: any) => (
+                  <TableRow key={o.id}>
+                    <TableCell className="font-medium">
+                      {(o as any).paid_programs?.title || "—"}
+                    </TableCell>
+                    <TableCell>{o.title}</TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/programs/${o.program_id}/offers/${offerType}/${o.id}`)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Открыть
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => openEdit(o, e)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={(e) => openArchive(o.id, e)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       {/* Archive confirmation */}
