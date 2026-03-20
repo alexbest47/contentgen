@@ -132,6 +132,12 @@ const categories = [
       { name: "{{new_stream_data}}", description: "JSON-массив всех активных офферов «Старт нового потока» (программа, название, дата старта)", source: "offers (offer_type = new_stream, is_archived = false)" },
     ],
   },
+  {
+    title: "Вебинары",
+    variables: [
+      { name: "{{webinar_data}}", description: "JSON-массив всех активных вебинаров (программа, название, дата, подтверждена ли дата, автовебинар, ссылка на лендинг)", source: "offers (offer_type = webinar, is_archived = false)" },
+    ],
+  },
 ];
 
 function VariableTable({ variables }: { variables: typeof categories[0]["variables"] }) {
