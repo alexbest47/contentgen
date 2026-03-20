@@ -81,6 +81,23 @@ export default function PdfMaterialView() {
     downloadHtml(finalHtml, `${material.title || "landing"}-landing.html`);
   }, [material]);
 
+  const handleRegenerate = useCallback(async () => {
+    if (!id) return;
+    setIsRegenerating(true);
+    try {
+      const { error } = await supabase.functions.invoke("generate-pdf-material", {
+        body: { pdf_material_id: id },
+      });
+      if (error) throw error;
+      await refetch();
+      toast.success("Материал перегенерирован");
+    } catch (e: any) {
+      toast.error("Ошибка: " + (e.message || "не удалось перегенерировать"));
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [id, refetch]);
+
   // Landing iframe uses fixed height with internal scroll
 
   if (isLoading) {
