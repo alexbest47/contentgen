@@ -118,9 +118,11 @@ export default function LetterGenerationPanel({
     onChangeObjectionIds(arr);
   };
 
-  const canGenerate = isDirectOffer
-    ? !!caseId && selectedObjectionIds.length > 0
-    : !!caseId;
+  const canGenerate = noCaseRequired
+    ? true
+    : isDirectOffer
+      ? !!caseId && selectedObjectionIds.length > 0
+      : !!caseId;
 
   // Inline editing a block
   if (selectedBlockHtml !== null) {
