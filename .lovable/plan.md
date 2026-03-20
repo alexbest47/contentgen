@@ -1,30 +1,27 @@
 
 
-## Убрать публичный лендинг, добавить просмотр лендинга внутри приложения
+## Передать URL логотипа в edge function генерации PDF
 
 ### Суть
-Убираем публичный маршрут `/l/:slug` и кнопки «Открыть лендинг» / «Копировать ссылку». Вместо них — одна кнопка «Просмотр», которая ведёт на внутреннюю страницу `/pdf-materials/:id`, где в двух табах отображаются: лендинг (iframe) и PDF (iframe). С возможностью экспорта HTML для каждого.
+Извлечь URL логотипа из `email_settings` (ключ `email_header_html`) в edge function и передать его в промпт как переменную `{{logo_url}}`. Пользователь сам обновит промпт для использования этой переменной.
+
+### Найденный URL логотипа
+```
+https://egunc.stripocdnplugin.email/content/8f62bb6ed3ac4c148aed02fee0339880/lib/pluginId_8f62bb6ed3ac4c148aed02fee0339880_email_mailingId/logo_talentsy.png
+```
 
 ### Изменения
 
-**1. `src/App.tsx`**
-- Удалить импорт `PublicLanding` и маршрут `/l/:slug`
+**`supabase/functions/generate-pdf-material/index.ts`**
+- После загрузки `prompt_global_variables` — загрузить `email_settings` с ключом `email_header_html`
+- Извлечь URL логотипа из HTML через regex: `src="([^"]+)"` (первый `<img>` в хедере)
+- Добавить подстановку `{{logo_url}}` в `userPrompt` (строка ~112-120)
 
-**2. `src/pages/PublicLanding.tsx`** — удалить файл
+Итого: добавить ~8 строк в edge function, regex-парсинг URL из хедера.
 
-**3. `src/pages/PdfMaterials.tsx`**
-- Убрать кнопки Globe (лендинг) и Copy (копировать ссылку) из действий
-- Убрать `copyLink` функцию и импорт `Globe`, `Copy`
-- Оставить одну кнопку «Просмотр» (иконка `Eye`) → navigate(`/pdf-materials/${m.id}`)
-- В `handleSuccess` убрать ссылку на `/l/`, просто toast «PDF-материал сгенерирован!»
-
-**4. `src/pages/PdfMaterialView.tsx`** — переделать
-- Два таба (Tabs): «Лендинг» и «PDF-материал»
-- Таб «Лендинг»: iframe с `landing_html` (с заменой BACKGROUND_IMAGE_URL), кнопка «Экспорт HTML лендинга» (скачивает landing_html как .html файл)
-- Таб «PDF-материал»: iframe с `html_content`, кнопки «Скачать PDF» (print) и «Экспорт HTML» (скачивает html_content как .html)
-- Кнопка «Назад» остаётся
+После этого пользователь добавит `{{logo_url}}` в промпт самостоятельно.
 
 ### Итого
-- 1 файл удалён (`PublicLanding.tsx`)
-- 3 файла изменены (`App.tsx`, `PdfMaterials.tsx`, `PdfMaterialView.tsx`)
+- 1 файл изменён (`generate-pdf-material/index.ts`)
+- 0 миграций
 
