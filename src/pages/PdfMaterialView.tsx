@@ -23,6 +23,18 @@ async function embedImagesInHtml(html: string, imageUrl?: string | null): Promis
   }
 }
 
+const printFixCss = `<style>
+* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+@media print { .cover { page-break-after: avoid !important; } body { margin: 0; } }
+</style>`;
+
+function injectPrintStyles(html: string): string {
+  if (html.includes("</head>")) {
+    return html.replace("</head>", printFixCss + "</head>");
+  }
+  return printFixCss + html;
+}
+
 function downloadHtml(html: string, filename: string) {
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
