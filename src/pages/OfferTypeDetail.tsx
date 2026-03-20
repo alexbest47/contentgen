@@ -58,6 +58,20 @@ export default function OfferTypeDetail() {
     enabled: isDiagnosticType,
   });
 
+  const { data: pdfMaterials, isLoading: isPdfLoading } = useQuery({
+    queryKey: ["pdf_materials_for_program", programId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pdf_materials")
+        .select("id, title, status, created_at, material_type")
+        .eq("program_id", programId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isPdfType,
+  });
+
   const { data: offers, isLoading: isOffersLoading } = useQuery({
     queryKey: ["offers", programId, offerType],
     queryFn: async () => {
@@ -71,7 +85,7 @@ export default function OfferTypeDetail() {
       if (error) throw error;
       return data;
     },
-    enabled: !isDiagnosticType,
+    enabled: !isDiagnosticType && !isPdfType,
   });
 
   const isLoading = isDiagnosticType ? isDiagnosticsLoading : isOffersLoading;
