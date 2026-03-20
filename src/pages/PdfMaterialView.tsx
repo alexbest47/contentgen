@@ -25,7 +25,8 @@ async function embedImagesInHtml(html: string, imageUrl?: string | null): Promis
 
 const printFixCss = `<style>
 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-@media print { .cover { page-break-after: avoid !important; } body { margin: 0; } }
+body { padding: 32px 48px; box-sizing: border-box; }
+@media print { .cover { page-break-after: avoid !important; } body { margin: 0; padding: 32px 48px; } }
 </style>`;
 
 function injectPrintStyles(html: string): string {
