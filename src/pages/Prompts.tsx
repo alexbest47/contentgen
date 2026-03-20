@@ -519,6 +519,7 @@ export default function Prompts() {
              <TabsTrigger value="myth_busting">Разбор мифа</TabsTrigger>
              <TabsTrigger value="objection_handling">Отработка возражения</TabsTrigger>
              <TabsTrigger value="email_builder">Конструктор email</TabsTrigger>
+             <TabsTrigger value="pdf_material">Генерация PDF</TabsTrigger>
            </TabsList>
            <TabsContent value="lead_magnet">
              {renderLeadMagnetTab()}
