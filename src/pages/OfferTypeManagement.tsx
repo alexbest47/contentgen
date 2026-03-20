@@ -403,7 +403,7 @@ export default function OfferTypeManagement() {
                 </SelectContent>
               </Select>
             </div>
-            {isDiscount ? renderDiscountFields("create") : renderDefaultFields("create")}
+            {isDiscount ? renderDiscountFields("create") : isSpotAvailable ? renderSpotAvailableFields("create") : renderDefaultFields("create")}
             <Button type="submit" className="w-full" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Создание..." : "Создать"}
             </Button>
