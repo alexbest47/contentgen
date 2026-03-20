@@ -51,7 +51,6 @@ function downloadHtml(html: string, filename: string) {
 export default function PdfMaterialView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const landingIframeRef = useRef<HTMLIFrameElement>(null);
   const pdfIframeRef = useRef<HTMLIFrameElement>(null);
 
   const { data: material, isLoading } = useQuery({
