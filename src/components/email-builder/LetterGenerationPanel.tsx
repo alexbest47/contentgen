@@ -36,6 +36,7 @@ interface Props {
   // Objections support (for "Прямой оффер")
   selectedObjectionIds?: string[];
   onChangeObjectionIds?: (ids: string[]) => void;
+  noCaseRequired?: boolean;
 }
 
 export default function LetterGenerationPanel({
