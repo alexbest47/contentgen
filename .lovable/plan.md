@@ -1,27 +1,43 @@
 
 
-## Передать URL логотипа в edge function генерации PDF
+## Добавить генерацию изображения персонажа через Google Imagen после генерации PDF
 
 ### Суть
-Извлечь URL логотипа из `email_settings` (ключ `email_header_html`) в edge function и передать его в промпт как переменную `{{logo_url}}`. Пользователь сам обновит промпт для использования этой переменной.
-
-### Найденный URL логотипа
-```
-https://egunc.stripocdnplugin.email/content/8f62bb6ed3ac4c148aed02fee0339880/lib/pluginId_8f62bb6ed3ac4c148aed02fee0339880_email_mailingId/logo_talentsy.png
-```
+После получения ответа от Claude, edge function должна: взять `imagen_prompt` из результата, вызвать Google Imagen (через OpenRouter, как в `generate-pipeline-images`), загрузить изображение в Storage, сохранить публичный URL в `background_image_url`, и заменить `CHARACTER_IMAGE_URL` на реальный URL в `landing_html`.
 
 ### Изменения
 
-**`supabase/functions/generate-pdf-material/index.ts`**
-- После загрузки `prompt_global_variables` — загрузить `email_settings` с ключом `email_header_html`
-- Извлечь URL логотипа из HTML через regex: `src="([^"]+)"` (первый `<img>` в хедере)
-- Добавить подстановку `{{logo_url}}` в `userPrompt` (строка ~112-120)
+**1. `supabase/functions/generate-pdf-material/index.ts`**
 
-Итого: добавить ~8 строк в edge function, regex-парсинг URL из хедера.
+После парсинга JSON-ответа от Claude (строка ~185) и перед обновлением записи:
 
-После этого пользователь добавит `{{logo_url}}` в промпт самостоятельно.
+- Добавить функцию `generateImage(prompt, apiKey)` — скопировать из `generate-pipeline-images` (вызов OpenRouter с `google/gemini-3-pro-image-preview`, модальность `["image", "text"]`, декодирование base64)
+- Получить `OPENROUTER_API_KEY` из env (он уже есть в секретах)
+- Вызвать `generateImage(result.imagen_prompt, OPENROUTER_API_KEY)`
+- Загрузить результат в бакет `generated-images` с путём `pdf-materials/{pdf_material_id}/character_{timestamp}.png`
+- Получить публичный URL
+- Заменить `CHARACTER_IMAGE_URL` в `result.landing_html` на реальный URL
+- Сохранить URL в поле `background_image_url`
+
+Если генерация изображения падает — не блокировать, записать лог, оставить `CHARACTER_IMAGE_URL` как есть (можно перегенерировать позже).
+
+**2. `src/pages/PdfMaterialView.tsx`**
+
+Обновить замену: сейчас заменяет `BACKGROUND_IMAGE_URL` → заменить на `CHARACTER_IMAGE_URL` (чтобы совпадало с промптом). Или сделать обе замены для обратной совместимости.
+
+### Поток данных
+```text
+Claude → JSON с imagen_prompt + landing_html (содержит CHARACTER_IMAGE_URL)
+       ↓
+OpenRouter/Imagen → base64 PNG
+       ↓
+Storage upload → public URL
+       ↓
+landing_html.replace(CHARACTER_IMAGE_URL, realUrl) → сохранение в БД
+```
 
 ### Итого
-- 1 файл изменён (`generate-pdf-material/index.ts`)
+- 1 edge function изменена (`generate-pdf-material`)
+- 1 страница изменена (`PdfMaterialView.tsx`)
 - 0 миграций
 
