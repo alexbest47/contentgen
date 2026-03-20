@@ -34,6 +34,7 @@ export default function OfferTypeManagement() {
   const isDiscount = offerType === "discount";
   const isSpotAvailable = offerType === "spot_available";
   const isNewStream = offerType === "new_stream";
+  const isWebinar = offerType === "webinar";
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
   // --- Create state ---
