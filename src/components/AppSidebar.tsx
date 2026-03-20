@@ -19,8 +19,11 @@ const mainNav = [
   { title: "Архив", url: "/archive", icon: Archive },
 ];
 
-const contentPrepNav = [
+const offerPrepNav = [
   { title: "Диагностики", url: "/diagnostics", icon: Stethoscope },
+];
+
+const contentPrepNav = [
   { title: "Управление кейсами", url: "/cases", icon: FileVideo },
   { title: "Дерево тем", url: "/topics", icon: TreePine },
   { title: "Работа с возражениями", url: "/objections", icon: ShieldQuestion },
@@ -66,6 +69,26 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Подготовка офферов</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {offerPrepNav.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      isActive={location.pathname === item.url}
+                      onClick={() => navigate(item.url)}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
         {isAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel>Подготовка контента</SidebarGroupLabel>
