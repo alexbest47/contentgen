@@ -615,7 +615,6 @@ export default function PromptVariables() {
       <AudienceVariablesCard />
       <ColorSchemesCard />
       <PromoCodesCard />
-      <SpotAvailableCard />
       <NewStreamCard />
       <WebinarDataCard />
 
