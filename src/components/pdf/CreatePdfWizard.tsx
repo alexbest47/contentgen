@@ -145,7 +145,7 @@ export function CreatePdfWizard({ open, onOpenChange, onSuccess }: Props) {
       if (error) throw new Error(error.message || "Generation failed");
       if (data?.error) throw new Error(data.error);
 
-      onSuccess(mat.id, data.slug);
+      onSuccess();
       onOpenChange(false);
     } catch (e: any) {
       console.error("PDF generation error:", e);
