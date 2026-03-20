@@ -554,7 +554,7 @@ export default function OfferTypeManagement() {
                       <TableCell>{o.title}</TableCell>
                     )}
                     <TableCell className="text-right space-x-1">
-                      {!isDiscount && !isSpotAvailable && (
+                      {!isDiscount && !isSpotAvailable && !isNewStream && (
                         <Button
                           variant="ghost"
                           size="sm"
