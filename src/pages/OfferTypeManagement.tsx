@@ -290,7 +290,7 @@ export default function OfferTypeManagement() {
     setEditExpiresAt((offer as any).expires_at ? new Date((offer as any).expires_at) : undefined);
     setEditStreamStartDate((offer as any).stream_start_date ? new Date((offer as any).stream_start_date) : undefined);
     setEditWebinarDate((offer as any).webinar_date ? new Date((offer as any).webinar_date) : undefined);
-    setEditIsDateConfirmed((offer as any).is_date_confirmed ?? false);
+    
     setEditIsAutowebinar((offer as any).is_autowebinar ?? false);
     setEditLandingUrl((offer as any).landing_url ?? "");
     setEditOpen(true);
