@@ -117,25 +117,25 @@ const categories = [
   {
     title: "Промо-коды",
     variables: [
-      { name: "{{promo_codes_data}}", description: "JSON-массив всех активных промо-кодов (программа, описание, код, дата истечения)", source: "offers (offer_type = discount, is_archived = false)" },
+      { name: "{{promo_codes_data}}", description: "JSON-данные выбранного промокода (программа, описание, код, дата истечения)", source: "Выбирается пользователем при генерации" },
     ],
   },
   {
     title: "Освободилось место",
     variables: [
-      { name: "{{spot_available_data}}", description: "JSON-массив всех активных офферов «Освободилось место» (программа, название)", source: "offers (offer_type = spot_available, is_archived = false)" },
+      { name: "{{spot_available_data}}", description: "JSON-данные выбранного оффера «Освободилось место» (программа, название)", source: "Выбирается пользователем при генерации" },
     ],
   },
   {
     title: "Старт нового потока",
     variables: [
-      { name: "{{new_stream_data}}", description: "JSON-массив всех активных офферов «Старт нового потока» (программа, название, дата старта)", source: "offers (offer_type = new_stream, is_archived = false)" },
+      { name: "{{new_stream_data}}", description: "JSON-данные выбранного оффера «Старт нового потока» (программа, название, дата старта)", source: "Выбирается пользователем при генерации" },
     ],
   },
   {
     title: "Вебинары",
     variables: [
-      { name: "{{webinar_data}}", description: "JSON-массив всех активных вебинаров (программа, название, дата, подтверждена ли дата, автовебинар, ссылка на лендинг)", source: "offers (offer_type = webinar, is_archived = false)" },
+      { name: "{{webinar_data}}", description: "JSON-данные выбранного вебинара (программа, название, дата, автовебинар, ссылка на лендинг)", source: "Выбирается пользователем при генерации" },
     ],
   },
 ];
