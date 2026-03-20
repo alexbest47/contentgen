@@ -29,11 +29,14 @@ const contentPrepNav = [
   { title: "Работа с возражениями", url: "/objections", icon: ShieldQuestion },
 ];
 
-const adminNav = [
+const emailSettingsNav = [
   { title: "Шаблоны писем", url: "/email-templates", icon: FileText },
+  { title: "Настройка хедера и футера", url: "/email-settings", icon: Mail },
+];
+
+const adminNav = [
   { title: "Управление промптами", url: "/prompts", icon: MessageSquareText },
   { title: "Переменные промптов", url: "/prompt-variables", icon: Braces },
-  { title: "Настройки Email", url: "/email-settings", icon: Mail },
   { title: "Пользователи", url: "/users", icon: Users },
 ];
 
