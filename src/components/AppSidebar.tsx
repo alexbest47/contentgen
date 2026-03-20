@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   GraduationCap, Tag, TableProperties,
-  MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion, MailPlus, TreePine, FileText,
+  MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion, MailPlus, TreePine, FileText, FilePlus2,
   BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown,
 } from "lucide-react";
 
@@ -28,6 +28,7 @@ const offerPrepNav = [
 ];
 
 const contentPrepNav = [
+  { title: "Подготовка PDF", url: "/pdf-materials", icon: FilePlus2 },
   { title: "Управление кейсами", url: "/cases", icon: FileVideo },
   { title: "Дерево тем", url: "/topics", icon: TreePine },
   { title: "Работа с возражениями", url: "/objections", icon: ShieldQuestion },

@@ -749,6 +749,89 @@ export type Database = {
         }
         Relationships: []
       }
+      pdf_materials: {
+        Row: {
+          audience_name: string | null
+          background_image_url: string | null
+          brand_style_name: string | null
+          created_at: string
+          created_by: string
+          html_content: string
+          id: string
+          imagen_prompt: string | null
+          landing_button_text: string | null
+          landing_descriptor: string | null
+          landing_headline: string | null
+          landing_html: string | null
+          landing_modal_type_word: string | null
+          landing_slug: string | null
+          material_type: string
+          program_id: string | null
+          program_name: string | null
+          sections_count: number | null
+          status: string
+          subtitle: string | null
+          title: string
+          word_count: number | null
+        }
+        Insert: {
+          audience_name?: string | null
+          background_image_url?: string | null
+          brand_style_name?: string | null
+          created_at?: string
+          created_by: string
+          html_content?: string
+          id?: string
+          imagen_prompt?: string | null
+          landing_button_text?: string | null
+          landing_descriptor?: string | null
+          landing_headline?: string | null
+          landing_html?: string | null
+          landing_modal_type_word?: string | null
+          landing_slug?: string | null
+          material_type: string
+          program_id?: string | null
+          program_name?: string | null
+          sections_count?: number | null
+          status?: string
+          subtitle?: string | null
+          title: string
+          word_count?: number | null
+        }
+        Update: {
+          audience_name?: string | null
+          background_image_url?: string | null
+          brand_style_name?: string | null
+          created_at?: string
+          created_by?: string
+          html_content?: string
+          id?: string
+          imagen_prompt?: string | null
+          landing_button_text?: string | null
+          landing_descriptor?: string | null
+          landing_headline?: string | null
+          landing_html?: string | null
+          landing_modal_type_word?: string | null
+          landing_slug?: string | null
+          material_type?: string
+          program_id?: string | null
+          program_name?: string | null
+          sections_count?: number | null
+          status?: string
+          subtitle?: string | null
+          title?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_materials_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "paid_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1097,6 +1180,7 @@ export type Database = {
         | "myth_busting"
         | "objection_handling"
         | "email_builder"
+        | "pdf_generation"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1264,6 +1348,7 @@ export const Constants = {
         "myth_busting",
         "objection_handling",
         "email_builder",
+        "pdf_generation",
       ],
     },
   },

@@ -31,6 +31,9 @@ import Objections from "@/pages/Objections";
 import ObjectionsHub from "@/pages/ObjectionsHub";
 import TopicTree from "@/pages/TopicTree";
 import EmailTemplates from "@/pages/EmailTemplates";
+import PdfMaterials from "@/pages/PdfMaterials";
+import PdfMaterialView from "@/pages/PdfMaterialView";
+import PublicLanding from "@/pages/PublicLanding";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +61,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            <Route path="/l/:slug" element={<PublicLanding />} />
             <Route path="/auth" element={<AuthRoute />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Navigate to="/programs" replace />} />
@@ -76,6 +80,8 @@ const App = () => (
               <Route path="/create-diagnostic" element={<ProtectedRoute adminOnly><CreateDiagnostic /></ProtectedRoute>} />
               <Route path="/diagnostics/:diagnosticId" element={<ProtectedRoute adminOnly><DiagnosticDetail /></ProtectedRoute>} />
               <Route path="/offers/:offerType" element={<ProtectedRoute adminOnly><OfferTypeManagement /></ProtectedRoute>} />
+              <Route path="/pdf-materials" element={<ProtectedRoute adminOnly><PdfMaterials /></ProtectedRoute>} />
+              <Route path="/pdf-materials/:id" element={<ProtectedRoute adminOnly><PdfMaterialView /></ProtectedRoute>} />
               <Route path="/cases" element={<ProtectedRoute adminOnly><CaseManagement /></ProtectedRoute>} />
               <Route path="/objections" element={<ProtectedRoute adminOnly><ObjectionsHub /></ProtectedRoute>} />
               <Route path="/programs/:programId/objections" element={<ProtectedRoute adminOnly><Objections /></ProtectedRoute>} />
