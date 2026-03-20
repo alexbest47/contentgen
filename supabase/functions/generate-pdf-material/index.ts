@@ -129,7 +129,8 @@ serve(async (req) => {
       .replace(/\{\{audience_name\}\}/g, material.audience_name || "")
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{brand_style\}\}/g, brandStyle)
-      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "");
+      .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "")
+      .replace(/\{\{logo_url\}\}/g, logoUrl);
 
     console.log("Calling Anthropic API for PDF generation...");
 
