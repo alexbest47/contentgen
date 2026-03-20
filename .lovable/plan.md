@@ -1,22 +1,26 @@
 
 
-## Убрать «Дата подтверждена», отключать дату при автовебинаре
+## Добавить категории в шаблоны писем
 
-### Изменения
+### Проблема
+Шаблоны отображаются плоским списком без группировки. Нужно добавить категории: «Платные программы» (существующие шаблоны) и «Вебинары» (пока пустая, будет наполнена позже).
 
-**`src/pages/OfferTypeManagement.tsx`**
+### Решение
 
-1. Удалить все state и использования `isDateConfirmed` / `is_date_confirmed` (create/edit/reset/openEdit/save)
-2. Удалить блок чекбокса «Дата и время подтверждены» (строки 479-486)
-3. В `onCheckedChange` автовебинара: при включении сбрасывать `webinarDate` в `undefined`; при выключении — ничего
-4. Дизейблить Popover/DatePicker для «Дата проведения» когда `isAutowebinar === true`
-5. В мутациях create/update: `webinar_date` передавать `null` если `isAutowebinar`
-6. `is_date_confirmed` передавать как `false` всегда (или убрать из мутации — колонка имеет default false)
+**1. Миграция БД**
+Добавить колонку `category` в таблицу `email_templates`:
+```sql
+ALTER TABLE email_templates ADD COLUMN category text NOT NULL DEFAULT 'paid_programs';
+```
+Оба существующих шаблона получат значение `paid_programs` по умолчанию.
 
-**`src/pages/PromptVariables.tsx`**
-
-- Убрать `is_date_confirmed` из JSON `{{webinar_data}}`
+**2. `src/pages/EmailTemplates.tsx`**
+- Группировать шаблоны по `category`
+- Отображать секции с заголовками: `paid_programs` → «Платные программы», `webinar` → «Вебинары»
+- Для пустых категорий показывать заглушку «Шаблоны пока не добавлены»
+- Всегда показывать обе категории (даже если в «Вебинарах» пока нет шаблонов)
 
 ### Итого
-- 2 файла, ~15 строк удалено/изменено
+- 1 миграция (1 колонка)
+- 1 файл изменён (`EmailTemplates.tsx`)
 
