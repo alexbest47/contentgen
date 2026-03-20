@@ -261,6 +261,10 @@ export default function OfferTypeManagement() {
     setCreatePromoCode("");
     setCreateExpiresAt(undefined);
     setCreateStreamStartDate(undefined);
+    setCreateWebinarDate(undefined);
+    setCreateIsDateConfirmed(false);
+    setCreateIsAutowebinar(false);
+    setCreateLandingUrl("");
   }
 
   const toggleCreateTag = (tagId: string) => {
