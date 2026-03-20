@@ -312,6 +312,13 @@ export default function LetterGenerationPanel({
       )}
 
       {/* Generate button hint */}
+      {noCaseRequired && (
+        <div className="pt-2">
+          <p className="text-xs text-muted-foreground text-center">
+            Данные берутся из настроек вебинара
+          </p>
+        </div>
+      )}
       {isDirectOffer && (
         <div className="pt-2">
           <p className="text-xs text-muted-foreground text-center">
@@ -322,12 +329,14 @@ export default function LetterGenerationPanel({
         </div>
       )}
 
-      <CasePickerDialog
-        open={casePickerOpen}
-        onOpenChange={setCasePickerOpen}
-        onSelect={onChangeCaseId}
-        selectedCaseId={caseId}
-      />
+      {!noCaseRequired && (
+        <CasePickerDialog
+          open={casePickerOpen}
+          onOpenChange={setCasePickerOpen}
+          onSelect={onChangeCaseId}
+          selectedCaseId={caseId}
+        />
+      )}
     </div>
   );
 }
