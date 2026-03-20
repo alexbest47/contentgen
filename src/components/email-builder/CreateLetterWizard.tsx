@@ -445,9 +445,39 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
             </div>
           )}
 
-          {/* Step: Audience */}
+          {/* Step: Audience (+ webinar picker for webinar templates) */}
           {showAudienceStep && (
             <div className="space-y-4">
+              {/* Webinar picker — only for webinar templates */}
+              {isWebinar && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Выберите вебинар</Label>
+                  <Select
+                    value={offerId || ""}
+                    onValueChange={(v) => {
+                      setOfferId(v);
+                      const webinar = webinarOffers?.find((w) => w.id === v);
+                      if (webinar) {
+                        setProgramId(webinar.program_id);
+                        setOfferType("webinar");
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите вебинар" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {webinarOffers?.map((w) => (
+                        <SelectItem key={w.id} value={w.id}>{w.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {webinarOffers?.length === 0 && (
+                    <p className="text-xs text-muted-foreground">Нет активных вебинаров. Создайте вебинар в разделе «Подготовка офферов».</p>
+                  )}
+                </div>
+              )}
+
               <p className="text-sm text-muted-foreground">Это поможет точнее настроить тон и контекст</p>
               <div className="space-y-3">
                 {AUDIENCE_SEGMENTS.map((seg) => {
