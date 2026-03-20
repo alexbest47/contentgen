@@ -29,11 +29,14 @@ const contentPrepNav = [
   { title: "Работа с возражениями", url: "/objections", icon: ShieldQuestion },
 ];
 
-const adminNav = [
+const emailSettingsNav = [
   { title: "Шаблоны писем", url: "/email-templates", icon: FileText },
+  { title: "Настройка хедера и футера", url: "/email-settings", icon: Mail },
+];
+
+const adminNav = [
   { title: "Управление промптами", url: "/prompts", icon: MessageSquareText },
   { title: "Переменные промптов", url: "/prompt-variables", icon: Braces },
-  { title: "Настройки Email", url: "/email-settings", icon: Mail },
   { title: "Пользователи", url: "/users", icon: Users },
 ];
 
@@ -115,6 +118,26 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {adminNav.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      isActive={location.pathname === item.url}
+                      onClick={() => navigate(item.url)}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Настройка email</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {emailSettingsNav.map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
                       isActive={location.pathname === item.url}
