@@ -418,7 +418,7 @@ export default function OfferTypeManagement() {
             <DialogTitle>Редактировать оффер</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }} className="space-y-4">
-            {isDiscount ? renderDiscountFields("edit") : renderDefaultFields("edit")}
+            {isDiscount ? renderDiscountFields("edit") : isSpotAvailable ? renderSpotAvailableFields("edit") : renderDefaultFields("edit")}
             <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
               {updateMutation.isPending ? "Сохранение..." : "Сохранить"}
             </Button>
