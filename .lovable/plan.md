@@ -1,28 +1,30 @@
 
 
-## Добавить цвета в селект бренд-стиля в CreatePdfWizard
+## Убрать публичный лендинг, добавить просмотр лендинга внутри приложения
 
-### Что делаем
-В выпадающем списке «Бренд-стиль» на шаге 2 wizard-а показывать цветные кружки/полоски рядом с названием каждой схемы.
+### Суть
+Убираем публичный маршрут `/l/:slug` и кнопки «Открыть лендинг» / «Копировать ссылку». Вместо них — одна кнопка «Просмотр», которая ведёт на внутреннюю страницу `/pdf-materials/:id`, где в двух табах отображаются: лендинг (iframe) и PDF (iframe). С возможностью экспорта HTML для каждого.
 
 ### Изменения
 
-**`src/components/pdf/CreatePdfWizard.tsx`**
-1. В запросе `color_schemes` добавить `preview_colors` в select: `"id, name, description, preview_colors"`
-2. В `SelectItem` для каждой схемы добавить inline цветовые кружки из `s.preview_colors` (массив hex-строк) — аналогично `ColorPreview` из PromptVariables:
-   ```
-   <SelectItem key={s.id} value={s.id}>
-     <div className="flex items-center gap-2">
-       <div className="flex gap-0.5">
-         {s.preview_colors?.map((c, i) => (
-           <div key={i} className="w-3 h-3 rounded-full border" style={{ backgroundColor: c }} />
-         ))}
-       </div>
-       {s.name}
-     </div>
-   </SelectItem>
-   ```
+**1. `src/App.tsx`**
+- Удалить импорт `PublicLanding` и маршрут `/l/:slug`
+
+**2. `src/pages/PublicLanding.tsx`** — удалить файл
+
+**3. `src/pages/PdfMaterials.tsx`**
+- Убрать кнопки Globe (лендинг) и Copy (копировать ссылку) из действий
+- Убрать `copyLink` функцию и импорт `Globe`, `Copy`
+- Оставить одну кнопку «Просмотр» (иконка `Eye`) → navigate(`/pdf-materials/${m.id}`)
+- В `handleSuccess` убрать ссылку на `/l/`, просто toast «PDF-материал сгенерирован!»
+
+**4. `src/pages/PdfMaterialView.tsx`** — переделать
+- Два таба (Tabs): «Лендинг» и «PDF-материал»
+- Таб «Лендинг»: iframe с `landing_html` (с заменой BACKGROUND_IMAGE_URL), кнопка «Экспорт HTML лендинга» (скачивает landing_html как .html файл)
+- Таб «PDF-материал»: iframe с `html_content`, кнопки «Скачать PDF» (print) и «Экспорт HTML» (скачивает html_content как .html)
+- Кнопка «Назад» остаётся
 
 ### Итого
-- 1 файл изменён, ~5 строк
+- 1 файл удалён (`PublicLanding.tsx`)
+- 3 файла изменены (`App.tsx`, `PdfMaterials.tsx`, `PdfMaterialView.tsx`)
 
