@@ -187,10 +187,11 @@ export default function OfferTypeManagement() {
         .update({
           title: isDiscount ? editDescription.slice(0, 100) : editTitle,
           description: (isContentType || isDiscount) ? editDescription : undefined,
-          doc_url: (isDiscount || isSpotAvailable) ? undefined : (editDocUrl || null),
+          doc_url: (isDiscount || isSpotAvailable || isNewStream) ? undefined : (editDocUrl || null),
           image_url: imageUrl,
           promo_code: isDiscount ? editPromoCode : undefined,
           expires_at: isDiscount && editExpiresAt ? format(editExpiresAt, "yyyy-MM-dd") : undefined,
+          stream_start_date: isNewStream && editStreamStartDate ? format(editStreamStartDate, "yyyy-MM-dd") : undefined,
         } as any)
         .eq("id", editingId);
       if (error) throw error;
