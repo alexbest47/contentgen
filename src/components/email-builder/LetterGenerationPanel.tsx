@@ -194,48 +194,52 @@ export default function LetterGenerationPanel({
   // Pre-generation mode
   return (
     <div className="space-y-4">
-      {/* Block A: Case selection */}
-      <div>
-        <h3 className="font-semibold text-sm">Кейс студента</h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          {isDirectOffer
-            ? "Кейс студента — обязательный элемент письма"
-            : "История кейса — основа письма. Без кейса письмо не будет содержать реальную историю студента"}
-        </p>
-      </div>
-
-      {/* Selected case display */}
-      {caseId && selectedCase ? (
-        <div className="flex items-center gap-2 p-3 rounded-md border bg-accent/50">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">
-              {selectedJson?.student_name || selectedCase.file_name}
+      {/* Block A: Case selection (hidden for no-case templates) */}
+      {!noCaseRequired && (
+        <>
+          <div>
+            <h3 className="font-semibold text-sm">Кейс студента</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {isDirectOffer
+                ? "Кейс студента — обязательный элемент письма"
+                : "История кейса — основа письма. Без кейса письмо не будет содержать реальную историю студента"}
             </p>
-            {selectedJson?.student_name && (
-              <p className="text-xs text-muted-foreground truncate">{selectedCase.file_name}</p>
-            )}
-            {selectedJson?.video_type && (
-              <Badge variant="outline" className="text-[10px] mt-1">{selectedJson.video_type}</Badge>
-            )}
           </div>
-          <div className="flex gap-1 shrink-0">
-            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setCasePickerOpen(true)}>
-              Заменить
+
+          {/* Selected case display */}
+          {caseId && selectedCase ? (
+            <div className="flex items-center gap-2 p-3 rounded-md border bg-accent/50">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {selectedJson?.student_name || selectedCase.file_name}
+                </p>
+                {selectedJson?.student_name && (
+                  <p className="text-xs text-muted-foreground truncate">{selectedCase.file_name}</p>
+                )}
+                {selectedJson?.video_type && (
+                  <Badge variant="outline" className="text-[10px] mt-1">{selectedJson.video_type}</Badge>
+                )}
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setCasePickerOpen(true)}>
+                  Заменить
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onChangeCaseId(null)}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              className="w-full gap-2 h-10"
+              onClick={() => setCasePickerOpen(true)}
+            >
+              <UserSearch className="h-4 w-4" />
+              Выбрать кейс
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onChangeCaseId(null)}>
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <Button
-          variant="outline"
-          className="w-full gap-2 h-10"
-          onClick={() => setCasePickerOpen(true)}
-        >
-          <UserSearch className="h-4 w-4" />
-          Выбрать кейс
-        </Button>
+          )}
+        </>
       )}
 
       {/* Block B: Objections (only for direct offer) */}
