@@ -326,9 +326,12 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const getStepTitle = () => {
     if (themeOnlyMode) return "Выбор темы письма";
 
-    if (isDirectOffer) {
+    if (isDirectOffer || isWebinar) {
+      const label = isWebinar ? "вебинар" : "оффер";
       if (step === 1) return "Шаг 1 из 3 — Как построить письмо?";
-      if (step === 2) return "Шаг 2 из 3 — Для кого это письмо?";
+      if (step === 2) return isWebinar
+        ? "Шаг 2 из 3 — Выбор вебинара и аудитории"
+        : "Шаг 2 из 3 — Для кого это письмо?";
       if (step === 3) return "Шаг 3 из 3 — Настройки";
       return "";
     }
@@ -340,13 +343,13 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     return "Шаг 4 из 4 — Настройки";
   };
 
-  // ─── Step content mapping for "Прямой оффер" ───
-  // Direct offer: step 1 = template, step 2 = audience, step 3 = settings
-  // Default:      step 1 = template, step 2 = topic,    step 3 = audience, step 4 = settings
+  // ─── Step content mapping ───
+  // Direct offer / Webinar: step 1 = template, step 2 = audience (+webinar picker), step 3 = settings
+  // Default:                step 1 = template, step 2 = topic,    step 3 = audience, step 4 = settings
   const showTemplateStep = step === 1;
-  const showTopicStep = !isDirectOffer && step === 2;
-  const showAudienceStep = isDirectOffer ? step === 2 : step === 3;
-  const showSettingsStep = isDirectOffer ? step === 3 : step === 4;
+  const showTopicStep = !(isDirectOffer || isWebinar) && step === 2;
+  const showAudienceStep = (isDirectOffer || isWebinar) ? step === 2 : step === 3;
+  const showSettingsStep = (isDirectOffer || isWebinar) ? step === 3 : step === 4;
 
   return (
     <Dialog
