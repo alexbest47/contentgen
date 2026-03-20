@@ -117,19 +117,13 @@ const categories = [
   {
     title: "Промо-коды",
     variables: [
-      { name: "{{promo_codes_data}}", description: "JSON-данные выбранного промокода (программа, описание, код, дата истечения)", source: "Выбирается пользователем при генерации" },
-    ],
-  },
-  {
-    title: "Освободилось место",
-    variables: [
-      { name: "{{spot_available_data}}", description: "JSON-данные выбранного оффера «Освободилось место» (программа, название)", source: "Выбирается пользователем при генерации" },
+      { name: "{{promo_codes_data}}", description: "JSON-данные выбранного промокода (код, дата истечения)", source: "Выбирается пользователем при генерации" },
     ],
   },
   {
     title: "Старт нового потока",
     variables: [
-      { name: "{{new_stream_data}}", description: "JSON-данные выбранного оффера «Старт нового потока» (программа, название, дата старта)", source: "Выбирается пользователем при генерации" },
+      { name: "{{new_stream_data}}", description: "JSON-данные выбранного оффера «Старт нового потока» (дата старта)", source: "Выбирается пользователем при генерации" },
     ],
   },
   {
@@ -522,8 +516,6 @@ function ColorSchemesCard() {
 
 function PromoCodesCard() {
   const example = {
-    program: "Название программы",
-    description: "Описание оффера",
     promo_code: "PROMO2025",
     expires_at: "2025-12-31",
   };
@@ -548,36 +540,8 @@ function PromoCodesCard() {
   );
 }
 
-function SpotAvailableCard() {
-  const example = {
-    program: "Название программы",
-    title: "Название оффера",
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Освободилось место
-          <Badge variant="secondary">{"{{spot_available_data}}"}</Badge>
-        </CardTitle>
-        <CardDescription>
-          Данные конкретного оффера «Освободилось место», выбранного пользователем при генерации. Пример формата:
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <pre className="bg-muted rounded-md p-4 text-sm font-mono overflow-x-auto">
-          {JSON.stringify(example, null, 2)}
-        </pre>
-      </CardContent>
-    </Card>
-  );
-}
-
 function NewStreamCard() {
   const example = {
-    program: "Название программы",
-    title: "Название оффера",
     stream_start_date: "2025-09-01",
   };
 
@@ -651,7 +615,6 @@ export default function PromptVariables() {
       <AudienceVariablesCard />
       <ColorSchemesCard />
       <PromoCodesCard />
-      <SpotAvailableCard />
       <NewStreamCard />
       <WebinarDataCard />
 
