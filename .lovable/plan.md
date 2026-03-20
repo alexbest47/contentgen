@@ -1,27 +1,29 @@
 
 
-## Исправить прокрутку iframe лендинга
+## Исправить обложку PDF при печати
 
 ### Проблема
-Iframe с лендингом имеет `minHeight: "80vh"` — фиксированная высота, контент обрезается, а iframe сам не скроллится.
+Обложка `.cover` имеет `height: 100vh` или фиксированную высоту, а `body { padding: 32px 48px }` добавляет дополнительное пространство сверху/снизу — итого обложка вылезает за границы первой страницы при печати.
 
 ### Решение
 
 **`src/pages/PdfMaterialView.tsx`**
 
-Для iframe лендинга (строка 121-126): заменить `style={{ minHeight: "80vh" }}` на `style={{ height: "85vh" }}` и убедиться что iframe скроллится — это поведение по умолчанию для iframe. Проблема скорее в том, что лендинговый HTML содержит `overflow: hidden` на body/html. 
-
-Более надёжное решение: установить фиксированную высоту iframe и позволить ему скроллиться внутри:
-- `style={{ height: "80vh" }}` + никаких `scrolling="no"` атрибутов (iframe скроллится по умолчанию)
-
-Iframe уже должен скроллиться. Вероятная причина — лендинговый HTML имеет `overflow: hidden` на `html` или `body`. Нужно инжектить CSS-фикс в `landingHtml`:
+Обновить `printFixCss` — убрать padding для обложки и ограничить её размер страницей A4:
 
 ```css
-html, body { overflow: auto !important; height: auto !important; }
+.cover { 
+  page-break-after: avoid !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  padding: 32px 48px !important;
+  box-sizing: border-box !important;
+}
+body > .cover:first-child { margin: -32px -48px; width: calc(100% + 96px); }
 ```
 
-Добавить это в `landingHtml` перед передачей в `srcDoc` — аналогично `injectPrintStyles`, но для лендинга.
+Суть: body padding создаёт отступы для текстовых страниц, но обложка должна быть полностраничной — убираем для неё внешний padding через отрицательные margin и ограничиваем высоту.
 
 ### Итого
-- 1 файл (`PdfMaterialView.tsx`), ~3 строки
+- 1 файл, ~5 строк CSS
 
