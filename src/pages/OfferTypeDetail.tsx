@@ -353,7 +353,6 @@ export default function OfferTypeDetail() {
 
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
-  });
 
   const archivingDiagnostic = isDiagnosticType
     ? diagnosticItems?.find((d) => d.id === archivingId)
