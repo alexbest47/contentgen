@@ -63,7 +63,7 @@ export default function OfferTypeDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pdf_materials")
-        .select("id, title, status, created_at, material_type")
+        .select("id, title, status, created_at, material_type, offer_id")
         .eq("program_id", programId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
