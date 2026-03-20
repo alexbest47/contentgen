@@ -126,6 +126,12 @@ const categories = [
       { name: "{{spot_available_data}}", description: "JSON-массив всех активных офферов «Освободилось место» (программа, название)", source: "offers (offer_type = spot_available, is_archived = false)" },
     ],
   },
+  {
+    title: "Старт нового потока",
+    variables: [
+      { name: "{{new_stream_data}}", description: "JSON-массив всех активных офферов «Старт нового потока» (программа, название, дата старта)", source: "offers (offer_type = new_stream, is_archived = false)" },
+    ],
+  },
 ];
 
 function VariableTable({ variables }: { variables: typeof categories[0]["variables"] }) {
