@@ -140,11 +140,20 @@ export default function PdfMaterialView() {
               <Download className="mr-1 h-4 w-4" /> Экспорт HTML лендинга
             </Button>
           </div>
-          <div className="max-w-[800px] mx-auto">
+          <div className="relative max-w-[800px] mx-auto group">
+            <Button
+              variant="outline"
+              size="sm"
+              className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm"
+              onClick={handleRegenerate}
+              disabled={isRegenerating}
+            >
+              {isRegenerating ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1 h-4 w-4" />}
+              Перегенерировать
+            </Button>
             <iframe
               srcDoc={landingHtml}
-              className="w-full border rounded-lg"
-              style={{ height: "80vh" }}
+              className="w-full aspect-video border rounded-lg"
               title="Landing Preview"
             />
           </div>
