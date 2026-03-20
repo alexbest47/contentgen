@@ -14,7 +14,7 @@ import { ChevronRight, ArrowLeft, Pencil, Trash2, Plus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
-import { usePromptInfo } from "@/hooks/usePromptInfo";
+
 import { ImageUploadField } from "@/components/offer/ImageUploadField";
 import { uploadOfferImage } from "@/lib/uploadOfferImage";
 
@@ -353,10 +353,6 @@ export default function OfferTypeDetail() {
 
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
-  const { data: leadPromptInfo } = usePromptInfo({
-    category: "lead_magnets",
-    enabled: !isDiagnosticType,
-  });
 
   const archivingDiagnostic = isDiagnosticType
     ? diagnosticItems?.find((d) => d.id === archivingId)
@@ -371,11 +367,6 @@ export default function OfferTypeDetail() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{typeLabel}</h1>
           <p className="text-muted-foreground">{program?.title}</p>
-          {!isDiagnosticType && leadPromptInfo?.[0] && (
-            <p className="text-xs text-muted-foreground">
-              Промпт лид-магнитов: «{leadPromptInfo[0].name}» ({typeLabel})
-            </p>
-          )}
         </div>
         {!isDiagnosticType && (
           <Button onClick={() => setCreateOpen(true)}>
