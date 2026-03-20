@@ -3,8 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Printer, Download, Loader2 } from "lucide-react";
-import { useRef, useCallback } from "react";
+import { ArrowLeft, Printer, Download, Loader2, RefreshCw } from "lucide-react";
+import { useRef, useCallback, useState } from "react";
+import { toast } from "sonner";
 
 async function embedImagesInHtml(html: string, imageUrl?: string | null): Promise<string> {
   if (!imageUrl) return html;
@@ -52,8 +53,9 @@ export default function PdfMaterialView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const pdfIframeRef = useRef<HTMLIFrameElement>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
-  const { data: material, isLoading } = useQuery({
+  const { data: material, isLoading, refetch } = useQuery({
     queryKey: ["pdf_material", id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -78,6 +80,23 @@ export default function PdfMaterialView() {
     const finalHtml = await embedImagesInHtml(html, material.background_image_url);
     downloadHtml(finalHtml, `${material.title || "landing"}-landing.html`);
   }, [material]);
+
+  const handleRegenerate = useCallback(async () => {
+    if (!id) return;
+    setIsRegenerating(true);
+    try {
+      const { error } = await supabase.functions.invoke("generate-pdf-material", {
+        body: { pdf_material_id: id },
+      });
+      if (error) throw error;
+      await refetch();
+      toast.success("Материал перегенерирован");
+    } catch (e: any) {
+      toast.error("Ошибка: " + (e.message || "не удалось перегенерировать"));
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [id, refetch]);
 
   // Landing iframe uses fixed height with internal scroll
 
@@ -121,11 +140,20 @@ export default function PdfMaterialView() {
               <Download className="mr-1 h-4 w-4" /> Экспорт HTML лендинга
             </Button>
           </div>
-          <div className="max-w-[800px] mx-auto">
+          <div className="relative max-w-[800px] mx-auto group">
+            <Button
+              variant="outline"
+              size="sm"
+              className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm"
+              onClick={handleRegenerate}
+              disabled={isRegenerating}
+            >
+              {isRegenerating ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1 h-4 w-4" />}
+              Перегенерировать
+            </Button>
             <iframe
               srcDoc={landingHtml}
-              className="w-full border rounded-lg"
-              style={{ height: "80vh" }}
+              className="w-full aspect-video border rounded-lg"
               title="Landing Preview"
             />
           </div>
