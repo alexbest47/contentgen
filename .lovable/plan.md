@@ -1,35 +1,32 @@
 
 
-## Исправить вылезание обложки за первую страницу при печати
+## Добавить поля вебинара и переменную `{{webinar_data}}`
 
-### Проблема
-Body имеет `padding: 32px 48px`, а `.cover` компенсирует это отрицательными margin'ами. Но `max-height: 100vh` + внутренний padding обложки = контент превышает одну страницу.
+### 1. Миграция БД
+Добавить 4 колонки в таблицу `offers`:
+- `webinar_date` (timestamptz, nullable) — дата и время проведения
+- `is_date_confirmed` (boolean, default false) — дата подтверждена
+- `is_autowebinar` (boolean, default false) — автовебинар
+- `landing_url` (text, nullable) — ссылка на лендинг
 
-### Решение
+### 2. `src/pages/OfferTypeManagement.tsx`
+- Добавить флаг `isWebinar = offerType === "webinar"`
+- Добавить state для новых полей (create/edit): `webinarDate`, `isDateConfirmed`, `isAutowebinar`, `landingUrl`
+- В `renderDefaultFields` добавить условные поля для вебинара: дата (DatePicker), чекбокс «Дата подтверждена», чекбокс «Автовебинар», input «Ссылка на лендинг»
+- В create/update mutation передавать новые поля при `isWebinar`
+- В `openEdit` загружать значения из оффера
+- В `resetCreateForm` сбрасывать новые поля
+- Добавить поле «Ссылка на лендинг» для всех контентных типов (не только вебинар)
 
-**`src/pages/PdfMaterialView.tsx`**
-
-Переписать `printFixCss`:
-- Убрать padding с body для обложки — вместо этого применять padding только к элементам ПОСЛЕ обложки
-- Обложка: `height: 100vh`, `margin: 0`, `padding: 0`, `page-break-after: always` (чтобы контент начинался с новой страницы)
-- Убрать отрицательные margin'ы — они ненадёжны
-- Body padding заменить на padding для контентных секций через `body > *:not(.cover)`
-
-```css
-* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-body { margin: 0; padding: 0; }
-.cover { 
-  width: 100%; height: 100vh; 
-  overflow: hidden; 
-  box-sizing: border-box;
-  page-break-after: always;
-}
-body > *:not(.cover) { padding-left: 48px; padding-right: 48px; }
-@media print {
-  .cover { page-break-after: always; height: 100vh; }
-}
-```
+### 3. `src/pages/PromptVariables.tsx`
+- Добавить компонент `WebinarDataCard` (по аналогии с `PromoCodesCard`):
+  - Запрос офферов с `offer_type = "webinar"`, `is_archived = false`
+  - JSON: `{ program, title, webinar_date, is_date_confirmed, is_autowebinar, landing_url }`
+  - Показывать переменную `{{webinar_data}}`
+- Добавить в categories массив блок «Вебинары» с переменной `{{webinar_data}}`
+- Вставить `<WebinarDataCard />` в рендер страницы
 
 ### Итого
-- 1 файл, ~5 строк CSS изменены
+- 1 миграция (4 колонки)
+- 2 файла изменены (`OfferTypeManagement.tsx`, `PromptVariables.tsx`)
 
