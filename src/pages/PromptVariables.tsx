@@ -113,6 +113,12 @@ const categories = [
       { name: "{{letter_blocks_summary}}", description: "JSON-сводка всех блоков письма (типы, офферы, темы) — заполняется автоматически при генерации темы", source: "Системная переменная (email_letter_blocks)" },
     ],
   },
+  {
+    title: "Промо-коды",
+    variables: [
+      { name: "{{promo_codes_data}}", description: "JSON-массив всех активных промо-кодов (программа, описание, код, дата истечения)", source: "offers (offer_type = discount, is_archived = false)" },
+    ],
+  },
 ];
 
 function VariableTable({ variables }: { variables: typeof categories[0]["variables"] }) {
