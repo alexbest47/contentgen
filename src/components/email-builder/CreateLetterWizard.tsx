@@ -163,12 +163,15 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   });
 
   // Determine if selected template is "Прямой оффер"
-  const selectedTemplateName = templates?.find((t) => t.id === selectedTemplateId)?.name || "";
+  const selectedTemplate = templates?.find((t) => t.id === selectedTemplateId);
+  const selectedTemplateName = selectedTemplate?.name || "";
+  const selectedTemplateCategory = (selectedTemplate as any)?.category || "paid_programs";
   const isDirectOffer = selectedTemplateName === "Прямой оффер";
-  const totalSteps = isDirectOffer ? 3 : 4;
+  const isWebinar = selectedTemplateCategory === "webinar";
+  const totalSteps = (isDirectOffer || isWebinar) ? 3 : 4;
 
   // Load audience variable descriptions — needed on audience step
-  const audienceStepNum = isDirectOffer ? 2 : 3;
+  const audienceStepNum = (isDirectOffer || isWebinar) ? 2 : 3;
   const { data: audienceVars } = useQuery({
     queryKey: ["audience_global_vars"],
     queryFn: async () => {
@@ -184,7 +187,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   });
 
   // Load color schemes — needed on settings step
-  const settingsStepNum = isDirectOffer ? 3 : 4;
+  const settingsStepNum = (isDirectOffer || isWebinar) ? 3 : 4;
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
@@ -214,7 +217,22 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
     },
-    enabled: open && step >= settingsStepNum && !!programId,
+    enabled: open && step >= settingsStepNum && !!programId && !isWebinar,
+  });
+
+  // Load webinar offers (all active, no program filter needed)
+  const { data: webinarOffers } = useQuery({
+    queryKey: ["webinar_offers_wizard"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("offers")
+        .select("id, title, program_id")
+        .eq("offer_type", "webinar" as any)
+        .eq("is_archived", false)
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: open && isWebinar,
   });
 
   const handleSelectTopic = (node: TreeNode) => {
@@ -232,6 +250,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const canNext1 = !!themeTitle.trim(); // topic selected
   const canNext2 = !!audienceSegment;   // audience selected
   const canNext3 = !!selectedTemplateId; // template selected
+  const canNextWebinarAudience = isWebinar ? (!!audienceSegment && !!offerId) : !!audienceSegment;
   const canCreate = !!letterTitle.trim();
 
   const handleNext1 = () => {
@@ -254,8 +273,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           created_by: user.id,
           title: letterTitle,
           selected_color_scheme_id: colorSchemeId,
-          letter_theme_title: isDirectOffer ? "" : themeTitle,
-          letter_theme_description: isDirectOffer ? "" : themeDescription,
+          letter_theme_title: (isDirectOffer || isWebinar) ? "" : themeTitle,
+          letter_theme_description: (isDirectOffer || isWebinar) ? "" : themeDescription,
           template_id: selectedTemplateId,
           program_id: programId,
           offer_type: offerType,
@@ -307,9 +326,12 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const getStepTitle = () => {
     if (themeOnlyMode) return "Выбор темы письма";
 
-    if (isDirectOffer) {
+    if (isDirectOffer || isWebinar) {
+      const label = isWebinar ? "вебинар" : "оффер";
       if (step === 1) return "Шаг 1 из 3 — Как построить письмо?";
-      if (step === 2) return "Шаг 2 из 3 — Для кого это письмо?";
+      if (step === 2) return isWebinar
+        ? "Шаг 2 из 3 — Выбор вебинара и аудитории"
+        : "Шаг 2 из 3 — Для кого это письмо?";
       if (step === 3) return "Шаг 3 из 3 — Настройки";
       return "";
     }
@@ -321,13 +343,13 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     return "Шаг 4 из 4 — Настройки";
   };
 
-  // ─── Step content mapping for "Прямой оффер" ───
-  // Direct offer: step 1 = template, step 2 = audience, step 3 = settings
-  // Default:      step 1 = template, step 2 = topic,    step 3 = audience, step 4 = settings
+  // ─── Step content mapping ───
+  // Direct offer / Webinar: step 1 = template, step 2 = audience (+webinar picker), step 3 = settings
+  // Default:                step 1 = template, step 2 = topic,    step 3 = audience, step 4 = settings
   const showTemplateStep = step === 1;
-  const showTopicStep = !isDirectOffer && step === 2;
-  const showAudienceStep = isDirectOffer ? step === 2 : step === 3;
-  const showSettingsStep = isDirectOffer ? step === 3 : step === 4;
+  const showTopicStep = !(isDirectOffer || isWebinar) && step === 2;
+  const showAudienceStep = (isDirectOffer || isWebinar) ? step === 2 : step === 3;
+  const showSettingsStep = (isDirectOffer || isWebinar) ? step === 3 : step === 4;
 
   return (
     <Dialog
@@ -423,9 +445,39 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
             </div>
           )}
 
-          {/* Step: Audience */}
+          {/* Step: Audience (+ webinar picker for webinar templates) */}
           {showAudienceStep && (
             <div className="space-y-4">
+              {/* Webinar picker — only for webinar templates */}
+              {isWebinar && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Выберите вебинар</Label>
+                  <Select
+                    value={offerId || ""}
+                    onValueChange={(v) => {
+                      setOfferId(v);
+                      const webinar = webinarOffers?.find((w) => w.id === v);
+                      if (webinar) {
+                        setProgramId(webinar.program_id);
+                        setOfferType("webinar");
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите вебинар" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {webinarOffers?.map((w) => (
+                        <SelectItem key={w.id} value={w.id}>{w.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {webinarOffers?.length === 0 && (
+                    <p className="text-xs text-muted-foreground">Нет активных вебинаров. Создайте вебинар в разделе «Подготовка офферов».</p>
+                  )}
+                </div>
+              )}
+
               <p className="text-sm text-muted-foreground">Это поможет точнее настроить тон и контекст</p>
               <div className="space-y-3">
                 {AUDIENCE_SEGMENTS.map((seg) => {
@@ -465,47 +517,52 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">Платная программа</Label>
-                <Select value={programId || ""} onValueChange={(v) => { setProgramId(v); setOfferId(null); }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите программу" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {programs?.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Hide program/offer/type for webinar — already selected on step 2 */}
+              {!isWebinar && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Платная программа</Label>
+                    <Select value={programId || ""} onValueChange={(v) => { setProgramId(v); setOfferId(null); }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите программу" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {programs?.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">Тип оффера</Label>
-                <Select value={offerType} onValueChange={(v) => { setOfferType(v); setOfferId(null); }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите тип" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {offerTypes.map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{String(label)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Тип оффера</Label>
+                    <Select value={offerType} onValueChange={(v) => { setOfferType(v); setOfferId(null); }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите тип" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {offerTypes.map(([key, label]) => (
+                          <SelectItem key={key} value={key}>{String(label)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">Конкретный оффер</Label>
-                <Select value={offerId || ""} onValueChange={setOfferId} disabled={!programId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите оффер" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {offers?.map((o) => (
-                      <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Конкретный оффер</Label>
+                    <Select value={offerId || ""} onValueChange={setOfferId} disabled={!programId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите оффер" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {offers?.map((o) => (
+                          <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Цветовая гамма</Label>
@@ -554,9 +611,9 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           {/* Step 2 */}
           {step === 2 && (
             <>
-              {isDirectOffer ? (
-                /* Direct offer: step 2 = audience → step 3 */
-                <Button onClick={() => setStep(3)} disabled={!canNext2}>
+              {(isDirectOffer || isWebinar) ? (
+                /* Direct offer / Webinar: step 2 = audience (+webinar) → step 3 */
+                <Button onClick={() => setStep(3)} disabled={!canNextWebinarAudience}>
                   Далее
                 </Button>
               ) : (
@@ -571,8 +628,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           {/* Step 3 */}
           {step === 3 && (
             <>
-              {isDirectOffer ? (
-                /* Direct offer: step 3 = settings → create */
+              {(isDirectOffer || isWebinar) ? (
+                /* Direct offer / Webinar: step 3 = settings → create */
                 <Button onClick={handleCreate} disabled={!canCreate || creating}>
                   {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
                   Создать письмо
@@ -587,7 +644,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           )}
 
           {/* Step 4 (only for default 4-step flow) */}
-          {step === 4 && !isDirectOffer && (
+          {step === 4 && !(isDirectOffer || isWebinar) && (
             <Button onClick={handleCreate} disabled={!canCreate || creating}>
               {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
               Создать письмо

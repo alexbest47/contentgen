@@ -207,7 +207,12 @@ serve(async (req) => {
     }
 
     // 8. Determine prompt slug based on template
-    const promptSlug = templateName === "Прямой оффер" ? "email-builder-direct-offer" : "email-builder-full-letter";
+    const TEMPLATE_PROMPT_MAP: Record<string, string> = {
+      "Прямой оффер": "email-builder-direct-offer",
+      "Приглашение на вебинар: письмо 1": "email-builder-webinar-letter-1",
+      "Приглашение на вебинар: письмо 2": "email-builder-webinar-letter-2",
+    };
+    const promptSlug = TEMPLATE_PROMPT_MAP[templateName] || "email-builder-full-letter";
 
     // 9. Load prompt
     const { data: prompt } = await sb.from("prompts")

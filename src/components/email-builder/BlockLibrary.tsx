@@ -101,6 +101,14 @@ export const blockTypeLabels: Record<string, string> = {
   image: "Изображение",
   cta: "Кнопка CTA",
   divider: "Разделитель",
+  // Webinar block types
+  hook_situation: "Крючок + ситуация читателя",
+  webinar_program: "Программа вебинара",
+  speaker: "Спикер",
+  offer_cta: "CTA",
+  hook_question: "Интригующий вопрос + зачин",
+  insights: "Инсайты по теме",
+  speaker_short: "Спикер (коротко)",
   // Legacy block types for backwards compatibility
   lead_magnet: "Лид-магнит",
   reference_material: "Справочный материал",
