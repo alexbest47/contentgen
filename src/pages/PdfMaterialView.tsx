@@ -23,6 +23,18 @@ async function embedImagesInHtml(html: string, imageUrl?: string | null): Promis
   }
 }
 
+const printFixCss = `<style>
+* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+@media print { .cover { page-break-after: avoid !important; } body { margin: 0; } }
+</style>`;
+
+function injectPrintStyles(html: string): string {
+  if (html.includes("</head>")) {
+    return html.replace("</head>", printFixCss + "</head>");
+  }
+  return printFixCss + html;
+}
+
 function downloadHtml(html: string, filename: string) {
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
@@ -124,14 +136,14 @@ export default function PdfMaterialView() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => downloadHtml(material.html_content || "", `${material.title || "material"}.html`)}
+              onClick={() => downloadHtml(injectPrintStyles(material.html_content || ""), `${material.title || "material"}.html`)}
             >
               <Download className="mr-1 h-4 w-4" /> Экспорт HTML
             </Button>
           </div>
           <iframe
             ref={pdfIframeRef}
-            srcDoc={material.html_content || ""}
+            srcDoc={injectPrintStyles(material.html_content || "")}
             className="w-full border rounded-md"
             style={{ minHeight: "80vh" }}
             title="PDF Preview"
