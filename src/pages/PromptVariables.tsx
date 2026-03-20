@@ -661,7 +661,56 @@ function NewStreamCard() {
   );
 }
 
-export default function PromptVariables() {
+function WebinarDataCard() {
+  const { data: webinars, isLoading } = useQuery({
+    queryKey: ["webinar_for_variables"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("offers")
+        .select("title, webinar_date, is_date_confirmed, is_autowebinar, landing_url, paid_programs!offers_program_id_fkey(title)")
+        .eq("offer_type", "webinar" as any)
+        .eq("is_archived", false)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const jsonValue = (webinars ?? []).map((w: any) => ({
+    program: w.paid_programs?.title ?? "",
+    title: w.title ?? "",
+    webinar_date: w.webinar_date ?? "",
+    is_date_confirmed: w.is_date_confirmed ? "да" : "нет",
+    is_autowebinar: w.is_autowebinar ? "да" : "нет",
+    landing_url: w.landing_url ?? "",
+  }));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          Вебинары
+          <Badge variant="secondary">{"{{webinar_data}}"}</Badge>
+        </CardTitle>
+        <CardDescription>
+          JSON-массив всех активных вебинаров. Формируется автоматически из офферов типа «вебинар».
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+        ) : jsonValue.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Нет активных вебинаров.</p>
+        ) : (
+          <pre className="bg-muted rounded-md p-4 text-sm font-mono overflow-x-auto max-h-[400px] overflow-y-auto">
+            {JSON.stringify(jsonValue, null, 2)}
+          </pre>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
   return (
     <div className="space-y-6">
       <div>
