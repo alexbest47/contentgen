@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 const mainNav = [
-  { title: "Платные программы", url: "/programs", icon: GraduationCap },
+  { title: "Создание контента", url: "/programs", icon: GraduationCap },
   { title: "Конструктор писем", url: "/email-builder", icon: MailPlus },
 ];
 
