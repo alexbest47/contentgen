@@ -1,22 +1,27 @@
 
 
-## Удаление блока «Разбор мифа» из шаблона «История трансформации»
+## Удаление оффера «Распродажа» и переименование «Скидка» → «Промокод»
 
-Убрать 4-й элемент (`myth_busting` / «Разбор мифа») из массива `blocks` в записи `email_templates`.
+В БД нет офферов с типом `sale`, поэтому удаление безопасно. Тип `discount` остаётся, меняется только label.
 
-### Действие
+### 1. Фронтенд: `src/lib/offerTypes.ts`
 
-Один SQL UPDATE — заменить `blocks` на массив из 5 элементов (без `myth_busting`):
+- Удалить строку `{ key: "sale", label: "Распродажа", icon: ShoppingCart }` и импорт `ShoppingCart`.
+- Изменить label у `discount`: `"Скидка"` → `"Промокод"`.
+- Убрать `"sale"` из `SALES_OFFER_KEYS`.
 
-```json
-[
-  {"block_type":"hook_monologue","label":"Зачин + внутренний монолог","mode":"text_only"},
-  {"block_type":"testimonial_content","label":"Кейс студента","mode":"card_text"},
-  {"block_type":"instrument_schema","label":"Инструмент / схема","mode":"schema_text"},
-  {"block_type":"program_description","label":"Описание программы","mode":"text_only"},
-  {"block_type":"offer_cta","label":"Оффер + бонусы + CTA","mode":"accent_block"}
-]
-```
+### 2. БД: удалить `sale` из enum `offer_type_enum`
 
-Без изменений в коде. Страница `/email-templates` подхватит обновление автоматически.
+Миграция: убрать значение `sale` из enum (создать новый enum без `sale`, пересоздать колонку).
+
+### 3. Edge functions: обновить `OFFER_TYPE_LABELS` в 6 файлах
+
+В каждом из этих файлов убрать `sale: "Распродажа"` и заменить `discount: "Скидка"` → `discount: "Промокод"`:
+
+- `generate-content/index.ts`
+- `generate-image/index.ts`
+- `generate-email-block/index.ts`
+- `generate-email-letter/index.ts`
+- `generate-lead-magnets/index.ts`
+- `generate-pipeline/index.ts`
 
