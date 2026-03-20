@@ -103,7 +103,7 @@ export default function PdfMaterialView() {
           </div>
           <iframe
             ref={pdfIframeRef}
-            src={pdfSrc}
+            srcDoc={material.html_content || ""}
             className="w-full border rounded-md"
             style={{ minHeight: "80vh" }}
             title="PDF Preview"
