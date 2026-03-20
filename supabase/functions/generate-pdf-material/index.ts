@@ -76,6 +76,18 @@ serve(async (req) => {
     const gv: Record<string, string> = {};
     (globalVars || []).forEach((v: any) => { gv[v.key] = v.value || ""; });
 
+    // Extract logo URL from email header HTML
+    let logoUrl = "";
+    const { data: headerSetting } = await supabase
+      .from("email_settings")
+      .select("setting_value")
+      .eq("setting_key", "email_header_html")
+      .single();
+    if (headerSetting?.setting_value) {
+      const imgMatch = headerSetting.setting_value.match(/src="([^"]+)"/);
+      if (imgMatch) logoUrl = imgMatch[1];
+    }
+
     // Load brand style from color_schemes matching brand_style_name
     let brandStyle = material.brand_style_name || "";
     if (material.brand_style_name) {
