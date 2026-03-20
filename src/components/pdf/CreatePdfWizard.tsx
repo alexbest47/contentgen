@@ -69,7 +69,7 @@ export function CreatePdfWizard({ open, onOpenChange, onSuccess }: Props) {
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
-      const { data } = await supabase.from("color_schemes").select("id, name, description").eq("is_active", true);
+      const { data } = await supabase.from("color_schemes").select("id, name, description, preview_colors").eq("is_active", true);
       return data || [];
     },
   });
