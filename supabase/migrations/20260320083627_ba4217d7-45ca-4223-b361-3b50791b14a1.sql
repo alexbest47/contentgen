@@ -1,0 +1,1 @@
+ALTER TABLE public.offers ADD COLUMN stream_start_date date;
