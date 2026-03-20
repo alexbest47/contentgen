@@ -4,7 +4,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Printer, Download, Loader2 } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
+
+async function embedImagesInHtml(html: string, imageUrl?: string | null): Promise<string> {
+  if (!imageUrl) return html;
+  try {
+    const resp = await fetch(imageUrl);
+    if (!resp.ok) return html;
+    const blob = await resp.blob();
+    const base64 = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+    return html.split(imageUrl).join(base64);
+  } catch {
+    return html;
+  }
+}
 
 function downloadHtml(html: string, filename: string) {
   const blob = new Blob([html], { type: "text/html" });
@@ -35,6 +52,19 @@ export default function PdfMaterialView() {
     enabled: !!id,
   });
 
+  const handleDownloadLanding = useCallback(async () => {
+    if (!material) return;
+    let html = material.landing_html || "";
+    if (material.background_image_url) {
+      html = html
+        .replace(/BACKGROUND_IMAGE_URL/g, material.background_image_url)
+        .replace(/CHARACTER_IMAGE_URL/g, material.background_image_url);
+    }
+    // Embed background image as base64 for offline viewing
+    const finalHtml = await embedImagesInHtml(html, material.background_image_url);
+    downloadHtml(finalHtml, `${material.title || "landing"}-landing.html`);
+  }, [material]);
+
   if (isLoading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
@@ -49,8 +79,6 @@ export default function PdfMaterialView() {
       .replace(/BACKGROUND_IMAGE_URL/g, material.background_image_url)
       .replace(/CHARACTER_IMAGE_URL/g, material.background_image_url);
   }
-
-  // Use srcDoc instead of data: URLs to avoid cross-origin restrictions on contentWindow.print()
 
   return (
     <div className="space-y-4">
@@ -72,7 +100,7 @@ export default function PdfMaterialView() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => downloadHtml(landingHtml, `${material.title || "landing"}-landing.html`)}
+              onClick={handleDownloadLanding}
             >
               <Download className="mr-1 h-4 w-4" /> Экспорт HTML лендинга
             </Button>

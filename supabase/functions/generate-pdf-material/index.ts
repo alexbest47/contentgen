@@ -129,7 +129,7 @@ serve(async (req) => {
     const gv: Record<string, string> = {};
     (globalVars || []).forEach((v: any) => { gv[v.key] = v.value || ""; });
 
-    // Extract logo URL from email header HTML
+    // Extract logo URL from email header HTML and re-host to Storage
     let logoUrl = "";
     const { data: headerSetting } = await supabase
       .from("email_settings")
@@ -138,7 +138,52 @@ serve(async (req) => {
       .single();
     if (headerSetting?.setting_value) {
       const imgMatch = headerSetting.setting_value.match(/src="([^"]+)"/);
-      if (imgMatch) logoUrl = imgMatch[1];
+      if (imgMatch) {
+        const originalLogoUrl = imgMatch[1];
+        // Try to use cached logo from Storage first
+        const logoPath = "brand/logo.png";
+        const { data: existingFile } = await supabase.storage
+          .from("generated-images")
+          .list("brand", { search: "logo.png" });
+
+        if (existingFile && existingFile.length > 0) {
+          const { data: urlData } = supabase.storage
+            .from("generated-images")
+            .getPublicUrl(logoPath);
+          logoUrl = urlData.publicUrl;
+          console.log("Using cached logo from Storage:", logoUrl);
+        } else {
+          // Fetch and re-host logo
+          try {
+            const logoResp = await fetch(originalLogoUrl);
+            if (logoResp.ok) {
+              const logoBytes = new Uint8Array(await logoResp.arrayBuffer());
+              const { error: uploadErr } = await supabase.storage
+                .from("generated-images")
+                .upload(logoPath, logoBytes, {
+                  contentType: "image/png",
+                  upsert: true,
+                });
+              if (!uploadErr) {
+                const { data: urlData } = supabase.storage
+                  .from("generated-images")
+                  .getPublicUrl(logoPath);
+                logoUrl = urlData.publicUrl;
+                console.log("Logo re-hosted to Storage:", logoUrl);
+              } else {
+                console.error("Logo upload error:", uploadErr);
+                logoUrl = originalLogoUrl;
+              }
+            } else {
+              console.error("Logo fetch failed:", logoResp.status);
+              logoUrl = originalLogoUrl;
+            }
+          } catch (e) {
+            console.error("Logo re-host failed:", e);
+            logoUrl = originalLogoUrl;
+          }
+        }
+      }
     }
 
     // Load brand style from color_schemes matching brand_style_name
