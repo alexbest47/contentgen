@@ -28,7 +28,6 @@ const offerPrepNav = [
 ];
 
 const contentPrepNav = [
-  { title: "Подготовка PDF", url: "/pdf-materials", icon: FilePlus2 },
   { title: "Управление кейсами", url: "/cases", icon: FileVideo },
   { title: "Дерево тем", url: "/topics", icon: TreePine },
   { title: "Работа с возражениями", url: "/objections", icon: ShieldQuestion },
