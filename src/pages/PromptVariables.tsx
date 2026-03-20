@@ -16,7 +16,6 @@ const GLOBAL_VARS = [
   { key: "offer_rules", name: "{{offer_rules}}", description: "Адаптация под тип оффера" },
   { key: "antiAI_rules", name: "{{antiAI_rules}}", description: "Требования к тексту — антиAI" },
   { key: "brand_voice", name: "{{brand_voice}}", description: "Голос бренда Talentsy" },
-  { key: "objection_data_massive", name: "{{objection_data_massive}}", description: "Массив возражений (до 7). Подтягивается из раздела «Управление возражениями»." },
 ];
 
 const AUDIENCE_VARS = [
