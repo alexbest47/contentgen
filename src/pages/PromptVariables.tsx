@@ -502,6 +502,54 @@ function ColorSchemesCard() {
   );
 }
 
+function PromoCodesCard() {
+  const { data: promoCodes, isLoading } = useQuery({
+    queryKey: ["promo_codes_for_variables"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("offers")
+        .select("description, promo_code, expires_at, paid_programs!offers_program_id_fkey(title)")
+        .eq("offer_type", "discount" as any)
+        .eq("is_archived", false)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const jsonValue = (promoCodes ?? []).map((p: any) => ({
+    program: p.paid_programs?.title ?? "",
+    description: p.description ?? "",
+    promo_code: p.promo_code ?? "",
+    expires_at: p.expires_at ?? "",
+  }));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          Промо-коды
+          <Badge variant="secondary">{"{{promo_codes_data}}"}</Badge>
+        </CardTitle>
+        <CardDescription>
+          JSON-массив всех активных промо-кодов. Формируется автоматически из офферов типа «промокод».
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+        ) : jsonValue.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Нет активных промо-кодов.</p>
+        ) : (
+          <pre className="bg-muted rounded-md p-4 text-sm font-mono overflow-x-auto max-h-[400px] overflow-y-auto">
+            {JSON.stringify(jsonValue, null, 2)}
+          </pre>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function PromptVariables() {
   return (
     <div className="space-y-6">
@@ -524,6 +572,7 @@ export default function PromptVariables() {
       <GlobalVariablesCard />
       <AudienceVariablesCard />
       <ColorSchemesCard />
+      <PromoCodesCard />
 
       {categories.map((cat) => (
         <Card key={cat.title}>
