@@ -88,7 +88,7 @@ export default function OfferTypeDetail() {
     enabled: !isDiagnosticType && !isPdfType,
   });
 
-  const isLoading = isDiagnosticType ? isDiagnosticsLoading : isOffersLoading;
+  const isLoading = isDiagnosticType ? isDiagnosticsLoading : isPdfType ? isPdfLoading : isOffersLoading;
 
   const deleteDiagnosticMutation = useMutation({
     mutationFn: async ({ diagId, offerId }: { diagId: string; offerId: string | null }) => {
