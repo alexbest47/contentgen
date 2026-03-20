@@ -132,6 +132,26 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Настройка email</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {emailSettingsNav.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      isActive={location.pathname === item.url}
+                      onClick={() => navigate(item.url)}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter className="p-4">
         <div className="flex items-center justify-between text-sm text-sidebar-foreground/70">
