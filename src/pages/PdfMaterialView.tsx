@@ -17,7 +17,7 @@ async function embedImagesInHtml(html: string, imageUrl?: string | null): Promis
       reader.onloadend = () => resolve(reader.result as string);
       reader.readAsDataURL(blob);
     });
-    return html.replaceAll(imageUrl, base64);
+    return html.split(imageUrl).join(base64);
   } catch {
     return html;
   }
