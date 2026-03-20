@@ -135,7 +135,7 @@ const categories = [
   {
     title: "Вебинары",
     variables: [
-      { name: "{{webinar_data}}", description: "JSON-данные выбранного вебинара (программа, название, дата, автовебинар, ссылка на лендинг)", source: "Выбирается пользователем при генерации" },
+      { name: "{{webinar_data}}", description: "JSON-данные выбранного вебинара (дата, автовебинар, ссылка на лендинг)", source: "Выбирается пользователем при генерации" },
     ],
   },
 ];
@@ -603,8 +603,6 @@ function NewStreamCard() {
 
 function WebinarDataCard() {
   const example = {
-    program: "Название программы",
-    title: "Название вебинара",
     webinar_date: "2025-10-15T18:00:00",
     is_autowebinar: "нет",
     landing_url: "https://example.com/webinar",
