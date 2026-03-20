@@ -31,6 +31,9 @@ const emailSettingsNav = [
 ];
 
 const adminNav = [
+  { title: "Теги", url: "/tags", icon: Tag },
+  { title: "Таблица описаний", url: "/descriptions", icon: TableProperties },
+  { title: "Архив", url: "/archive", icon: Archive },
   { title: "Управление промптами", url: "/prompts", icon: MessageSquareText },
   { title: "Переменные промптов", url: "/prompt-variables", icon: Braces },
   { title: "Пользователи", url: "/users", icon: Users },

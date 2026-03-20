@@ -59,16 +59,16 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<AuthRoute />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<Navigate to="/programs" replace />} />
               <Route path="/programs" element={<Programs />} />
               <Route path="/programs/:programId" element={<ProgramDetail />} />
               <Route path="/programs/:programId/offers/:offerType" element={<OfferTypeDetail />} />
               <Route path="/programs/:programId/offers/:offerType/:offerId" element={<OfferDetail />} />
               <Route path="/programs/:programId/offers/:offerType/:offerId/projects/:projectId" element={<ProjectDetail />} />
               <Route path="/programs/:programId/offers/:offerType/:offerId/projects/:projectId/content/:contentType" element={<ContentDetail />} />
-              <Route path="/tags" element={<Tags />} />
-              <Route path="/descriptions" element={<Descriptions />} />
-              <Route path="/archive" element={<Archive />} />
+              <Route path="/tags" element={<ProtectedRoute adminOnly><Tags /></ProtectedRoute>} />
+              <Route path="/descriptions" element={<ProtectedRoute adminOnly><Descriptions /></ProtectedRoute>} />
+              <Route path="/archive" element={<ProtectedRoute adminOnly><Archive /></ProtectedRoute>} />
               <Route path="/email-builder" element={<EmailBuilderList />} />
               <Route path="/email-builder/:letterId" element={<EmailBuilder />} />
               <Route path="/diagnostics" element={<ProtectedRoute adminOnly><Diagnostics /></ProtectedRoute>} />
