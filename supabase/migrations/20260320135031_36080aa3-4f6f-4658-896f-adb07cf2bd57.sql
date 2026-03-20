@@ -1,0 +1,1 @@
+ALTER TABLE email_templates ADD COLUMN category text NOT NULL DEFAULT 'paid_programs';
