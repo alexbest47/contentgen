@@ -51,6 +51,7 @@ function downloadHtml(html: string, filename: string) {
 export default function PdfMaterialView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const landingIframeRef = useRef<HTMLIFrameElement>(null);
   const pdfIframeRef = useRef<HTMLIFrameElement>(null);
 
   const { data: material, isLoading } = useQuery({
@@ -75,10 +76,45 @@ export default function PdfMaterialView() {
         .replace(/BACKGROUND_IMAGE_URL/g, material.background_image_url)
         .replace(/CHARACTER_IMAGE_URL/g, material.background_image_url);
     }
-    // Embed background image as base64 for offline viewing
     const finalHtml = await embedImagesInHtml(html, material.background_image_url);
     downloadHtml(finalHtml, `${material.title || "landing"}-landing.html`);
   }, [material]);
+
+  const resizeLandingIframe = useCallback(() => {
+    const iframe = landingIframeRef.current;
+    const doc = iframe?.contentDocument;
+
+    if (!iframe || !doc) return;
+
+    const nextHeight = Math.max(
+      doc.body?.scrollHeight ?? 0,
+      doc.body?.offsetHeight ?? 0,
+      doc.documentElement?.scrollHeight ?? 0,
+      doc.documentElement?.offsetHeight ?? 0,
+      Math.round(window.innerHeight * 0.8),
+    );
+
+    iframe.style.height = `${nextHeight}px`;
+  }, []);
+
+  const handleLandingIframeLoad = useCallback(() => {
+    resizeLandingIframe();
+
+    const iframe = landingIframeRef.current;
+    const doc = iframe?.contentDocument;
+    if (!doc) return;
+
+    Array.from(doc.images).forEach((image) => {
+      if (!image.complete) {
+        image.addEventListener("load", resizeLandingIframe, { once: true });
+        image.addEventListener("error", resizeLandingIframe, { once: true });
+      }
+    });
+
+    requestAnimationFrame(resizeLandingIframe);
+    window.setTimeout(resizeLandingIframe, 200);
+    window.setTimeout(resizeLandingIframe, 800);
+  }, [resizeLandingIframe]);
 
   if (isLoading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
@@ -88,7 +124,18 @@ export default function PdfMaterialView() {
     return <div className="text-center py-12 text-muted-foreground">Материал не найден</div>;
   }
 
-  const landingScrollFix = `<style>html, body { overflow: auto !important; height: auto !important; }</style>`;
+  const landingScrollFix = `<style>
+html, body {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+.container {
+  min-height: 100vh !important;
+  height: auto !important;
+}
+</style>`;
   let landingHtml = material.landing_html || "";
   if (material.background_image_url) {
     landingHtml = landingHtml
@@ -123,9 +170,11 @@ export default function PdfMaterialView() {
             </Button>
           </div>
           <iframe
+            ref={landingIframeRef}
             srcDoc={landingHtml}
+            onLoad={handleLandingIframeLoad}
             className="w-full border rounded-md"
-            style={{ height: "80vh" }}
+            style={{ minHeight: "80vh" }}
             title="Landing Preview"
           />
         </TabsContent>
