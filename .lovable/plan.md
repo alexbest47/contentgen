@@ -1,29 +1,19 @@
 
 
-## Связать PDF-материалы с офферами (как диагностики)
+## Уменьшить ширину iframe лендинга и дать ему фиксированную высоту со скроллом
 
 ### Проблема
-PDF-материалы не создают запись в таблице `offers`, поэтому при выборе «Скачай PDF» в программе невозможно перейти к генерации контента (лид-магнитов, справочных материалов и т.д.).
+Iframe растягивается на всю ширину контейнера, а auto-resize не срабатывает из-за CSS внутри лендинга. Контент обрезается.
 
 ### Решение
-Повторить паттерн диагностик: при создании PDF-материала — создавать связанную запись в `offers`, сохранять `offer_id` в `pdf_materials`.
 
-### Изменения
+**`src/pages/PdfMaterialView.tsx`**
 
-**1. Миграция БД**
-- Если колонка `offer_id` отсутствует в `pdf_materials` — добавить: `ALTER TABLE pdf_materials ADD COLUMN offer_id uuid REFERENCES offers(id);`
-
-**2. `src/components/pdf/CreatePdfWizard.tsx`**
-После создания записи `pdf_materials` и перед вызовом edge function:
-- Создать запись в `offers` с `offer_type: "download_pdf"`, `title`, `program_id`, `created_by`
-- Обновить `pdf_materials` с полученным `offer_id`
-
-**3. `src/pages/OfferTypeDetail.tsx`**
-В ветке `isPdfType`:
-- Добавить `offer_id` в select-запрос `pdf_materials`
-- При клике на PDF-материал: если есть `offer_id` — навигировать на `/programs/${programId}/offers/download_pdf/${offer_id}` (как диагностики), иначе показать ошибку
+- Убрать логику auto-resize (`resizeLandingIframe`, `handleLandingIframeLoad`) — она не работает надёжно
+- Обернуть iframe в контейнер с `max-width: 800px` и `margin: 0 auto` для центрирования
+- Задать iframe фиксированную высоту `height: 80vh` — iframe будет скроллиться внутри себя (это поведение по умолчанию)
+- Убрать `landingScrollFix` CSS-инъекцию (больше не нужна, iframe сам скроллится при фиксированной высоте)
 
 ### Итого
-- 1 миграция (добавить `offer_id` в `pdf_materials`)
-- 2 файла изменены (`CreatePdfWizard.tsx`, `OfferTypeDetail.tsx`)
+- 1 файл, упрощение кода (~20 строк удалено, ~3 изменены)
 
