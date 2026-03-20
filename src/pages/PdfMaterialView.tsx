@@ -3,8 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Printer, Download, Loader2 } from "lucide-react";
-import { useRef, useCallback } from "react";
+import { ArrowLeft, Printer, Download, Loader2, RefreshCw } from "lucide-react";
+import { useRef, useCallback, useState } from "react";
+import { toast } from "sonner";
 
 async function embedImagesInHtml(html: string, imageUrl?: string | null): Promise<string> {
   if (!imageUrl) return html;
