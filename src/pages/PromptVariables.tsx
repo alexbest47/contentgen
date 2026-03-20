@@ -579,6 +579,7 @@ export default function PromptVariables() {
       <AudienceVariablesCard />
       <ColorSchemesCard />
       <PromoCodesCard />
+      <SpotAvailableCard />
 
       {categories.map((cat) => (
         <Card key={cat.title}>

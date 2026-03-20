@@ -316,6 +316,18 @@ export default function OfferTypeManagement() {
     );
   };
 
+  // --- Render spot_available create/edit form fields ---
+  const renderSpotAvailableFields = (mode: "create" | "edit") => {
+    const title = mode === "create" ? createTitle : editTitle;
+    const setTitle = mode === "create" ? setCreateTitle : setEditTitle;
+    return (
+      <div className="space-y-2">
+        <Label>Название *</Label>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название оффера" required />
+      </div>
+    );
+  };
+
   // --- Render default (non-discount) create/edit form fields ---
   const renderDefaultFields = (mode: "create" | "edit") => {
     const title = mode === "create" ? createTitle : editTitle;
