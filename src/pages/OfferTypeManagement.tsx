@@ -268,6 +268,7 @@ export default function OfferTypeManagement() {
     setEditExistingImageUrl(offer.image_url ?? null);
     setEditPromoCode((offer as any).promo_code ?? "");
     setEditExpiresAt((offer as any).expires_at ? new Date((offer as any).expires_at) : undefined);
+    setEditStreamStartDate((offer as any).stream_start_date ? new Date((offer as any).stream_start_date) : undefined);
     setEditOpen(true);
   };
 
