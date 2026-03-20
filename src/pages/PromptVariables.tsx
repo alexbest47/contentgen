@@ -667,7 +667,7 @@ function WebinarDataCard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("offers")
-        .select("title, webinar_date, is_date_confirmed, is_autowebinar, landing_url, paid_programs!offers_program_id_fkey(title)")
+        .select("title, webinar_date, is_autowebinar, landing_url, paid_programs!offers_program_id_fkey(title)")
         .eq("offer_type", "webinar" as any)
         .eq("is_archived", false)
         .order("created_at", { ascending: false });
@@ -680,7 +680,6 @@ function WebinarDataCard() {
     program: w.paid_programs?.title ?? "",
     title: w.title ?? "",
     webinar_date: w.webinar_date ?? "",
-    is_date_confirmed: w.is_date_confirmed ? "да" : "нет",
     is_autowebinar: w.is_autowebinar ? "да" : "нет",
     landing_url: w.landing_url ?? "",
   }));

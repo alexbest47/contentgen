@@ -49,7 +49,7 @@ export default function OfferTypeManagement() {
   const [createExpiresAt, setCreateExpiresAt] = useState<Date | undefined>();
   const [createStreamStartDate, setCreateStreamStartDate] = useState<Date | undefined>();
   const [createWebinarDate, setCreateWebinarDate] = useState<Date | undefined>();
-  const [createIsDateConfirmed, setCreateIsDateConfirmed] = useState(false);
+  
   const [createIsAutowebinar, setCreateIsAutowebinar] = useState(false);
   const [createLandingUrl, setCreateLandingUrl] = useState("");
 
@@ -66,7 +66,7 @@ export default function OfferTypeManagement() {
   const [editExpiresAt, setEditExpiresAt] = useState<Date | undefined>();
   const [editStreamStartDate, setEditStreamStartDate] = useState<Date | undefined>();
   const [editWebinarDate, setEditWebinarDate] = useState<Date | undefined>();
-  const [editIsDateConfirmed, setEditIsDateConfirmed] = useState(false);
+  
   const [editIsAutowebinar, setEditIsAutowebinar] = useState(false);
   const [editLandingUrl, setEditLandingUrl] = useState("");
 
@@ -150,8 +150,7 @@ export default function OfferTypeManagement() {
           promo_code: isDiscount ? createPromoCode : null,
           expires_at: isDiscount && createExpiresAt ? format(createExpiresAt, "yyyy-MM-dd") : null,
           stream_start_date: isNewStream && createStreamStartDate ? format(createStreamStartDate, "yyyy-MM-dd") : null,
-          webinar_date: isWebinar && createWebinarDate ? createWebinarDate.toISOString() : null,
-          is_date_confirmed: isWebinar ? createIsDateConfirmed : false,
+          webinar_date: isWebinar && !createIsAutowebinar && createWebinarDate ? createWebinarDate.toISOString() : null,
           is_autowebinar: isWebinar ? createIsAutowebinar : false,
           landing_url: createLandingUrl || null,
         } as any)
@@ -206,8 +205,7 @@ export default function OfferTypeManagement() {
           promo_code: isDiscount ? editPromoCode : undefined,
           expires_at: isDiscount && editExpiresAt ? format(editExpiresAt, "yyyy-MM-dd") : undefined,
           stream_start_date: isNewStream && editStreamStartDate ? format(editStreamStartDate, "yyyy-MM-dd") : undefined,
-          webinar_date: isWebinar && editWebinarDate ? editWebinarDate.toISOString() : isWebinar ? null : undefined,
-          is_date_confirmed: isWebinar ? editIsDateConfirmed : undefined,
+          webinar_date: isWebinar && !editIsAutowebinar && editWebinarDate ? editWebinarDate.toISOString() : isWebinar ? null : undefined,
           is_autowebinar: isWebinar ? editIsAutowebinar : undefined,
           landing_url: editLandingUrl || null,
         } as any)
@@ -262,7 +260,7 @@ export default function OfferTypeManagement() {
     setCreateExpiresAt(undefined);
     setCreateStreamStartDate(undefined);
     setCreateWebinarDate(undefined);
-    setCreateIsDateConfirmed(false);
+    
     setCreateIsAutowebinar(false);
     setCreateLandingUrl("");
   }
@@ -292,7 +290,7 @@ export default function OfferTypeManagement() {
     setEditExpiresAt((offer as any).expires_at ? new Date((offer as any).expires_at) : undefined);
     setEditStreamStartDate((offer as any).stream_start_date ? new Date((offer as any).stream_start_date) : undefined);
     setEditWebinarDate((offer as any).webinar_date ? new Date((offer as any).webinar_date) : undefined);
-    setEditIsDateConfirmed((offer as any).is_date_confirmed ?? false);
+    
     setEditIsAutowebinar((offer as any).is_autowebinar ?? false);
     setEditLandingUrl((offer as any).landing_url ?? "");
     setEditOpen(true);
@@ -424,8 +422,6 @@ export default function OfferTypeManagement() {
     const setLandingUrl = mode === "create" ? setCreateLandingUrl : setEditLandingUrl;
     const webinarDate = mode === "create" ? createWebinarDate : editWebinarDate;
     const setWebinarDate = mode === "create" ? setCreateWebinarDate : setEditWebinarDate;
-    const isDateConfirmed = mode === "create" ? createIsDateConfirmed : editIsDateConfirmed;
-    const setIsDateConfirmed = mode === "create" ? setCreateIsDateConfirmed : setEditIsDateConfirmed;
     const isAutowebinar = mode === "create" ? createIsAutowebinar : editIsAutowebinar;
     const setIsAutowebinar = mode === "create" ? setCreateIsAutowebinar : setEditIsAutowebinar;
 
@@ -456,6 +452,7 @@ export default function OfferTypeManagement() {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
+                    disabled={isAutowebinar}
                     className={cn(
                       "w-full justify-start text-left font-normal",
                       !webinarDate && "text-muted-foreground"
@@ -478,17 +475,13 @@ export default function OfferTypeManagement() {
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
-                id={`date-confirmed-${mode}`}
-                checked={isDateConfirmed}
-                onCheckedChange={(v) => setIsDateConfirmed(!!v)}
-              />
-              <Label htmlFor={`date-confirmed-${mode}`}>Дата и время подтверждены</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
                 id={`autowebinar-${mode}`}
                 checked={isAutowebinar}
-                onCheckedChange={(v) => setIsAutowebinar(!!v)}
+                onCheckedChange={(v) => {
+                  const checked = !!v;
+                  setIsAutowebinar(checked);
+                  if (checked) setWebinarDate(undefined);
+                }}
               />
               <Label htmlFor={`autowebinar-${mode}`}>Автовебинар</Label>
             </div>
