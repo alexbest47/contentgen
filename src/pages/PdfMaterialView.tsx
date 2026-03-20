@@ -136,14 +136,14 @@ export default function PdfMaterialView() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => downloadHtml(material.html_content || "", `${material.title || "material"}.html`)}
+              onClick={() => downloadHtml(injectPrintStyles(material.html_content || ""), `${material.title || "material"}.html`)}
             >
               <Download className="mr-1 h-4 w-4" /> Экспорт HTML
             </Button>
           </div>
           <iframe
             ref={pdfIframeRef}
-            srcDoc={material.html_content || ""}
+            srcDoc={injectPrintStyles(material.html_content || "")}
             className="w-full border rounded-md"
             style={{ minHeight: "80vh" }}
             title="PDF Preview"
