@@ -217,7 +217,22 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
     },
-    enabled: open && step >= settingsStepNum && !!programId,
+    enabled: open && step >= settingsStepNum && !!programId && !isWebinar,
+  });
+
+  // Load webinar offers (all active, no program filter needed)
+  const { data: webinarOffers } = useQuery({
+    queryKey: ["webinar_offers_wizard"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("offers")
+        .select("id, title, program_id")
+        .eq("offer_type", "webinar" as any)
+        .eq("is_archived", false)
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: open && isWebinar,
   });
 
   const handleSelectTopic = (node: TreeNode) => {
