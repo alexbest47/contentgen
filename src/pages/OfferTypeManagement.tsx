@@ -49,7 +49,7 @@ export default function OfferTypeManagement() {
   const [createExpiresAt, setCreateExpiresAt] = useState<Date | undefined>();
   const [createStreamStartDate, setCreateStreamStartDate] = useState<Date | undefined>();
   const [createWebinarDate, setCreateWebinarDate] = useState<Date | undefined>();
-  const [createIsDateConfirmed, setCreateIsDateConfirmed] = useState(false);
+  
   const [createIsAutowebinar, setCreateIsAutowebinar] = useState(false);
   const [createLandingUrl, setCreateLandingUrl] = useState("");
 
