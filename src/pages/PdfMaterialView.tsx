@@ -53,8 +53,9 @@ export default function PdfMaterialView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const pdfIframeRef = useRef<HTMLIFrameElement>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
-  const { data: material, isLoading } = useQuery({
+  const { data: material, isLoading, refetch } = useQuery({
     queryKey: ["pdf_material", id],
     queryFn: async () => {
       const { data, error } = await supabase
