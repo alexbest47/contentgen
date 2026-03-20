@@ -136,7 +136,7 @@ export default function OfferTypeManagement() {
         .single();
       if (error) throw error;
 
-      if (!isDiscount && createSelectedTags.length > 0) {
+      if (!isDiscount && !isSpotAvailable && createSelectedTags.length > 0) {
         const { error: tagErr } = await supabase.from("offer_tags").insert(
           createSelectedTags.map((tag_id) => ({ offer_id: data.id, tag_id }))
         );
