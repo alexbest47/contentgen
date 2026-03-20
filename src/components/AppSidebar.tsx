@@ -19,8 +19,11 @@ const mainNav = [
   { title: "Архив", url: "/archive", icon: Archive },
 ];
 
-const contentPrepNav = [
+const offerPrepNav = [
   { title: "Диагностики", url: "/diagnostics", icon: Stethoscope },
+];
+
+const contentPrepNav = [
   { title: "Управление кейсами", url: "/cases", icon: FileVideo },
   { title: "Дерево тем", url: "/topics", icon: TreePine },
   { title: "Работа с возражениями", url: "/objections", icon: ShieldQuestion },
