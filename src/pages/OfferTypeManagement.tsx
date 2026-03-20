@@ -94,7 +94,7 @@ export default function OfferTypeManagement() {
       if (error) throw error;
       return data;
     },
-    enabled: !isDiscount && !isSpotAvailable,
+    enabled: !isDiscount && !isSpotAvailable && !isNewStream,
   });
 
   // --- Create mutation ---
