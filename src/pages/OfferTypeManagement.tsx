@@ -186,7 +186,7 @@ export default function OfferTypeManagement() {
         .eq("id", editingId);
       if (error) throw error;
 
-      if (!isDiscount) {
+      if (!isDiscount && !isSpotAvailable) {
         await supabase.from("offer_tags").delete().eq("offer_id", editingId);
         if (editSelectedTags.length > 0) {
           const { error: tagErr } = await supabase.from("offer_tags").insert(
