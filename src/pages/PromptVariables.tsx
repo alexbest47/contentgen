@@ -516,8 +516,6 @@ function ColorSchemesCard() {
 
 function PromoCodesCard() {
   const example = {
-    program: "Название программы",
-    description: "Описание оффера",
     promo_code: "PROMO2025",
     expires_at: "2025-12-31",
   };
