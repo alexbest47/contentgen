@@ -452,6 +452,7 @@ export default function OfferTypeManagement() {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
+                    disabled={isAutowebinar}
                     className={cn(
                       "w-full justify-start text-left font-normal",
                       !webinarDate && "text-muted-foreground"
@@ -474,17 +475,13 @@ export default function OfferTypeManagement() {
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
-                id={`date-confirmed-${mode}`}
-                checked={isDateConfirmed}
-                onCheckedChange={(v) => setIsDateConfirmed(!!v)}
-              />
-              <Label htmlFor={`date-confirmed-${mode}`}>Дата и время подтверждены</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
                 id={`autowebinar-${mode}`}
                 checked={isAutowebinar}
-                onCheckedChange={(v) => setIsAutowebinar(!!v)}
+                onCheckedChange={(v) => {
+                  const checked = !!v;
+                  setIsAutowebinar(checked);
+                  if (checked) setWebinarDate(undefined);
+                }}
               />
               <Label htmlFor={`autowebinar-${mode}`}>Автовебинар</Label>
             </div>

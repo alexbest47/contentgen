@@ -680,7 +680,6 @@ function WebinarDataCard() {
     program: w.paid_programs?.title ?? "",
     title: w.title ?? "",
     webinar_date: w.webinar_date ?? "",
-    is_date_confirmed: w.is_date_confirmed ? "да" : "нет",
     is_autowebinar: w.is_autowebinar ? "да" : "нет",
     landing_url: w.landing_url ?? "",
   }));
