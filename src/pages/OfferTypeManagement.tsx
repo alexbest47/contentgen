@@ -45,6 +45,7 @@ export default function OfferTypeManagement() {
   const [createImageFile, setCreateImageFile] = useState<File | null>(null);
   const [createPromoCode, setCreatePromoCode] = useState("");
   const [createExpiresAt, setCreateExpiresAt] = useState<Date | undefined>();
+  const [createStreamStartDate, setCreateStreamStartDate] = useState<Date | undefined>();
 
   // --- Edit state ---
   const [editOpen, setEditOpen] = useState(false);
