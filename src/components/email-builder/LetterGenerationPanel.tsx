@@ -47,6 +47,7 @@ export default function LetterGenerationPanel({
   selectedBlockHtml, onChangeSelectedBlockHtml,
   selectedObjectionIds = [],
   onChangeObjectionIds,
+  noCaseRequired = false,
 }: Props) {
   const [casePickerOpen, setCasePickerOpen] = useState(false);
 
