@@ -340,6 +340,48 @@ export default function OfferTypeManagement() {
     );
   };
 
+  // --- Render new_stream create/edit form fields ---
+  const renderNewStreamFields = (mode: "create" | "edit") => {
+    const title = mode === "create" ? createTitle : editTitle;
+    const setTitle = mode === "create" ? setCreateTitle : setEditTitle;
+    const streamDate = mode === "create" ? createStreamStartDate : editStreamStartDate;
+    const setStreamDate = mode === "create" ? setCreateStreamStartDate : setEditStreamStartDate;
+    return (
+      <>
+        <div className="space-y-2">
+          <Label>Название *</Label>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название оффера" required />
+        </div>
+        <div className="space-y-2">
+          <Label>Дата старта потока *</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !streamDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {streamDate ? format(streamDate, "dd.MM.yyyy") : "Выберите дату"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={streamDate}
+                onSelect={setStreamDate}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </>
+    );
+  };
+
   // --- Render default (non-discount) create/edit form fields ---
   const renderDefaultFields = (mode: "create" | "edit") => {
     const title = mode === "create" ? createTitle : editTitle;
