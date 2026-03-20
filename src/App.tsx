@@ -33,7 +33,6 @@ import TopicTree from "@/pages/TopicTree";
 import EmailTemplates from "@/pages/EmailTemplates";
 import PdfMaterials from "@/pages/PdfMaterials";
 import PdfMaterialView from "@/pages/PdfMaterialView";
-import PublicLanding from "@/pages/PublicLanding";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,7 +60,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/l/:slug" element={<PublicLanding />} />
+            
             <Route path="/auth" element={<AuthRoute />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Navigate to="/programs" replace />} />
