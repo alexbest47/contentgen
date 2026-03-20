@@ -666,11 +666,13 @@ export type Database = {
           created_by: string
           description: string | null
           doc_url: string | null
+          expires_at: string | null
           id: string
           image_url: string | null
           is_archived: boolean
           offer_type: Database["public"]["Enums"]["offer_type"]
           program_id: string
+          promo_code: string | null
           title: string
         }
         Insert: {
@@ -678,11 +680,13 @@ export type Database = {
           created_by: string
           description?: string | null
           doc_url?: string | null
+          expires_at?: string | null
           id?: string
           image_url?: string | null
           is_archived?: boolean
           offer_type: Database["public"]["Enums"]["offer_type"]
           program_id: string
+          promo_code?: string | null
           title: string
         }
         Update: {
@@ -690,11 +694,13 @@ export type Database = {
           created_by?: string
           description?: string | null
           doc_url?: string | null
+          expires_at?: string | null
           id?: string
           image_url?: string | null
           is_archived?: boolean
           offer_type?: Database["public"]["Enums"]["offer_type"]
           program_id?: string
+          promo_code?: string | null
           title?: string
         }
         Relationships: [
