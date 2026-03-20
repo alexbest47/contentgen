@@ -670,11 +670,15 @@ export type Database = {
           id: string
           image_url: string | null
           is_archived: boolean
+          is_autowebinar: boolean
+          is_date_confirmed: boolean
+          landing_url: string | null
           offer_type: Database["public"]["Enums"]["offer_type"]
           program_id: string
           promo_code: string | null
           stream_start_date: string | null
           title: string
+          webinar_date: string | null
         }
         Insert: {
           created_at?: string
@@ -685,11 +689,15 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_archived?: boolean
+          is_autowebinar?: boolean
+          is_date_confirmed?: boolean
+          landing_url?: string | null
           offer_type: Database["public"]["Enums"]["offer_type"]
           program_id: string
           promo_code?: string | null
           stream_start_date?: string | null
           title: string
+          webinar_date?: string | null
         }
         Update: {
           created_at?: string
@@ -700,11 +708,15 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_archived?: boolean
+          is_autowebinar?: boolean
+          is_date_confirmed?: boolean
+          landing_url?: string | null
           offer_type?: Database["public"]["Enums"]["offer_type"]
           program_id?: string
           promo_code?: string | null
           stream_start_date?: string | null
           title?: string
+          webinar_date?: string | null
         }
         Relationships: [
           {
