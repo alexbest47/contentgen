@@ -31,7 +31,7 @@ export default function OfferTypeDetail() {
   const navigate = useNavigate();
 
   const isDiagnosticType = offerType === "diagnostic";
-
+  const isPdfType = offerType === "download_pdf";
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archivingId, setArchivingId] = useState<string | null>(null);
 
@@ -58,6 +58,20 @@ export default function OfferTypeDetail() {
     enabled: isDiagnosticType,
   });
 
+  const { data: pdfMaterials, isLoading: isPdfLoading } = useQuery({
+    queryKey: ["pdf_materials_for_program", programId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pdf_materials")
+        .select("id, title, status, created_at, material_type")
+        .eq("program_id", programId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isPdfType,
+  });
+
   const { data: offers, isLoading: isOffersLoading } = useQuery({
     queryKey: ["offers", programId, offerType],
     queryFn: async () => {
@@ -71,10 +85,10 @@ export default function OfferTypeDetail() {
       if (error) throw error;
       return data;
     },
-    enabled: !isDiagnosticType,
+    enabled: !isDiagnosticType && !isPdfType,
   });
 
-  const isLoading = isDiagnosticType ? isDiagnosticsLoading : isOffersLoading;
+  const isLoading = isDiagnosticType ? isDiagnosticsLoading : isPdfType ? isPdfLoading : isOffersLoading;
 
   const deleteDiagnosticMutation = useMutation({
     mutationFn: async ({ diagId, offerId }: { diagId: string; offerId: string | null }) => {
@@ -157,6 +171,36 @@ export default function OfferTypeDetail() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                  <ChevronRight className="h-4 w-4" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : isPdfType ? (
+        !pdfMaterials?.length ? (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              Нет PDF-материалов. Создайте их в разделе «Подготовка PDF».
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="border rounded-lg divide-y">
+            {pdfMaterials.map((m) => (
+              <div
+                key={m.id}
+                className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => navigate(`/pdf-materials/${m.id}`)}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">{m.title}</div>
+                  <p className="text-sm text-muted-foreground mt-0.5">{m.material_type}</p>
+                </div>
+                <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
+                  <Badge variant={statusVariant(m.status)}>
+                    {statusLabels[m.status] || m.status}
+                  </Badge>
+                  <span>{new Date(m.created_at).toLocaleDateString("ru-RU")}</span>
                   <ChevronRight className="h-4 w-4" />
                 </div>
               </div>
