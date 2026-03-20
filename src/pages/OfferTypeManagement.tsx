@@ -516,6 +516,11 @@ export default function OfferTypeManagement() {
                       <TableHead>Промо-код</TableHead>
                       <TableHead>Истекает</TableHead>
                     </>
+                  ) : isNewStream ? (
+                    <>
+                      <TableHead>Название</TableHead>
+                      <TableHead>Дата старта</TableHead>
+                    </>
                   ) : (
                     <TableHead>Название</TableHead>
                   )}
