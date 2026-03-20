@@ -120,6 +120,12 @@ const categories = [
       { name: "{{promo_codes_data}}", description: "JSON-массив всех активных промо-кодов (программа, описание, код, дата истечения)", source: "offers (offer_type = discount, is_archived = false)" },
     ],
   },
+  {
+    title: "Освободилось место",
+    variables: [
+      { name: "{{spot_available_data}}", description: "JSON-массив всех активных офферов «Освободилось место» (программа, название)", source: "offers (offer_type = spot_available, is_archived = false)" },
+    ],
+  },
 ];
 
 function VariableTable({ variables }: { variables: typeof categories[0]["variables"] }) {
