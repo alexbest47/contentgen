@@ -543,6 +543,13 @@ export default function OfferTypeManagement() {
                           {o.expires_at ? format(new Date(o.expires_at), "dd.MM.yyyy") : "—"}
                         </TableCell>
                       </>
+                    ) : isNewStream ? (
+                      <>
+                        <TableCell>{o.title}</TableCell>
+                        <TableCell>
+                          {(o as any).stream_start_date ? format(new Date((o as any).stream_start_date), "dd.MM.yyyy") : "—"}
+                        </TableCell>
+                      </>
                     ) : (
                       <TableCell>{o.title}</TableCell>
                     )}
