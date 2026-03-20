@@ -79,41 +79,7 @@ export default function PdfMaterialView() {
     downloadHtml(finalHtml, `${material.title || "landing"}-landing.html`);
   }, [material]);
 
-  const resizeLandingIframe = useCallback(() => {
-    const iframe = landingIframeRef.current;
-    const doc = iframe?.contentDocument;
-
-    if (!iframe || !doc) return;
-
-    const nextHeight = Math.max(
-      doc.body?.scrollHeight ?? 0,
-      doc.body?.offsetHeight ?? 0,
-      doc.documentElement?.scrollHeight ?? 0,
-      doc.documentElement?.offsetHeight ?? 0,
-      Math.round(window.innerHeight * 0.8),
-    );
-
-    iframe.style.height = `${nextHeight}px`;
-  }, []);
-
-  const handleLandingIframeLoad = useCallback(() => {
-    resizeLandingIframe();
-
-    const iframe = landingIframeRef.current;
-    const doc = iframe?.contentDocument;
-    if (!doc) return;
-
-    Array.from(doc.images).forEach((image) => {
-      if (!image.complete) {
-        image.addEventListener("load", resizeLandingIframe, { once: true });
-        image.addEventListener("error", resizeLandingIframe, { once: true });
-      }
-    });
-
-    requestAnimationFrame(resizeLandingIframe);
-    window.setTimeout(resizeLandingIframe, 200);
-    window.setTimeout(resizeLandingIframe, 800);
-  }, [resizeLandingIframe]);
+  // Landing iframe uses fixed height with internal scroll
 
   if (isLoading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
