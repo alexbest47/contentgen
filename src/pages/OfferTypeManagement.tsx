@@ -105,6 +105,10 @@ export default function OfferTypeManagement() {
         if (!createExpiresAt) throw new Error("Укажите дату истечения");
       }
 
+      if (isSpotAvailable) {
+        if (!createTitle.trim()) throw new Error("Укажите название");
+      }
+
       if (isContentType) {
         if (!createDescription.trim()) throw new Error("Укажите описание");
         if (!createImageFile) throw new Error("Загрузите изображение");
@@ -120,7 +124,7 @@ export default function OfferTypeManagement() {
         .insert({
           title: isDiscount ? createDescription.slice(0, 100) : createTitle,
           description: (isContentType || isDiscount) ? createDescription : null,
-          doc_url: isDiscount ? null : (createDocUrl || null),
+          doc_url: (isDiscount || isSpotAvailable) ? null : (createDocUrl || null),
           offer_type: offerType! as any,
           program_id: createProgramId,
           created_by: user!.id,
