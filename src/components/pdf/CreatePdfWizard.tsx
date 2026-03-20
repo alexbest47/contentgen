@@ -228,7 +228,16 @@ export function CreatePdfWizard({ open, onOpenChange, onSuccess }: Props) {
                 <SelectTrigger><SelectValue placeholder="Выберите бренд-стиль" /></SelectTrigger>
                 <SelectContent>
                   {colorSchemes?.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          {s.preview_colors?.map((c: string, i: number) => (
+                            <div key={i} className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: c }} />
+                          ))}
+                        </div>
+                        {s.name}
+                      </div>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
