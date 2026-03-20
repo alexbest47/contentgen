@@ -33,7 +33,6 @@ import TopicTree from "@/pages/TopicTree";
 import EmailTemplates from "@/pages/EmailTemplates";
 import PdfMaterials from "@/pages/PdfMaterials";
 import PdfMaterialView from "@/pages/PdfMaterialView";
-import PublicLanding from "@/pages/PublicLanding";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
