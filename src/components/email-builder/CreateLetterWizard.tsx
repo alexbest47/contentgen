@@ -611,9 +611,9 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           {/* Step 2 */}
           {step === 2 && (
             <>
-              {isDirectOffer ? (
-                /* Direct offer: step 2 = audience → step 3 */
-                <Button onClick={() => setStep(3)} disabled={!canNext2}>
+              {(isDirectOffer || isWebinar) ? (
+                /* Direct offer / Webinar: step 2 = audience (+webinar) → step 3 */
+                <Button onClick={() => setStep(3)} disabled={!canNextWebinarAudience}>
                   Далее
                 </Button>
               ) : (
@@ -628,8 +628,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           {/* Step 3 */}
           {step === 3 && (
             <>
-              {isDirectOffer ? (
-                /* Direct offer: step 3 = settings → create */
+              {(isDirectOffer || isWebinar) ? (
+                /* Direct offer / Webinar: step 3 = settings → create */
                 <Button onClick={handleCreate} disabled={!canCreate || creating}>
                   {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
                   Создать письмо
@@ -644,7 +644,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           )}
 
           {/* Step 4 (only for default 4-step flow) */}
-          {step === 4 && !isDirectOffer && (
+          {step === 4 && !(isDirectOffer || isWebinar) && (
             <Button onClick={handleCreate} disabled={!canCreate || creating}>
               {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
               Создать письмо
