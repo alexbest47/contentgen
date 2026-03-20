@@ -603,8 +603,6 @@ function NewStreamCard() {
 
 function WebinarDataCard() {
   const example = {
-    program: "Название программы",
-    title: "Название вебинара",
     webinar_date: "2025-10-15T18:00:00",
     is_autowebinar: "нет",
     landing_url: "https://example.com/webinar",
