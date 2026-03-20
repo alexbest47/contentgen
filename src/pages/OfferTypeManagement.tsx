@@ -18,6 +18,7 @@ import { Eye, Pencil, Trash2, Plus, Loader2, CalendarIcon } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { getOfferTypeLabel, CONTENT_OFFER_KEYS, type OfferTypeKey } from "@/lib/offerTypes";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUploadField } from "@/components/offer/ImageUploadField";
 import { uploadOfferImage } from "@/lib/uploadOfferImage";
 import { format } from "date-fns";
