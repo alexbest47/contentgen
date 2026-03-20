@@ -1,21 +1,27 @@
 
 
-## Добавить отступы в PDF-контент
+## Исправить прокрутку iframe лендинга
 
 ### Проблема
-Текст в PDF прижимается к краям страницы — нет боковых отступов.
+Iframe с лендингом имеет `minHeight: "80vh"` — фиксированная высота, контент обрезается, а iframe сам не скроллится.
 
 ### Решение
 
 **`src/pages/PdfMaterialView.tsx`**
 
-Расширить `printFixCss` — добавить `body { padding: 32px 48px; }` для контента внутри iframe. Также добавить в `@media print` аналогичные отступы через `margin`, чтобы при печати тоже были поля.
+Для iframe лендинга (строка 121-126): заменить `style={{ minHeight: "80vh" }}` на `style={{ height: "85vh" }}` и убедиться что iframe скроллится — это поведение по умолчанию для iframe. Проблема скорее в том, что лендинговый HTML содержит `overflow: hidden` на body/html. 
+
+Более надёжное решение: установить фиксированную высоту iframe и позволить ему скроллиться внутри:
+- `style={{ height: "80vh" }}` + никаких `scrolling="no"` атрибутов (iframe скроллится по умолчанию)
+
+Iframe уже должен скроллиться. Вероятная причина — лендинговый HTML имеет `overflow: hidden` на `html` или `body`. Нужно инжектить CSS-фикс в `landingHtml`:
 
 ```css
-body { padding: 32px 48px; box-sizing: border-box; }
-@media print { body { margin: 0; padding: 32px 48px; } }
+html, body { overflow: auto !important; height: auto !important; }
 ```
 
+Добавить это в `landingHtml` перед передачей в `srcDoc` — аналогично `injectPrintStyles`, но для лендинга.
+
 ### Итого
-- 1 файл, ~2 строки в CSS-блоке
+- 1 файл (`PdfMaterialView.tsx`), ~3 строки
 
