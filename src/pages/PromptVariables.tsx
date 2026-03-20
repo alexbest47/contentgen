@@ -686,6 +686,7 @@ export default function PromptVariables() {
       <PromoCodesCard />
       <SpotAvailableCard />
       <NewStreamCard />
+      <WebinarDataCard />
 
       {categories.map((cat) => (
         <Card key={cat.title}>
