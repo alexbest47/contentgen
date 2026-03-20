@@ -58,6 +58,7 @@ export default function OfferTypeManagement() {
   const [editExistingImageUrl, setEditExistingImageUrl] = useState<string | null>(null);
   const [editPromoCode, setEditPromoCode] = useState("");
   const [editExpiresAt, setEditExpiresAt] = useState<Date | undefined>();
+  const [editStreamStartDate, setEditStreamStartDate] = useState<Date | undefined>();
 
   // --- Archive state ---
   const [archiveOpen, setArchiveOpen] = useState(false);
