@@ -260,7 +260,7 @@ export default function OfferTypeManagement() {
     setCreateExpiresAt(undefined);
     setCreateStreamStartDate(undefined);
     setCreateWebinarDate(undefined);
-    setCreateIsDateConfirmed(false);
+    
     setCreateIsAutowebinar(false);
     setCreateLandingUrl("");
   }
