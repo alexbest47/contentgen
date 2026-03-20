@@ -132,13 +132,14 @@ export default function OfferTypeManagement() {
         .insert({
           title: isDiscount ? createDescription.slice(0, 100) : createTitle,
           description: (isContentType || isDiscount) ? createDescription : null,
-          doc_url: (isDiscount || isSpotAvailable) ? null : (createDocUrl || null),
+          doc_url: (isDiscount || isSpotAvailable || isNewStream) ? null : (createDocUrl || null),
           offer_type: offerType! as any,
           program_id: createProgramId,
           created_by: user!.id,
           image_url: imageUrl,
           promo_code: isDiscount ? createPromoCode : null,
           expires_at: isDiscount && createExpiresAt ? format(createExpiresAt, "yyyy-MM-dd") : null,
+          stream_start_date: isNewStream && createStreamStartDate ? format(createStreamStartDate, "yyyy-MM-dd") : null,
         } as any)
         .select("id")
         .single();
