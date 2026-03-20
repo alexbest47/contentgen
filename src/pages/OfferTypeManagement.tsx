@@ -31,6 +31,7 @@ export default function OfferTypeManagement() {
 
   const isContentType = CONTENT_OFFER_KEYS.includes(offerType as OfferTypeKey);
   const isDiscount = offerType === "discount";
+  const isSpotAvailable = offerType === "spot_available";
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
   // --- Create state ---
