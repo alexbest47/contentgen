@@ -39,6 +39,7 @@ export const contentTypeLabels: Record<string, string> = {
   myth_busting: "Разбор мифа",
   objection_handling: "Отработка возражения",
   email_builder: "Конструктор email",
+  pdf_material: "PDF-материал",
 };
 
 export const contentTypeKeys = Object.keys(contentTypeLabels);
