@@ -26,7 +26,9 @@ async function embedImagesInHtml(html: string, imageUrl?: string | null): Promis
 const printFixCss = `<style>
 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 body { padding: 32px 48px; box-sizing: border-box; }
-@media print { .cover { page-break-after: avoid !important; } body { margin: 0; padding: 32px 48px; } }
+.cover { page-break-after: avoid !important; max-height: 100vh !important; overflow: hidden !important; padding: 32px 48px !important; box-sizing: border-box !important; }
+body > .cover:first-child { margin: -32px -48px; width: calc(100% + 96px); }
+@media print { body { margin: 0; padding: 32px 48px; } .cover { page-break-after: avoid !important; } body > .cover:first-child { margin: -32px -48px; width: calc(100% + 96px); } }
 </style>`;
 
 function injectPrintStyles(html: string): string {
