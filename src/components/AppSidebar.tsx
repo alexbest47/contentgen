@@ -8,6 +8,7 @@ import {
 import {
   GraduationCap, Tag, TableProperties,
   MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion, MailPlus, TreePine, FileText,
+  BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown,
 } from "lucide-react";
 
 const mainNav = [
@@ -17,6 +18,13 @@ const mainNav = [
 
 const offerPrepNav = [
   { title: "Диагностики", url: "/diagnostics", icon: Stethoscope },
+  { title: "Мини-курс", url: "/offers/mini_course", icon: BookOpen },
+  { title: "Вебинар", url: "/offers/webinar", icon: Video },
+  { title: "Скачай PDF", url: "/offers/download_pdf", icon: FileDown },
+  { title: "Предсписок", url: "/offers/pre_list", icon: ListChecks },
+  { title: "Старт нового потока", url: "/offers/new_stream", icon: Rocket },
+  { title: "Освободилось место", url: "/offers/spot_available", icon: UserCheck },
+  { title: "Промокод", url: "/offers/discount", icon: Percent },
 ];
 
 const contentPrepNav = [

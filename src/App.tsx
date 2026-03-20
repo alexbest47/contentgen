@@ -25,6 +25,7 @@ import EmailBuilder from "@/pages/EmailBuilder";
 import CreateDiagnostic from "@/pages/CreateDiagnostic";
 import DiagnosticDetail from "@/pages/DiagnosticDetail";
 import Diagnostics from "@/pages/Diagnostics";
+import OfferTypeManagement from "@/pages/OfferTypeManagement";
 import CaseManagement from "@/pages/CaseManagement";
 import Objections from "@/pages/Objections";
 import ObjectionsHub from "@/pages/ObjectionsHub";
@@ -74,6 +75,7 @@ const App = () => (
               <Route path="/diagnostics" element={<ProtectedRoute adminOnly><Diagnostics /></ProtectedRoute>} />
               <Route path="/create-diagnostic" element={<ProtectedRoute adminOnly><CreateDiagnostic /></ProtectedRoute>} />
               <Route path="/diagnostics/:diagnosticId" element={<ProtectedRoute adminOnly><DiagnosticDetail /></ProtectedRoute>} />
+              <Route path="/offers/:offerType" element={<ProtectedRoute adminOnly><OfferTypeManagement /></ProtectedRoute>} />
               <Route path="/cases" element={<ProtectedRoute adminOnly><CaseManagement /></ProtectedRoute>} />
               <Route path="/objections" element={<ProtectedRoute adminOnly><ObjectionsHub /></ProtectedRoute>} />
               <Route path="/programs/:programId/objections" element={<ProtectedRoute adminOnly><Objections /></ProtectedRoute>} />
