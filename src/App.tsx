@@ -25,6 +25,7 @@ import EmailBuilder from "@/pages/EmailBuilder";
 import CreateDiagnostic from "@/pages/CreateDiagnostic";
 import DiagnosticDetail from "@/pages/DiagnosticDetail";
 import Diagnostics from "@/pages/Diagnostics";
+import OfferTypeManagement from "@/pages/OfferTypeManagement";
 import CaseManagement from "@/pages/CaseManagement";
 import Objections from "@/pages/Objections";
 import ObjectionsHub from "@/pages/ObjectionsHub";
