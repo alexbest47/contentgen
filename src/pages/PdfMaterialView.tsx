@@ -121,14 +121,14 @@ export default function PdfMaterialView() {
               <Download className="mr-1 h-4 w-4" /> Экспорт HTML лендинга
             </Button>
           </div>
-          <iframe
-            ref={landingIframeRef}
-            srcDoc={landingHtml}
-            onLoad={handleLandingIframeLoad}
-            className="w-full border rounded-md"
-            style={{ minHeight: "80vh" }}
-            title="Landing Preview"
-          />
+          <div className="max-w-[800px] mx-auto">
+            <iframe
+              srcDoc={landingHtml}
+              className="w-full border rounded-lg"
+              style={{ height: "80vh" }}
+              title="Landing Preview"
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="pdf" className="space-y-3">
