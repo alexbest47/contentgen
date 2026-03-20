@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Globe, Download, Trash2, Copy, Loader2 } from "lucide-react";
+import { Plus, Eye, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CreatePdfWizard } from "@/components/pdf/CreatePdfWizard";
@@ -27,7 +27,7 @@ export default function PdfMaterials() {
       if (error) throw error;
       return data || [];
     },
-    refetchInterval: 5000, // poll for status changes
+    refetchInterval: 5000,
   });
 
   const deleteMutation = useMutation({
@@ -43,19 +43,9 @@ export default function PdfMaterials() {
     onError: () => toast.error("Ошибка удаления"),
   });
 
-  const handleSuccess = (id: string, slug: string) => {
+  const handleSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["pdf_materials"] });
-    toast.success("PDF-материал сгенерирован!", {
-      action: {
-        label: "Открыть лендинг",
-        onClick: () => window.open(`/l/${slug}`, "_blank"),
-      },
-    });
-  };
-
-  const copyLink = (slug: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/l/${slug}`);
-    toast.success("Ссылка скопирована");
+    toast.success("PDF-материал сгенерирован!");
   };
 
   return (
@@ -102,34 +92,14 @@ export default function PdfMaterials() {
                 <TableCell>{format(new Date(m.created_at), "dd.MM.yyyy")}</TableCell>
                 <TableCell>
                   <div className="flex items-center justify-end gap-1">
-                    {m.status === "ready" && m.landing_slug && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Открыть лендинг"
-                          onClick={() => window.open(`/l/${m.landing_slug}`, "_blank")}
-                        >
-                          <Globe className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Копировать ссылку"
-                          onClick={() => copyLink(m.landing_slug!)}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
                     {m.status === "ready" && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        title="Просмотреть PDF"
+                        title="Просмотр"
                         onClick={() => navigate(`/pdf-materials/${m.id}`)}
                       >
-                        <Download className="h-4 w-4" />
+                        <Eye className="h-4 w-4" />
                       </Button>
                     )}
                     <Button

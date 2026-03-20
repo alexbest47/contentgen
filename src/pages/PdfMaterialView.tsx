@@ -2,13 +2,24 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Printer, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Printer, Download, Loader2 } from "lucide-react";
 import { useRef } from "react";
+
+function downloadHtml(html: string, filename: string) {
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function PdfMaterialView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const pdfIframeRef = useRef<HTMLIFrameElement>(null);
 
   const { data: material, isLoading } = useQuery({
     queryKey: ["pdf_material", id],
@@ -24,10 +35,6 @@ export default function PdfMaterialView() {
     enabled: !!id,
   });
 
-  const handlePrint = () => {
-    iframeRef.current?.contentWindow?.print();
-  };
-
   if (isLoading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
@@ -36,7 +43,13 @@ export default function PdfMaterialView() {
     return <div className="text-center py-12 text-muted-foreground">Материал не найден</div>;
   }
 
-  const iframeSrc = `data:text/html;charset=utf-8,${encodeURIComponent(material.html_content || "")}`;
+  let landingHtml = material.landing_html || "";
+  if (material.background_image_url) {
+    landingHtml = landingHtml.replace(/BACKGROUND_IMAGE_URL/g, material.background_image_url);
+  }
+
+  const landingSrc = `data:text/html;charset=utf-8,${encodeURIComponent(landingHtml)}`;
+  const pdfSrc = `data:text/html;charset=utf-8,${encodeURIComponent(material.html_content || "")}`;
 
   return (
     <div className="space-y-4">
@@ -45,17 +58,57 @@ export default function PdfMaterialView() {
           <ArrowLeft className="mr-1 h-4 w-4" /> Назад
         </Button>
         <h1 className="text-xl font-bold flex-1">{material.title}</h1>
-        <Button onClick={handlePrint}>
-          <Printer className="mr-2 h-4 w-4" /> Скачать PDF
-        </Button>
       </div>
-      <iframe
-        ref={iframeRef}
-        src={iframeSrc}
-        className="w-full border rounded-md"
-        style={{ minHeight: "80vh" }}
-        title="PDF Preview"
-      />
+
+      <Tabs defaultValue="landing" className="w-full">
+        <TabsList>
+          <TabsTrigger value="landing">Лендинг</TabsTrigger>
+          <TabsTrigger value="pdf">PDF-материал</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="landing" className="space-y-3">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => downloadHtml(landingHtml, `${material.title || "landing"}-landing.html`)}
+            >
+              <Download className="mr-1 h-4 w-4" /> Экспорт HTML лендинга
+            </Button>
+          </div>
+          <iframe
+            src={landingSrc}
+            className="w-full border rounded-md"
+            style={{ minHeight: "80vh" }}
+            title="Landing Preview"
+          />
+        </TabsContent>
+
+        <TabsContent value="pdf" className="space-y-3">
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => pdfIframeRef.current?.contentWindow?.print()}
+            >
+              <Printer className="mr-1 h-4 w-4" /> Скачать PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => downloadHtml(material.html_content || "", `${material.title || "material"}.html`)}
+            >
+              <Download className="mr-1 h-4 w-4" /> Экспорт HTML
+            </Button>
+          </div>
+          <iframe
+            ref={pdfIframeRef}
+            src={pdfSrc}
+            className="w-full border rounded-md"
+            style={{ minHeight: "80vh" }}
+            title="PDF Preview"
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
