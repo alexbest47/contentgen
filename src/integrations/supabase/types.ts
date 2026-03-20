@@ -461,6 +461,7 @@ export type Database = {
       email_templates: {
         Row: {
           blocks: Json
+          category: string
           created_at: string
           description: string
           id: string
@@ -469,6 +470,7 @@ export type Database = {
         }
         Insert: {
           blocks?: Json
+          category?: string
           created_at?: string
           description?: string
           id?: string
@@ -477,6 +479,7 @@ export type Database = {
         }
         Update: {
           blocks?: Json
+          category?: string
           created_at?: string
           description?: string
           id?: string
