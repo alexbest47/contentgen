@@ -86,12 +86,14 @@ export default function PdfMaterialView() {
     return <div className="text-center py-12 text-muted-foreground">Материал не найден</div>;
   }
 
+  const landingScrollFix = `<style>html, body { overflow: auto !important; height: auto !important; }</style>`;
   let landingHtml = material.landing_html || "";
   if (material.background_image_url) {
     landingHtml = landingHtml
       .replace(/BACKGROUND_IMAGE_URL/g, material.background_image_url)
       .replace(/CHARACTER_IMAGE_URL/g, material.background_image_url);
   }
+  landingHtml = landingScrollFix + landingHtml;
 
   return (
     <div className="space-y-4">
@@ -121,7 +123,7 @@ export default function PdfMaterialView() {
           <iframe
             srcDoc={landingHtml}
             className="w-full border rounded-md"
-            style={{ minHeight: "80vh" }}
+            style={{ height: "80vh" }}
             title="Landing Preview"
           />
         </TabsContent>
