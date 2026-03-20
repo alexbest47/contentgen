@@ -31,6 +31,7 @@ export default function OfferTypeManagement() {
 
   const isContentType = CONTENT_OFFER_KEYS.includes(offerType as OfferTypeKey);
   const isDiscount = offerType === "discount";
+  const isSpotAvailable = offerType === "spot_available";
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
   // --- Create state ---
@@ -90,7 +91,7 @@ export default function OfferTypeManagement() {
       if (error) throw error;
       return data;
     },
-    enabled: !isDiscount,
+    enabled: !isDiscount && !isSpotAvailable,
   });
 
   // --- Create mutation ---
@@ -102,6 +103,10 @@ export default function OfferTypeManagement() {
         if (!createDescription.trim()) throw new Error("Укажите описание");
         if (!createPromoCode.trim()) throw new Error("Укажите промо-код");
         if (!createExpiresAt) throw new Error("Укажите дату истечения");
+      }
+
+      if (isSpotAvailable) {
+        if (!createTitle.trim()) throw new Error("Укажите название");
       }
 
       if (isContentType) {
@@ -119,7 +124,7 @@ export default function OfferTypeManagement() {
         .insert({
           title: isDiscount ? createDescription.slice(0, 100) : createTitle,
           description: (isContentType || isDiscount) ? createDescription : null,
-          doc_url: isDiscount ? null : (createDocUrl || null),
+          doc_url: (isDiscount || isSpotAvailable) ? null : (createDocUrl || null),
           offer_type: offerType! as any,
           program_id: createProgramId,
           created_by: user!.id,
@@ -131,7 +136,7 @@ export default function OfferTypeManagement() {
         .single();
       if (error) throw error;
 
-      if (!isDiscount && createSelectedTags.length > 0) {
+      if (!isDiscount && !isSpotAvailable && createSelectedTags.length > 0) {
         const { error: tagErr } = await supabase.from("offer_tags").insert(
           createSelectedTags.map((tag_id) => ({ offer_id: data.id, tag_id }))
         );
@@ -173,7 +178,7 @@ export default function OfferTypeManagement() {
         .update({
           title: isDiscount ? editDescription.slice(0, 100) : editTitle,
           description: (isContentType || isDiscount) ? editDescription : undefined,
-          doc_url: isDiscount ? undefined : (editDocUrl || null),
+          doc_url: (isDiscount || isSpotAvailable) ? undefined : (editDocUrl || null),
           image_url: imageUrl,
           promo_code: isDiscount ? editPromoCode : undefined,
           expires_at: isDiscount && editExpiresAt ? format(editExpiresAt, "yyyy-MM-dd") : undefined,
@@ -181,7 +186,7 @@ export default function OfferTypeManagement() {
         .eq("id", editingId);
       if (error) throw error;
 
-      if (!isDiscount) {
+      if (!isDiscount && !isSpotAvailable) {
         await supabase.from("offer_tags").delete().eq("offer_id", editingId);
         if (editSelectedTags.length > 0) {
           const { error: tagErr } = await supabase.from("offer_tags").insert(
@@ -311,6 +316,18 @@ export default function OfferTypeManagement() {
     );
   };
 
+  // --- Render spot_available create/edit form fields ---
+  const renderSpotAvailableFields = (mode: "create" | "edit") => {
+    const title = mode === "create" ? createTitle : editTitle;
+    const setTitle = mode === "create" ? setCreateTitle : setEditTitle;
+    return (
+      <div className="space-y-2">
+        <Label>Название *</Label>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название оффера" required />
+      </div>
+    );
+  };
+
   // --- Render default (non-discount) create/edit form fields ---
   const renderDefaultFields = (mode: "create" | "edit") => {
     const title = mode === "create" ? createTitle : editTitle;
@@ -398,7 +415,7 @@ export default function OfferTypeManagement() {
                 </SelectContent>
               </Select>
             </div>
-            {isDiscount ? renderDiscountFields("create") : renderDefaultFields("create")}
+            {isDiscount ? renderDiscountFields("create") : isSpotAvailable ? renderSpotAvailableFields("create") : renderDefaultFields("create")}
             <Button type="submit" className="w-full" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Создание..." : "Создать"}
             </Button>
@@ -413,7 +430,7 @@ export default function OfferTypeManagement() {
             <DialogTitle>Редактировать оффер</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }} className="space-y-4">
-            {isDiscount ? renderDiscountFields("edit") : renderDefaultFields("edit")}
+            {isDiscount ? renderDiscountFields("edit") : isSpotAvailable ? renderSpotAvailableFields("edit") : renderDefaultFields("edit")}
             <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
               {updateMutation.isPending ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -471,7 +488,7 @@ export default function OfferTypeManagement() {
                       <TableCell>{o.title}</TableCell>
                     )}
                     <TableCell className="text-right space-x-1">
-                      {!isDiscount && (
+                      {!isDiscount && !isSpotAvailable && (
                         <Button
                           variant="ghost"
                           size="sm"
