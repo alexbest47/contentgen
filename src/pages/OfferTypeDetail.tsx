@@ -31,7 +31,7 @@ export default function OfferTypeDetail() {
   const navigate = useNavigate();
 
   const isDiagnosticType = offerType === "diagnostic";
-
+  const isPdfType = offerType === "download_pdf";
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archivingId, setArchivingId] = useState<string | null>(null);
 
