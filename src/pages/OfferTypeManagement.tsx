@@ -422,8 +422,6 @@ export default function OfferTypeManagement() {
     const setLandingUrl = mode === "create" ? setCreateLandingUrl : setEditLandingUrl;
     const webinarDate = mode === "create" ? createWebinarDate : editWebinarDate;
     const setWebinarDate = mode === "create" ? setCreateWebinarDate : setEditWebinarDate;
-    const isDateConfirmed = mode === "create" ? createIsDateConfirmed : editIsDateConfirmed;
-    const setIsDateConfirmed = mode === "create" ? setCreateIsDateConfirmed : setEditIsDateConfirmed;
     const isAutowebinar = mode === "create" ? createIsAutowebinar : editIsAutowebinar;
     const setIsAutowebinar = mode === "create" ? setCreateIsAutowebinar : setEditIsAutowebinar;
 
