@@ -123,7 +123,7 @@ export default function PdfMaterialView() {
           <iframe
             srcDoc={landingHtml}
             className="w-full border rounded-md"
-            style={{ minHeight: "80vh" }}
+            style={{ height: "80vh" }}
             title="Landing Preview"
           />
         </TabsContent>
