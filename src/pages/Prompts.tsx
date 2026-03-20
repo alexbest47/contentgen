@@ -552,19 +552,33 @@ export default function Prompts() {
              {renderObjectionHandlingTab()}
            </TabsContent>
            <TabsContent value="email_builder">
-             {(() => {
-               const sorted = emailBuilderPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
-               return (
-                 <div className="space-y-3">
-                   {sorted.length > 0 ? sorted.map((p: any) => (
-                     <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
-                   )) : (
-                     <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
-                   )}
-                 </div>
-               );
-             })()}
-           </TabsContent>
+              {(() => {
+                const sorted = emailBuilderPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                return (
+                  <div className="space-y-3">
+                    {sorted.length > 0 ? sorted.map((p: any) => (
+                      <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                    )) : (
+                      <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
+                    )}
+                  </div>
+                );
+              })()}
+            </TabsContent>
+            <TabsContent value="pdf_material">
+              {(() => {
+                const sorted = pdfMaterialPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                return (
+                  <div className="space-y-3">
+                    {sorted.length > 0 ? sorted.map((p: any) => (
+                      <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                    )) : (
+                      <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
+                    )}
+                  </div>
+                );
+              })()}
+            </TabsContent>
         </Tabs>
       ) : (
         <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
