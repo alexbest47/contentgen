@@ -16,7 +16,6 @@ const GLOBAL_VARS = [
   { key: "offer_rules", name: "{{offer_rules}}", description: "Адаптация под тип оффера" },
   { key: "antiAI_rules", name: "{{antiAI_rules}}", description: "Требования к тексту — антиAI" },
   { key: "brand_voice", name: "{{brand_voice}}", description: "Голос бренда Talentsy" },
-  { key: "objection_data_massive", name: "{{objection_data_massive}}", description: "Массив возражений (до 7). Подтягивается из раздела «Управление возражениями»." },
 ];
 
 const AUDIENCE_VARS = [
@@ -103,6 +102,7 @@ const categories = [
     variables: [
       { name: "{{objection_data}}", description: "JSON выбранного возражения (id, objection_text, tags)", source: "objections" },
       { name: "{{objection_angle}}", description: "JSON выбранного угла подачи (angle_type, angle_title, description, hook, transition_to_offer)", source: "Выбранный lead_magnet для objection_handling" },
+      { name: "{{objection_data_massive}}", description: "Массив возражений (до 7). Подтягивается из раздела «Управление возражениями»", source: "objections (выбранные в конструкторе писем)" },
     ],
   },
   {
