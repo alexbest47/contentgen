@@ -205,8 +205,7 @@ export default function OfferTypeManagement() {
           promo_code: isDiscount ? editPromoCode : undefined,
           expires_at: isDiscount && editExpiresAt ? format(editExpiresAt, "yyyy-MM-dd") : undefined,
           stream_start_date: isNewStream && editStreamStartDate ? format(editStreamStartDate, "yyyy-MM-dd") : undefined,
-          webinar_date: isWebinar && editWebinarDate ? editWebinarDate.toISOString() : isWebinar ? null : undefined,
-          is_date_confirmed: isWebinar ? editIsDateConfirmed : undefined,
+          webinar_date: isWebinar && !editIsAutowebinar && editWebinarDate ? editWebinarDate.toISOString() : isWebinar ? null : undefined,
           is_autowebinar: isWebinar ? editIsAutowebinar : undefined,
           landing_url: editLandingUrl || null,
         } as any)
