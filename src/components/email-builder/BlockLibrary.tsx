@@ -41,8 +41,11 @@ interface Props {
   templateName?: string;
 }
 
+const NO_CASE_TEMPLATES = ["Приглашение на вебинар: письмо 1", "Приглашение на вебинар: письмо 2"];
+
 export default function BlockLibrary({ onAddBlock, isFullLetterMode, templateName }: Props) {
   const isDirectOffer = templateName === "Прямой оффер";
+  const isNoCaseTemplate = NO_CASE_TEMPLATES.includes(templateName || "");
   const generatedBlocks = isDirectOffer ? generatedBlocksDirectOffer : generatedBlocksDefault;
 
   return (
