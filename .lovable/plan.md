@@ -1,35 +1,27 @@
 
 
-## Настройка промо-кодов: кастомная форма + переменная промптов
+## Кастомная форма для «Освободилось место» + переменная промптов
 
 ### Суть
-Для типа оффера «Промокод» (discount) — кастомная форма создания/редактирования с 4 полями (программа, описание, промо-код, дата истечения). Без тегов аудитории. Все промо-коды отображаются в разделе «Переменные промптов» как JSON-переменная.
+Тип оффера `spot_available` — упрощённая форма: только программа и название. Без тегов, без Google Doc. Название записывается в переменную `{{spot_available_data}}`, отображаемую в отдельном блоке на странице переменных промптов.
 
 ### Изменения
 
-**1. Миграция БД** — добавить 2 колонки в `offers`:
-- `promo_code text` (сам код)
-- `expires_at date` (дата истечения)
+**1. `src/pages/OfferTypeManagement.tsx`**
+- Добавить `const isSpotAvailable = offerType === "spot_available"`
+- Создать `renderSpotAvailableFields(mode)` — только поле «Название» (обязательное)
+- В create/edit диалоге: при `isSpotAvailable` рендерить `renderSpotAvailableFields` вместо `renderDefaultFields`
+- В таблице для `spot_available`: только колонки «Программа», «Название», «Действия» (как сейчас для non-discount, но без кнопки «Открыть» — аналогично discount)
+- В мутациях: для `spot_available` не записывать `doc_url`, не привязывать теги
 
-**2. `src/pages/OfferTypeManagement.tsx`** — кастомная форма для discount:
-- Добавить state: `createPromoCode`, `createExpiresAt`, `editPromoCode`, `editExpiresAt`
-- В create/edit диалоге при `offerType === "discount"`:
-  - Программа (обязательно)
-  - Описание (обязательно, вместо «Название»)
-  - Промо-код (обязательно, текстовое поле)
-  - Дата истечения (обязательно, input type=date)
-  - Убрать теги аудитории, Google Doc, изображение
-- В мутации записывать `promo_code` и `expires_at` в `offers`
-- В таблице для discount показывать колонки: Программа, Описание, Промо-код, Истекает
-
-**3. `src/pages/PromptVariables.tsx`** — новый подраздел «Промо-коды»:
-- Компонент `PromoCodesCard` — загружает все не-архивные офферы типа `discount` с join на `paid_programs`
-- Отображает read-only JSON массив (программа, описание, промо-код, дата истечения)
-- Переменная `{{promo_codes_data}}`
-- Добавить в `categories` для справки
-- Разместить после `ColorSchemesCard`
+**2. `src/pages/PromptVariables.tsx`**
+- Добавить компонент `SpotAvailableCard` — загружает не-архивные офферы типа `spot_available` с join на `paid_programs`
+- Отображает read-only JSON массив `[{ program, title }]`
+- Переменная `{{spot_available_data}}`
+- Разместить после `PromoCodesCard`
+- Добавить в `categories` справочную запись
 
 ### Итого
-- 1 миграция (2 колонки)
-- 2 файла изменены (`OfferTypeManagement.tsx`, `PromptVariables.tsx`)
+- 0 миграций
+- 2 файла изменены
 
