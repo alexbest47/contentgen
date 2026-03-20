@@ -527,7 +527,13 @@ export default function EmailBuilder() {
         onGenerateLetter={generateLetter}
         
         generatingLetter={generatingLetter}
-        canGenerate={template?.name === "Прямой оффер" ? (!!caseId && selectedObjectionIds.length > 0) : !!caseId}
+        canGenerate={
+          ["Приглашение на вебинар: письмо 1", "Приглашение на вебинар: письмо 2"].includes(template?.name || "")
+            ? true
+            : template?.name === "Прямой оффер"
+              ? (!!caseId && selectedObjectionIds.length > 0)
+              : !!caseId
+        }
       />
 
       <div className="flex flex-1 overflow-hidden">
