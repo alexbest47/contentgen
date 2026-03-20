@@ -32,6 +32,7 @@ export default function OfferTypeManagement() {
   const isContentType = CONTENT_OFFER_KEYS.includes(offerType as OfferTypeKey);
   const isDiscount = offerType === "discount";
   const isSpotAvailable = offerType === "spot_available";
+  const isNewStream = offerType === "new_stream";
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
   // --- Create state ---
@@ -44,6 +45,7 @@ export default function OfferTypeManagement() {
   const [createImageFile, setCreateImageFile] = useState<File | null>(null);
   const [createPromoCode, setCreatePromoCode] = useState("");
   const [createExpiresAt, setCreateExpiresAt] = useState<Date | undefined>();
+  const [createStreamStartDate, setCreateStreamStartDate] = useState<Date | undefined>();
 
   // --- Edit state ---
   const [editOpen, setEditOpen] = useState(false);
@@ -56,6 +58,7 @@ export default function OfferTypeManagement() {
   const [editExistingImageUrl, setEditExistingImageUrl] = useState<string | null>(null);
   const [editPromoCode, setEditPromoCode] = useState("");
   const [editExpiresAt, setEditExpiresAt] = useState<Date | undefined>();
+  const [editStreamStartDate, setEditStreamStartDate] = useState<Date | undefined>();
 
   // --- Archive state ---
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -91,7 +94,7 @@ export default function OfferTypeManagement() {
       if (error) throw error;
       return data;
     },
-    enabled: !isDiscount && !isSpotAvailable,
+    enabled: !isDiscount && !isSpotAvailable && !isNewStream,
   });
 
   // --- Create mutation ---
@@ -109,6 +112,11 @@ export default function OfferTypeManagement() {
         if (!createTitle.trim()) throw new Error("Укажите название");
       }
 
+      if (isNewStream) {
+        if (!createTitle.trim()) throw new Error("Укажите название");
+        if (!createStreamStartDate) throw new Error("Укажите дату старта потока");
+      }
+
       if (isContentType) {
         if (!createDescription.trim()) throw new Error("Укажите описание");
         if (!createImageFile) throw new Error("Загрузите изображение");
@@ -124,19 +132,20 @@ export default function OfferTypeManagement() {
         .insert({
           title: isDiscount ? createDescription.slice(0, 100) : createTitle,
           description: (isContentType || isDiscount) ? createDescription : null,
-          doc_url: (isDiscount || isSpotAvailable) ? null : (createDocUrl || null),
+          doc_url: (isDiscount || isSpotAvailable || isNewStream) ? null : (createDocUrl || null),
           offer_type: offerType! as any,
           program_id: createProgramId,
           created_by: user!.id,
           image_url: imageUrl,
           promo_code: isDiscount ? createPromoCode : null,
           expires_at: isDiscount && createExpiresAt ? format(createExpiresAt, "yyyy-MM-dd") : null,
+          stream_start_date: isNewStream && createStreamStartDate ? format(createStreamStartDate, "yyyy-MM-dd") : null,
         } as any)
         .select("id")
         .single();
       if (error) throw error;
 
-      if (!isDiscount && !isSpotAvailable && createSelectedTags.length > 0) {
+      if (!isDiscount && !isSpotAvailable && !isNewStream && createSelectedTags.length > 0) {
         const { error: tagErr } = await supabase.from("offer_tags").insert(
           createSelectedTags.map((tag_id) => ({ offer_id: data.id, tag_id }))
         );
@@ -178,15 +187,16 @@ export default function OfferTypeManagement() {
         .update({
           title: isDiscount ? editDescription.slice(0, 100) : editTitle,
           description: (isContentType || isDiscount) ? editDescription : undefined,
-          doc_url: (isDiscount || isSpotAvailable) ? undefined : (editDocUrl || null),
+          doc_url: (isDiscount || isSpotAvailable || isNewStream) ? undefined : (editDocUrl || null),
           image_url: imageUrl,
           promo_code: isDiscount ? editPromoCode : undefined,
           expires_at: isDiscount && editExpiresAt ? format(editExpiresAt, "yyyy-MM-dd") : undefined,
+          stream_start_date: isNewStream && editStreamStartDate ? format(editStreamStartDate, "yyyy-MM-dd") : undefined,
         } as any)
         .eq("id", editingId);
       if (error) throw error;
 
-      if (!isDiscount && !isSpotAvailable) {
+      if (!isDiscount && !isSpotAvailable && !isNewStream) {
         await supabase.from("offer_tags").delete().eq("offer_id", editingId);
         if (editSelectedTags.length > 0) {
           const { error: tagErr } = await supabase.from("offer_tags").insert(
@@ -232,6 +242,7 @@ export default function OfferTypeManagement() {
     setCreateImageFile(null);
     setCreatePromoCode("");
     setCreateExpiresAt(undefined);
+    setCreateStreamStartDate(undefined);
   }
 
   const toggleCreateTag = (tagId: string) => {
@@ -257,6 +268,7 @@ export default function OfferTypeManagement() {
     setEditExistingImageUrl(offer.image_url ?? null);
     setEditPromoCode((offer as any).promo_code ?? "");
     setEditExpiresAt((offer as any).expires_at ? new Date((offer as any).expires_at) : undefined);
+    setEditStreamStartDate((offer as any).stream_start_date ? new Date((offer as any).stream_start_date) : undefined);
     setEditOpen(true);
   };
 
@@ -325,6 +337,48 @@ export default function OfferTypeManagement() {
         <Label>Название *</Label>
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название оффера" required />
       </div>
+    );
+  };
+
+  // --- Render new_stream create/edit form fields ---
+  const renderNewStreamFields = (mode: "create" | "edit") => {
+    const title = mode === "create" ? createTitle : editTitle;
+    const setTitle = mode === "create" ? setCreateTitle : setEditTitle;
+    const streamDate = mode === "create" ? createStreamStartDate : editStreamStartDate;
+    const setStreamDate = mode === "create" ? setCreateStreamStartDate : setEditStreamStartDate;
+    return (
+      <>
+        <div className="space-y-2">
+          <Label>Название *</Label>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название оффера" required />
+        </div>
+        <div className="space-y-2">
+          <Label>Дата старта потока *</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !streamDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {streamDate ? format(streamDate, "dd.MM.yyyy") : "Выберите дату"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={streamDate}
+                onSelect={setStreamDate}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </>
     );
   };
 
@@ -415,7 +469,7 @@ export default function OfferTypeManagement() {
                 </SelectContent>
               </Select>
             </div>
-            {isDiscount ? renderDiscountFields("create") : isSpotAvailable ? renderSpotAvailableFields("create") : renderDefaultFields("create")}
+            {isDiscount ? renderDiscountFields("create") : isSpotAvailable ? renderSpotAvailableFields("create") : isNewStream ? renderNewStreamFields("create") : renderDefaultFields("create")}
             <Button type="submit" className="w-full" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Создание..." : "Создать"}
             </Button>
@@ -430,7 +484,7 @@ export default function OfferTypeManagement() {
             <DialogTitle>Редактировать оффер</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }} className="space-y-4">
-            {isDiscount ? renderDiscountFields("edit") : isSpotAvailable ? renderSpotAvailableFields("edit") : renderDefaultFields("edit")}
+            {isDiscount ? renderDiscountFields("edit") : isSpotAvailable ? renderSpotAvailableFields("edit") : isNewStream ? renderNewStreamFields("edit") : renderDefaultFields("edit")}
             <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
               {updateMutation.isPending ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -462,6 +516,11 @@ export default function OfferTypeManagement() {
                       <TableHead>Промо-код</TableHead>
                       <TableHead>Истекает</TableHead>
                     </>
+                  ) : isNewStream ? (
+                    <>
+                      <TableHead>Название</TableHead>
+                      <TableHead>Дата старта</TableHead>
+                    </>
                   ) : (
                     <TableHead>Название</TableHead>
                   )}
@@ -484,11 +543,18 @@ export default function OfferTypeManagement() {
                           {o.expires_at ? format(new Date(o.expires_at), "dd.MM.yyyy") : "—"}
                         </TableCell>
                       </>
+                    ) : isNewStream ? (
+                      <>
+                        <TableCell>{o.title}</TableCell>
+                        <TableCell>
+                          {(o as any).stream_start_date ? format(new Date((o as any).stream_start_date), "dd.MM.yyyy") : "—"}
+                        </TableCell>
+                      </>
                     ) : (
                       <TableCell>{o.title}</TableCell>
                     )}
                     <TableCell className="text-right space-x-1">
-                      {!isDiscount && !isSpotAvailable && (
+                      {!isDiscount && !isSpotAvailable && !isNewStream && (
                         <Button
                           variant="ghost"
                           size="sm"

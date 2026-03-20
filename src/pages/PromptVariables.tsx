@@ -126,6 +126,12 @@ const categories = [
       { name: "{{spot_available_data}}", description: "JSON-массив всех активных офферов «Освободилось место» (программа, название)", source: "offers (offer_type = spot_available, is_archived = false)" },
     ],
   },
+  {
+    title: "Старт нового потока",
+    variables: [
+      { name: "{{new_stream_data}}", description: "JSON-массив всех активных офферов «Старт нового потока» (программа, название, дата старта)", source: "offers (offer_type = new_stream, is_archived = false)" },
+    ],
+  },
 ];
 
 function VariableTable({ variables }: { variables: typeof categories[0]["variables"] }) {
@@ -602,6 +608,53 @@ function SpotAvailableCard() {
   );
 }
 
+function NewStreamCard() {
+  const { data: streams, isLoading } = useQuery({
+    queryKey: ["new_stream_for_variables"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("offers")
+        .select("title, stream_start_date, paid_programs!offers_program_id_fkey(title)")
+        .eq("offer_type", "new_stream" as any)
+        .eq("is_archived", false)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const jsonValue = (streams ?? []).map((s: any) => ({
+    program: s.paid_programs?.title ?? "",
+    title: s.title ?? "",
+    stream_start_date: s.stream_start_date ?? "",
+  }));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          Старт нового потока
+          <Badge variant="secondary">{"{{new_stream_data}}"}</Badge>
+        </CardTitle>
+        <CardDescription>
+          JSON-массив всех активных офферов «Старт нового потока». Формируется автоматически.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+        ) : jsonValue.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Нет активных офферов.</p>
+        ) : (
+          <pre className="bg-muted rounded-md p-4 text-sm font-mono overflow-x-auto max-h-[400px] overflow-y-auto">
+            {JSON.stringify(jsonValue, null, 2)}
+          </pre>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function PromptVariables() {
   return (
     <div className="space-y-6">
@@ -626,6 +679,7 @@ export default function PromptVariables() {
       <ColorSchemesCard />
       <PromoCodesCard />
       <SpotAvailableCard />
+      <NewStreamCard />
 
       {categories.map((cat) => (
         <Card key={cat.title}>

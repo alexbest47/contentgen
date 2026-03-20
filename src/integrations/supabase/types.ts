@@ -673,6 +673,7 @@ export type Database = {
           offer_type: Database["public"]["Enums"]["offer_type"]
           program_id: string
           promo_code: string | null
+          stream_start_date: string | null
           title: string
         }
         Insert: {
@@ -687,6 +688,7 @@ export type Database = {
           offer_type: Database["public"]["Enums"]["offer_type"]
           program_id: string
           promo_code?: string | null
+          stream_start_date?: string | null
           title: string
         }
         Update: {
@@ -701,6 +703,7 @@ export type Database = {
           offer_type?: Database["public"]["Enums"]["offer_type"]
           program_id?: string
           promo_code?: string | null
+          stream_start_date?: string | null
           title?: string
         }
         Relationships: [
