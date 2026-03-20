@@ -1,0 +1,1 @@
+ALTER TABLE public.pdf_materials ADD COLUMN offer_id uuid REFERENCES public.offers(id);

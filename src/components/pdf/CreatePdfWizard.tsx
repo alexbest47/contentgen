@@ -123,7 +123,17 @@ export function CreatePdfWizard({ open, onOpenChange, onSuccess }: Props) {
     setProgressMsg(0);
 
     try {
-      // Create record
+      // Create offer record (like diagnostics)
+      const { data: offer, error: offerErr } = await supabase.from("offers").insert({
+        offer_type: "download_pdf" as any,
+        title: title.trim(),
+        program_id: programId,
+        created_by: user.id,
+      }).select("id").single();
+
+      if (offerErr) throw offerErr;
+
+      // Create pdf_materials record linked to offer
       const { data: mat, error: insErr } = await supabase.from("pdf_materials").insert({
         created_by: user.id,
         title: title.trim(),
@@ -133,6 +143,7 @@ export function CreatePdfWizard({ open, onOpenChange, onSuccess }: Props) {
         audience_name: audience,
         brand_style_name: selectedScheme?.name || "",
         status: "generating",
+        offer_id: offer.id,
       }).select("id").single();
 
       if (insErr) throw insErr;

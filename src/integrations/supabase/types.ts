@@ -766,6 +766,7 @@ export type Database = {
           landing_modal_type_word: string | null
           landing_slug: string | null
           material_type: string
+          offer_id: string | null
           program_id: string | null
           program_name: string | null
           sections_count: number | null
@@ -790,6 +791,7 @@ export type Database = {
           landing_modal_type_word?: string | null
           landing_slug?: string | null
           material_type: string
+          offer_id?: string | null
           program_id?: string | null
           program_name?: string | null
           sections_count?: number | null
@@ -814,6 +816,7 @@ export type Database = {
           landing_modal_type_word?: string | null
           landing_slug?: string | null
           material_type?: string
+          offer_id?: string | null
           program_id?: string | null
           program_name?: string | null
           sections_count?: number | null
@@ -823,6 +826,13 @@ export type Database = {
           word_count?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pdf_materials_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pdf_materials_program_id_fkey"
             columns: ["program_id"]
