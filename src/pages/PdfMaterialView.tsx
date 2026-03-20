@@ -140,7 +140,7 @@ export default function PdfMaterialView() {
               <Download className="mr-1 h-4 w-4" /> Экспорт HTML лендинга
             </Button>
           </div>
-          <div className="relative max-w-[800px] mx-auto group">
+          <div className="relative max-w-[1100px] mx-auto group">
             <Button
               variant="outline"
               size="sm"
