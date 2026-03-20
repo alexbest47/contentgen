@@ -150,6 +150,10 @@ export default function OfferTypeManagement() {
           promo_code: isDiscount ? createPromoCode : null,
           expires_at: isDiscount && createExpiresAt ? format(createExpiresAt, "yyyy-MM-dd") : null,
           stream_start_date: isNewStream && createStreamStartDate ? format(createStreamStartDate, "yyyy-MM-dd") : null,
+          webinar_date: isWebinar && createWebinarDate ? createWebinarDate.toISOString() : null,
+          is_date_confirmed: isWebinar ? createIsDateConfirmed : false,
+          is_autowebinar: isWebinar ? createIsAutowebinar : false,
+          landing_url: createLandingUrl || null,
         } as any)
         .select("id")
         .single();
