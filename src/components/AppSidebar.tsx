@@ -6,17 +6,13 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
-  LayoutDashboard, GraduationCap, Tag, TableProperties,
+  GraduationCap, Tag, TableProperties,
   MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion, MailPlus, TreePine, FileText,
 } from "lucide-react";
 
 const mainNav = [
-  { title: "Панель управления", url: "/", icon: LayoutDashboard },
   { title: "Платные программы", url: "/programs", icon: GraduationCap },
   { title: "Конструктор писем", url: "/email-builder", icon: MailPlus },
-  { title: "Теги", url: "/tags", icon: Tag },
-  { title: "Таблица описаний", url: "/descriptions", icon: TableProperties },
-  { title: "Архив", url: "/archive", icon: Archive },
 ];
 
 const offerPrepNav = [
@@ -35,6 +31,9 @@ const emailSettingsNav = [
 ];
 
 const adminNav = [
+  { title: "Теги", url: "/tags", icon: Tag },
+  { title: "Таблица описаний", url: "/descriptions", icon: TableProperties },
+  { title: "Архив", url: "/archive", icon: Archive },
   { title: "Управление промптами", url: "/prompts", icon: MessageSquareText },
   { title: "Переменные промптов", url: "/prompt-variables", icon: Braces },
   { title: "Пользователи", url: "/users", icon: Users },
