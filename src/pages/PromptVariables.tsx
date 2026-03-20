@@ -117,25 +117,25 @@ const categories = [
   {
     title: "Промо-коды",
     variables: [
-      { name: "{{promo_codes_data}}", description: "JSON-массив всех активных промо-кодов (программа, описание, код, дата истечения)", source: "offers (offer_type = discount, is_archived = false)" },
+      { name: "{{promo_codes_data}}", description: "JSON-данные выбранного промокода (программа, описание, код, дата истечения)", source: "Выбирается пользователем при генерации" },
     ],
   },
   {
     title: "Освободилось место",
     variables: [
-      { name: "{{spot_available_data}}", description: "JSON-массив всех активных офферов «Освободилось место» (программа, название)", source: "offers (offer_type = spot_available, is_archived = false)" },
+      { name: "{{spot_available_data}}", description: "JSON-данные выбранного оффера «Освободилось место» (программа, название)", source: "Выбирается пользователем при генерации" },
     ],
   },
   {
     title: "Старт нового потока",
     variables: [
-      { name: "{{new_stream_data}}", description: "JSON-массив всех активных офферов «Старт нового потока» (программа, название, дата старта)", source: "offers (offer_type = new_stream, is_archived = false)" },
+      { name: "{{new_stream_data}}", description: "JSON-данные выбранного оффера «Старт нового потока» (программа, название, дата старта)", source: "Выбирается пользователем при генерации" },
     ],
   },
   {
     title: "Вебинары",
     variables: [
-      { name: "{{webinar_data}}", description: "JSON-массив всех активных вебинаров (программа, название, дата, подтверждена ли дата, автовебинар, ссылка на лендинг)", source: "offers (offer_type = webinar, is_archived = false)" },
+      { name: "{{webinar_data}}", description: "JSON-данные выбранного вебинара (программа, название, дата, автовебинар, ссылка на лендинг)", source: "Выбирается пользователем при генерации" },
     ],
   },
 ];
@@ -521,26 +521,12 @@ function ColorSchemesCard() {
 }
 
 function PromoCodesCard() {
-  const { data: promoCodes, isLoading } = useQuery({
-    queryKey: ["promo_codes_for_variables"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("offers")
-        .select("description, promo_code, expires_at, paid_programs!offers_program_id_fkey(title)")
-        .eq("offer_type", "discount" as any)
-        .eq("is_archived", false)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const jsonValue = (promoCodes ?? []).map((p: any) => ({
-    program: p.paid_programs?.title ?? "",
-    description: p.description ?? "",
-    promo_code: p.promo_code ?? "",
-    expires_at: p.expires_at ?? "",
-  }));
+  const example = {
+    program: "Название программы",
+    description: "Описание оффера",
+    promo_code: "PROMO2025",
+    expires_at: "2025-12-31",
+  };
 
   return (
     <Card>
@@ -550,43 +536,23 @@ function PromoCodesCard() {
           <Badge variant="secondary">{"{{promo_codes_data}}"}</Badge>
         </CardTitle>
         <CardDescription>
-          JSON-массив всех активных промо-кодов. Формируется автоматически из офферов типа «промокод».
+          Данные конкретного промокода, выбранного пользователем при генерации. Пример формата:
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-        ) : jsonValue.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Нет активных промо-кодов.</p>
-        ) : (
-          <pre className="bg-muted rounded-md p-4 text-sm font-mono overflow-x-auto max-h-[400px] overflow-y-auto">
-            {JSON.stringify(jsonValue, null, 2)}
-          </pre>
-        )}
+        <pre className="bg-muted rounded-md p-4 text-sm font-mono overflow-x-auto">
+          {JSON.stringify(example, null, 2)}
+        </pre>
       </CardContent>
     </Card>
   );
 }
 
 function SpotAvailableCard() {
-  const { data: spots, isLoading } = useQuery({
-    queryKey: ["spot_available_for_variables"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("offers")
-        .select("title, paid_programs!offers_program_id_fkey(title)")
-        .eq("offer_type", "spot_available" as any)
-        .eq("is_archived", false)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const jsonValue = (spots ?? []).map((s: any) => ({
-    program: s.paid_programs?.title ?? "",
-    title: s.title ?? "",
-  }));
+  const example = {
+    program: "Название программы",
+    title: "Название оффера",
+  };
 
   return (
     <Card>
@@ -596,44 +562,24 @@ function SpotAvailableCard() {
           <Badge variant="secondary">{"{{spot_available_data}}"}</Badge>
         </CardTitle>
         <CardDescription>
-          JSON-массив всех активных офферов «Освободилось место». Формируется автоматически.
+          Данные конкретного оффера «Освободилось место», выбранного пользователем при генерации. Пример формата:
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-        ) : jsonValue.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Нет активных офферов.</p>
-        ) : (
-          <pre className="bg-muted rounded-md p-4 text-sm font-mono overflow-x-auto max-h-[400px] overflow-y-auto">
-            {JSON.stringify(jsonValue, null, 2)}
-          </pre>
-        )}
+        <pre className="bg-muted rounded-md p-4 text-sm font-mono overflow-x-auto">
+          {JSON.stringify(example, null, 2)}
+        </pre>
       </CardContent>
     </Card>
   );
 }
 
 function NewStreamCard() {
-  const { data: streams, isLoading } = useQuery({
-    queryKey: ["new_stream_for_variables"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("offers")
-        .select("title, stream_start_date, paid_programs!offers_program_id_fkey(title)")
-        .eq("offer_type", "new_stream" as any)
-        .eq("is_archived", false)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const jsonValue = (streams ?? []).map((s: any) => ({
-    program: s.paid_programs?.title ?? "",
-    title: s.title ?? "",
-    stream_start_date: s.stream_start_date ?? "",
-  }));
+  const example = {
+    program: "Название программы",
+    title: "Название оффера",
+    stream_start_date: "2025-09-01",
+  };
 
   return (
     <Card>
@@ -643,46 +589,26 @@ function NewStreamCard() {
           <Badge variant="secondary">{"{{new_stream_data}}"}</Badge>
         </CardTitle>
         <CardDescription>
-          JSON-массив всех активных офферов «Старт нового потока». Формируется автоматически.
+          Данные конкретного оффера «Старт нового потока», выбранного пользователем при генерации. Пример формата:
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-        ) : jsonValue.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Нет активных офферов.</p>
-        ) : (
-          <pre className="bg-muted rounded-md p-4 text-sm font-mono overflow-x-auto max-h-[400px] overflow-y-auto">
-            {JSON.stringify(jsonValue, null, 2)}
-          </pre>
-        )}
+        <pre className="bg-muted rounded-md p-4 text-sm font-mono overflow-x-auto">
+          {JSON.stringify(example, null, 2)}
+        </pre>
       </CardContent>
     </Card>
   );
 }
 
 function WebinarDataCard() {
-  const { data: webinars, isLoading } = useQuery({
-    queryKey: ["webinar_for_variables"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("offers")
-        .select("title, webinar_date, is_autowebinar, landing_url, paid_programs!offers_program_id_fkey(title)")
-        .eq("offer_type", "webinar" as any)
-        .eq("is_archived", false)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const jsonValue = (webinars ?? []).map((w: any) => ({
-    program: w.paid_programs?.title ?? "",
-    title: w.title ?? "",
-    webinar_date: w.webinar_date ?? "",
-    is_autowebinar: w.is_autowebinar ? "да" : "нет",
-    landing_url: w.landing_url ?? "",
-  }));
+  const example = {
+    program: "Название программы",
+    title: "Название вебинара",
+    webinar_date: "2025-10-15T18:00:00",
+    is_autowebinar: "нет",
+    landing_url: "https://example.com/webinar",
+  };
 
   return (
     <Card>
@@ -692,19 +618,13 @@ function WebinarDataCard() {
           <Badge variant="secondary">{"{{webinar_data}}"}</Badge>
         </CardTitle>
         <CardDescription>
-          JSON-массив всех активных вебинаров. Формируется автоматически из офферов типа «вебинар».
+          Данные конкретного вебинара, выбранного пользователем при генерации. Пример формата:
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-        ) : jsonValue.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Нет активных вебинаров.</p>
-        ) : (
-          <pre className="bg-muted rounded-md p-4 text-sm font-mono overflow-x-auto max-h-[400px] overflow-y-auto">
-            {JSON.stringify(jsonValue, null, 2)}
-          </pre>
-        )}
+        <pre className="bg-muted rounded-md p-4 text-sm font-mono overflow-x-auto">
+          {JSON.stringify(example, null, 2)}
+        </pre>
       </CardContent>
     </Card>
   );
