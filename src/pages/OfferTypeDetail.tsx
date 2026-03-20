@@ -190,7 +190,13 @@ export default function OfferTypeDetail() {
               <div
                 key={m.id}
                 className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => navigate(`/pdf-materials/${m.id}`)}
+                onClick={() => {
+                  if (m.offer_id) {
+                    navigate(`/programs/${programId}/offers/download_pdf/${m.offer_id}`);
+                  } else {
+                    toast.error("У этого PDF нет привязанного оффера. Пересоздайте материал.");
+                  }
+                }}
               >
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">{m.title}</div>
