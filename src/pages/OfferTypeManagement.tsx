@@ -65,6 +65,10 @@ export default function OfferTypeManagement() {
   const [editPromoCode, setEditPromoCode] = useState("");
   const [editExpiresAt, setEditExpiresAt] = useState<Date | undefined>();
   const [editStreamStartDate, setEditStreamStartDate] = useState<Date | undefined>();
+  const [editWebinarDate, setEditWebinarDate] = useState<Date | undefined>();
+  const [editIsDateConfirmed, setEditIsDateConfirmed] = useState(false);
+  const [editIsAutowebinar, setEditIsAutowebinar] = useState(false);
+  const [editLandingUrl, setEditLandingUrl] = useState("");
 
   // --- Archive state ---
   const [archiveOpen, setArchiveOpen] = useState(false);
