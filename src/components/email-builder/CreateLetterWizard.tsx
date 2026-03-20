@@ -517,47 +517,52 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">Платная программа</Label>
-                <Select value={programId || ""} onValueChange={(v) => { setProgramId(v); setOfferId(null); }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите программу" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {programs?.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Hide program/offer/type for webinar — already selected on step 2 */}
+              {!isWebinar && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Платная программа</Label>
+                    <Select value={programId || ""} onValueChange={(v) => { setProgramId(v); setOfferId(null); }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите программу" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {programs?.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">Тип оффера</Label>
-                <Select value={offerType} onValueChange={(v) => { setOfferType(v); setOfferId(null); }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите тип" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {offerTypes.map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{String(label)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Тип оффера</Label>
+                    <Select value={offerType} onValueChange={(v) => { setOfferType(v); setOfferId(null); }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите тип" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {offerTypes.map(([key, label]) => (
+                          <SelectItem key={key} value={key}>{String(label)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">Конкретный оффер</Label>
-                <Select value={offerId || ""} onValueChange={setOfferId} disabled={!programId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите оффер" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {offers?.map((o) => (
-                      <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Конкретный оффер</Label>
+                    <Select value={offerId || ""} onValueChange={setOfferId} disabled={!programId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите оффер" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {offers?.map((o) => (
+                          <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Цветовая гамма</Label>
