@@ -1,26 +1,21 @@
 
 
-## Исправить печать PDF: фон обложки + пустая вторая страница
+## Добавить отступы в PDF-контент
 
-### Проблема 1: Фон обложки не печатается
-Браузеры по умолчанию не печатают фоновые цвета и изображения. В CSS сгенерированного HTML нет директивы `print-color-adjust`.
-
-### Проблема 2: Пустая вторая страница
-CSS `.cover` имеет `page-break-after: always`, что создаёт пустую страницу между обложкой и контентом.
+### Проблема
+Текст в PDF прижимается к краям страницы — нет боковых отступов.
 
 ### Решение
 
 **`src/pages/PdfMaterialView.tsx`**
 
-Перед передачей `html_content` в iframe для печати — инжектить CSS-фикс прямо в HTML:
+Расширить `printFixCss` — добавить `body { padding: 32px 48px; }` для контента внутри iframe. Также добавить в `@media print` аналогичные отступы через `margin`, чтобы при печати тоже были поля.
 
 ```css
-* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-@media print { .cover { page-break-after: avoid; } }
+body { padding: 32px 48px; box-sizing: border-box; }
+@media print { body { margin: 0; padding: 32px 48px; } }
 ```
 
-Добавить функцию `injectPrintStyles(html)` — вставляет `<style>` блок перед `</head>` (или в начало HTML). Применять и к `srcDoc` iframe, и к `print()`.
-
 ### Итого
-- 1 файл изменён (`PdfMaterialView.tsx`), ~10 строк
+- 1 файл, ~2 строки в CSS-блоке
 
