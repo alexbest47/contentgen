@@ -89,25 +89,12 @@ export default function PdfMaterialView() {
     return <div className="text-center py-12 text-muted-foreground">Материал не найден</div>;
   }
 
-  const landingScrollFix = `<style>
-html, body {
-  height: auto !important;
-  min-height: 100% !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-}
-.container {
-  min-height: 100vh !important;
-  height: auto !important;
-}
-</style>`;
   let landingHtml = material.landing_html || "";
   if (material.background_image_url) {
     landingHtml = landingHtml
       .replace(/BACKGROUND_IMAGE_URL/g, material.background_image_url)
       .replace(/CHARACTER_IMAGE_URL/g, material.background_image_url);
   }
-  landingHtml = landingScrollFix + landingHtml;
 
   return (
     <div className="space-y-4">
