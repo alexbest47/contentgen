@@ -420,6 +420,14 @@ export default function OfferTypeManagement() {
     const toggleTag = mode === "create" ? toggleCreateTag : toggleEditTag;
     const imageFile = mode === "create" ? createImageFile : editImageFile;
     const setImageFile = mode === "create" ? setCreateImageFile : setEditImageFile;
+    const landingUrl = mode === "create" ? createLandingUrl : editLandingUrl;
+    const setLandingUrl = mode === "create" ? setCreateLandingUrl : setEditLandingUrl;
+    const webinarDate = mode === "create" ? createWebinarDate : editWebinarDate;
+    const setWebinarDate = mode === "create" ? setCreateWebinarDate : setEditWebinarDate;
+    const isDateConfirmed = mode === "create" ? createIsDateConfirmed : editIsDateConfirmed;
+    const setIsDateConfirmed = mode === "create" ? setCreateIsDateConfirmed : setEditIsDateConfirmed;
+    const isAutowebinar = mode === "create" ? createIsAutowebinar : editIsAutowebinar;
+    const setIsAutowebinar = mode === "create" ? setCreateIsAutowebinar : setEditIsAutowebinar;
 
     return (
       <>
@@ -440,6 +448,56 @@ export default function OfferTypeManagement() {
             />
           </>
         )}
+        {isWebinar && (
+          <>
+            <div className="space-y-2">
+              <Label>Дата проведения</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !webinarDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {webinarDate ? format(webinarDate, "dd.MM.yyyy") : "Выберите дату"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={webinarDate}
+                    onSelect={setWebinarDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id={`date-confirmed-${mode}`}
+                checked={isDateConfirmed}
+                onCheckedChange={(v) => setIsDateConfirmed(!!v)}
+              />
+              <Label htmlFor={`date-confirmed-${mode}`}>Дата и время подтверждены</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id={`autowebinar-${mode}`}
+                checked={isAutowebinar}
+                onCheckedChange={(v) => setIsAutowebinar(!!v)}
+              />
+              <Label htmlFor={`autowebinar-${mode}`}>Автовебинар</Label>
+            </div>
+          </>
+        )}
+        <div className="space-y-2">
+          <Label>Ссылка на лендинг</Label>
+          <Input value={landingUrl} onChange={(e) => setLandingUrl(e.target.value)} placeholder="https://example.com/landing" />
+        </div>
         <div className="space-y-2">
           <Label>Ссылка на Google Doc</Label>
           <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
