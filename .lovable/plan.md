@@ -1,24 +1,23 @@
 
 
-## Убрать кейс для двух конкретных вебинарных шаблонов
+## Сменить пароль администратора через edge function
 
 ### Подход
-Вместо проверки по категории `webinar` (т.к. в будущем могут быть вебинарные шаблоны с кейсом), проверяем по конкретным именам шаблонов: «Приглашение на вебинар: письмо 1» и «Приглашение на вебинар: письмо 2».
+Создать одноразовую edge function `admin-reset-password`, которая использует Supabase Admin API (`supabase.auth.admin.updateUserById`) для смены пароля. После успешного выполнения — удалить функцию.
 
 ### Изменения
 
-**1. `src/pages/EmailBuilder.tsx`** (строка 530)
-- Добавить хелпер `noCaseRequired` = имя шаблона входит в список `["Приглашение на вебинар: письмо 1", "Приглашение на вебинар: письмо 2"]`
-- `canGenerate`: для `noCaseRequired` → `true`, для «Прямой оффер» → кейс + возражения, иначе → кейс
+**1. Создать `supabase/functions/admin-reset-password/index.ts`**
+- Использует `SUPABASE_SERVICE_ROLE_KEY` для создания admin-клиента
+- Вызывает `auth.admin.updateUserById(userId, { password })` для пользователя `8e4d5a3b-e62f-46c0-b415-0b118585cd28`
+- Пароль: `admin123$`
+- Возвращает результат
 
-**2. `src/components/email-builder/LetterGenerationPanel.tsx`**
-- Добавить проп `noCaseRequired?: boolean`
-- В пре-генерационном режиме: скрыть блок «Кейс студента» и `CasePickerDialog` если `noCaseRequired`
-- В `canGenerate`: если `noCaseRequired` → `true`
-
-**3. `src/components/email-builder/BlockLibrary.tsx`**
-- Добавить проверку: если templateName входит в список no-case шаблонов, скрыть секцию «Генерируемые» (там «Кейс / отзыв» не нужен)
+**2. Деплой и вызов функции**
+- Задеплоить функцию
+- Вызвать через curl
+- Удалить функцию после успешного выполнения
 
 ### Итого
-- 3 файла, ~15 строк изменено
+- 1 временная edge function (создать → вызвать → удалить)
 
