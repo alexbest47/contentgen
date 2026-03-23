@@ -23,7 +23,7 @@ export default function EmailBuilderList() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("email_letters")
-        .select("*")
+        .select("*, email_templates(name)")
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -118,6 +118,7 @@ export default function EmailBuilderList() {
           <TableHeader>
             <TableRow>
               <TableHead>Название</TableHead>
+              <TableHead>Шаблон</TableHead>
               <TableHead>Тема письма</TableHead>
               <TableHead>Тема контента</TableHead>
               <TableHead>Обновлено</TableHead>
@@ -129,6 +130,9 @@ export default function EmailBuilderList() {
             {letters.map((letter) => (
               <TableRow key={letter.id}>
                 <TableCell className="font-medium">{letter.title || "Без названия"}</TableCell>
+                <TableCell className="text-muted-foreground max-w-[180px] truncate">
+                  {(letter as any).email_templates?.name || "—"}
+                </TableCell>
                 <TableCell className="text-muted-foreground max-w-[200px] truncate">
                   {letter.subject || "—"}
                 </TableCell>
