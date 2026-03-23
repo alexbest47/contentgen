@@ -17,6 +17,7 @@ const GLOBAL_VARS = [
   { key: "offer_rules", name: "{{offer_rules}}", description: "Адаптация под тип оффера" },
   { key: "antiAI_rules", name: "{{antiAI_rules}}", description: "Требования к тексту — антиAI" },
   { key: "brand_voice", name: "{{brand_voice}}", description: "Голос бренда Talentsy" },
+  { key: "image_style", name: "{{image_style}}", description: "Стиль изображений для всех imagen-промптов" },
 ];
 
 const AUDIENCE_VARS = [
@@ -46,6 +47,7 @@ const categories = [
       { name: "{{offer_description}}", description: "Полное описание оффера из Google Docs", source: "offers.doc_url → Google Docs export" },
       { name: "{{offer_image}}", description: "URL изображения оффера (квадрат)", source: "offers.image_url" },
       { name: "{{brand_style}}", description: "Фирменный стиль (описание выбранной цветовой гаммы)", source: "Выбранная цветовая гамма (color_schemes.description)" },
+      { name: "{{image_style}}", description: "Визуальный стиль для всех imagen-промптов", source: "prompt_global_variables (image_style)" },
       { name: "{{offer_tags}}", description: "Теги аудитории оффера (через запятую)", source: "offer_tags → tags.name" },
     ],
   },
