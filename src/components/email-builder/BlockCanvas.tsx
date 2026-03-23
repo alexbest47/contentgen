@@ -200,6 +200,11 @@ export default function BlockCanvas({
   useEffect(() => {
     if (!isFullLetterMode || !contentRef.current || !processedHtml) return;
     contentRef.current.innerHTML = processedHtml;
+  }, [isFullLetterMode, processedHtml]);
+
+  // Measure placeholder positions after DOM update
+  useEffect(() => {
+    if (!isFullLetterMode) return;
     requestAnimationFrame(measurePlaceholders);
   }, [isFullLetterMode, processedHtml, measurePlaceholders]);
 
