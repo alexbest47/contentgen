@@ -104,6 +104,25 @@ export default function ManagePrograms() {
                 <Label>Ссылка на описание программы (Google Docs)</Label>
                 <Input value={programDocUrl} onChange={(e) => setProgramDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
               </div>
+              <div className="space-y-2">
+                <Label>Теги аудитории</Label>
+                {allTags && allTags.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {allTags.map((tag) => (
+                      <Badge
+                        key={tag.id}
+                        variant={selectedTagIds.includes(tag.id) ? "default" : "outline"}
+                        className="cursor-pointer select-none"
+                        onClick={() => toggleTag(tag.id)}
+                      >
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Нет тегов. Создайте их в разделе «Теги».</p>
+                )}
+              </div>
               <Button type="submit" className="w-full" disabled={createMutation.isPending}>
                 {createMutation.isPending ? "Создание..." : "Создать"}
               </Button>
