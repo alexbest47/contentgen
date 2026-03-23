@@ -9,6 +9,8 @@ import Auth from "@/pages/Auth";
 
 import Programs from "@/pages/Programs";
 import ProgramDetail from "@/pages/ProgramDetail";
+import ManagePrograms from "@/pages/ManagePrograms";
+import ManageProgramDetail from "@/pages/ManageProgramDetail";
 import OfferTypeDetail from "@/pages/OfferTypeDetail";
 import OfferDetail from "@/pages/OfferDetail";
 import ProjectDetail from "@/pages/ProjectDetail";
