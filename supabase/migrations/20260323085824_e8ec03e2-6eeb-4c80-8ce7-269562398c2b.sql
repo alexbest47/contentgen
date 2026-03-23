@@ -1,0 +1,5 @@
+INSERT INTO prompt_global_variables (key, label, value) VALUES
+('image_style', 'Стиль изображений',
+ '[CORE STYLE]: Modern flat vector art style with clean, crisp, uniform dark outlines on all elements. The color palette must be limited, soft, matte, and muted earth-tones (e.g., dusty greens, warm beiges, terracotta, muted pinks, navy blues). Use only solid color fills; do not include complex gradients or textures.
+[PERFORMANCE]: Characters are simplified human figures with basic facial features (dot eyes, simple lines) and stylized hair. Poses and expressions are clear but simplified. The background composition is clean, ordered, and composed of stylized geometric forms (like shelves or furniture).
+[SPECIAL EFFECT]: Include clean, straight, geometric light rays or shafts of light cutting diagonally across the scene, creating flat, contrasting patterns of light and shadow on surfaces, adding geometry to the composition. No soft shadows.');
