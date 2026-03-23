@@ -23,7 +23,7 @@ export default function EmailBuilderList() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("email_letters")
-        .select("*")
+        .select("*, email_templates(name)")
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data;
