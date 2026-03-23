@@ -130,6 +130,9 @@ export default function EmailBuilderList() {
             {letters.map((letter) => (
               <TableRow key={letter.id}>
                 <TableCell className="font-medium">{letter.title || "Без названия"}</TableCell>
+                <TableCell className="text-muted-foreground max-w-[180px] truncate">
+                  {(letter as any).email_templates?.name || "—"}
+                </TableCell>
                 <TableCell className="text-muted-foreground max-w-[200px] truncate">
                   {letter.subject || "—"}
                 </TableCell>
