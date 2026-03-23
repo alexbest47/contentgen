@@ -65,6 +65,7 @@ export default function ManagePrograms() {
       setDescription("");
       setAudienceDocUrl("");
       setProgramDocUrl("");
+      setSelectedTagIds([]);
       toast.success("Программа создана");
     },
     onError: (e: Error) => toast.error(e.message),
