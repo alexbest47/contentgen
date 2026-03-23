@@ -22,6 +22,16 @@ export default function ManagePrograms() {
   const [description, setDescription] = useState("");
   const [audienceDocUrl, setAudienceDocUrl] = useState("");
   const [programDocUrl, setProgramDocUrl] = useState("");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+
+  const { data: allTags } = useQuery({
+    queryKey: ["tags"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tags").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: programs, isLoading } = useQuery({
     queryKey: ["paid_programs"],
