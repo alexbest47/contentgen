@@ -84,6 +84,8 @@ const App = () => (
               <Route path="/pdf-materials" element={<ProtectedRoute adminOnly><PdfMaterials /></ProtectedRoute>} />
               <Route path="/pdf-materials/:id" element={<ProtectedRoute adminOnly><PdfMaterialView /></ProtectedRoute>} />
               <Route path="/cases" element={<ProtectedRoute adminOnly><CaseManagement /></ProtectedRoute>} />
+              <Route path="/manage-programs" element={<ProtectedRoute adminOnly><ManagePrograms /></ProtectedRoute>} />
+              <Route path="/manage-programs/:programId" element={<ProtectedRoute adminOnly><ManageProgramDetail /></ProtectedRoute>} />
               <Route path="/objections" element={<ProtectedRoute adminOnly><ObjectionsHub /></ProtectedRoute>} />
               <Route path="/programs/:programId/objections" element={<ProtectedRoute adminOnly><Objections /></ProtectedRoute>} />
               <Route path="/topics" element={<ProtectedRoute adminOnly><TopicTree /></ProtectedRoute>} />
