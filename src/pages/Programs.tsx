@@ -26,7 +26,7 @@ export default function Programs() {
   const { data: programs, isLoading } = useQuery({
     queryKey: ["paid_programs"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("paid_programs").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("paid_programs").select("*, program_tags(tags(id, name))").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
