@@ -42,10 +42,21 @@ export default function ManagePrograms() {
     },
   });
 
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("paid_programs").insert({ title, description, audience_doc_url: audienceDocUrl || null, program_doc_url: programDocUrl || null, created_by: user!.id } as any);
+      const { data: newProgram, error } = await supabase.from("paid_programs").insert({ title, description, audience_doc_url: audienceDocUrl || null, program_doc_url: programDocUrl || null, created_by: user!.id } as any).select().single();
       if (error) throw error;
+      if (selectedTagIds.length > 0 && newProgram) {
+        const rows = selectedTagIds.map((tag_id) => ({ program_id: (newProgram as any).id, tag_id }));
+        const { error: tagErr } = await (supabase.from("program_tags" as any) as any).insert(rows);
+        if (tagErr) throw tagErr;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["paid_programs"] });
