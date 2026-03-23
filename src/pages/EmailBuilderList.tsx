@@ -118,6 +118,7 @@ export default function EmailBuilderList() {
           <TableHeader>
             <TableRow>
               <TableHead>Название</TableHead>
+              <TableHead>Шаблон</TableHead>
               <TableHead>Тема письма</TableHead>
               <TableHead>Тема контента</TableHead>
               <TableHead>Обновлено</TableHead>
