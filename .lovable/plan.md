@@ -1,140 +1,117 @@
 
 
-## Глобальная очередь задач
+## Исправление таймаута 504 в очереди задач
 
-### Архитектура
+### Проблема
+
+`process-queue` вызывает целевую edge-функцию через `fetch()` и **ждёт ответа**. Edge-функции имеют лимит ~150 секунд. Если `generate-email-letter` или `generate-pipeline` работает дольше — `process-queue` получает 504 от платформы, помечает задачу как `error`, хотя целевая функция может ещё работать.
 
 ```text
-Frontend                    Backend
-────────                    ───────
-Кнопка "Генерировать"       
-  │                         
-  ├─► enqueue-task ──► INSERT task_queue (pending)
-  │                         │
-  │                    process-queue (self-chaining)
-  │                         ├─► lane "claude": 1 задача
-  │                         └─► lane "openrouter": 1 задача
-  │                              │
-  │                         Вызывает оригинальную edge-функцию
-  │                         Обновляет статус → completed/error
-  │                         Если есть ещё задачи → вызывает себя
-  │                         
-  └─► Страница "Очередь" (polling / realtime)
+process-queue ──fetch──► generate-email-letter ──fetch──► Claude API
+     │                        │
+     │  ← 504 (150s limit)    │  ← ещё работает...
+     │                        │
+     └─ marks task "error"    └─ завершается, но результат потерян
 ```
 
-Две параллельные линии: `claude` (текст) и `openrouter` (картинки). В каждой линии выполняется строго одна задача.
+### Решение: fire-and-forget + self-update
+
+Целевые функции сами обновляют `task_queue` по завершении. `process-queue` не ждёт ответа.
+
+```text
+process-queue ──fetch (fire-and-forget)──► generate-email-letter
+     │                                         │
+     │  ← возвращается сразу                   │
+     │                                         ├─► Claude API (долго)
+     │                                         ├─► UPDATE task_queue → completed
+     │                                         └─► POST process-queue (chain)
+```
 
 ### Изменения
 
-#### 1. Миграция — таблица `task_queue`
+#### 1. `process-queue/index.ts` — fire-and-forget
 
-```sql
-CREATE TABLE task_queue (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  started_at timestamptz,
-  completed_at timestamptz,
-  created_by uuid NOT NULL,
-  lane text NOT NULL,           -- 'claude' или 'openrouter'
-  status text NOT NULL DEFAULT 'pending',  -- pending/processing/completed/error
-  function_name text NOT NULL,  -- имя edge-функции
-  payload jsonb NOT NULL DEFAULT '{}',
-  result jsonb,
-  error_message text,
-  display_title text NOT NULL DEFAULT '',
-  priority integer NOT NULL DEFAULT 0
-);
+Вместо `await fetch(...)` и ожидания ответа:
+- Добавить в payload задачи поле `_task_id` с id текущей задачи
+- Вызвать fetch **без await** (fire-and-forget)
+- Сразу вернуть ответ, не дожидаясь завершения целевой функции
+- Убрать блок try/catch с пометкой completed/error — это теперь делает сама функция
+- Добавить **watchdog**: если задача в статусе `processing` более 10 минут — помечать как `error` (защита от зависших задач)
 
-ALTER TABLE task_queue ENABLE ROW LEVEL SECURITY;
--- Все аутентифицированные видят очередь
--- Вставка по auth.uid() = created_by
--- Обновление/удаление для owner или admin
-ALTER PUBLICATION supabase_realtime ADD TABLE task_queue;
-```
+#### 2. Каждая целевая edge-функция — self-update
 
-#### 2. Edge-функция `enqueue-task`
+В каждую из ~12 функций добавить в конце логику:
+- Если в payload есть `_task_id` — обновить `task_queue` (status: completed/error, result, error_message)
+- Вызвать `process-queue` (fire-and-forget) для продолжения цепочки
 
-- Принимает `{ function_name, payload, display_title, lane }`
-- Вставляет строку в `task_queue` со статусом `pending`
-- Fire-and-forget вызывает `process-queue`
-- Возвращает `{ task_id }`
+Затронутые функции:
+- `generate-email-letter`
+- `generate-email-block`
+- `generate-pipeline`
+- `generate-pipeline-images`
+- `generate-lead-magnets`
+- `generate-content`
+- `generate-image`
+- `generate-pdf-material`
+- `generate-diagnostic` / `run-diagnostic-pipeline`
+- `generate-diagnostic-images` / `process-diagnostic-image`
+- `generate-card-prompt`
+- `refine-prompt`
 
-#### 3. Edge-функция `process-queue` (воркер)
+#### 3. Хелпер для DRY
 
-- Выбирает по одной задаче `pending` из каждой линии (ORDER BY priority DESC, created_at ASC)
-- Помечает как `processing`, ставит `started_at`
-- Вызывает оригинальную edge-функцию через HTTP (тот же Supabase URL)
-- При успехе → `completed`, при ошибке → `error` + `error_message`
-- Если есть ещё `pending` задачи → self-chain (вызывает себя)
-- Защита от дублирования: UPDATE ... WHERE status = 'pending' RETURNING (атомарный захват)
+Создать общий паттерн (inline в каждой функции, т.к. shared imports не поддерживаются):
 
-#### 4. Cron-fallback (pg_cron)
-
-- Каждую минуту вызывает `process-queue` — страховка, если self-chain оборвалась
-
-#### 5. Страница «Очередь» (`/queue`)
-
-- Добавить в сайдбар первым пунктом (иконка `ListOrdered`)
-- Доступна всем пользователям
-- Таблица: название задачи, статус (badge), время создания, время выполнения, ошибка
-- Realtime-подписка на `task_queue` для live-обновлений
-- Фильтры: все / в очереди / выполняются / завершено / ошибки
-- Кнопка «Повторить» для задач с ошибкой
-
-#### 6. Миграция frontend — замена прямых вызовов на enqueue
-
-Все `supabase.functions.invoke(...)` для AI-генерации заменяются на вызов `enqueue-task`. Затронутые файлы:
-
-| Файл | Вызовы | Lane |
-|------|--------|------|
-| `OfferDetail.tsx` | generate-lead-magnets | claude |
-| `ProjectDetail.tsx` | generate-lead-magnets, generate-pipeline | claude |
-| `ContentDetail.tsx` | generate-pipeline, generate-pipeline-images | claude / openrouter |
-| `EmailBuilder.tsx` | generate-email-block (×2), generate-email-letter (×2) | claude / openrouter |
-| `DiagnosticDetail.tsx` | run-diagnostic-pipeline | claude |
-| `Diagnostics.tsx` | run-diagnostic-pipeline | claude |
-| `PdfMaterialView.tsx` | generate-pdf-material | claude |
-| `CreatePdfWizard.tsx` | generate-pdf-material | claude |
-| `GeneratedBlockSettings.tsx` | generate-lead-magnets (×2) | claude |
-| `RefinePromptDialog.tsx` | refine-prompt | claude |
-
-**Не затрагиваются** (не AI-генерация): `generate-project-name`, `import-prompts-txt`, `fetch-google-doc`, `scan-case-folder`, `transcribe-case-file`, `deepgram-callback`.
-
-Каждый вызов заменяется на:
 ```typescript
-const { data } = await supabase.functions.invoke("enqueue-task", {
-  body: {
-    function_name: "generate-pipeline",
-    payload: { project_id, content_type },
-    display_title: "Генерация контента: ...",
-    lane: "claude",
-  },
-});
-// toast("Задача добавлена в очередь")
+// В конце каждой функции, перед return:
+if (taskId) {
+  const sb = createClient(supabaseUrl, serviceKey);
+  await sb.from("task_queue").update({
+    status: "completed",
+    completed_at: new Date().toISOString(),
+    result: { success: true, /* данные */ },
+  }).eq("id", taskId);
+  // Chain next task
+  fetch(`${supabaseUrl}/functions/v1/process-queue`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` },
+    body: JSON.stringify({ trigger: true }),
+  }).catch(() => {});
+}
 ```
 
-UI-компоненты переходят на polling/realtime для отслеживания результата вместо ожидания ответа.
+И в catch:
+```typescript
+if (taskId) {
+  await sb.from("task_queue").update({
+    status: "error",
+    completed_at: new Date().toISOString(),
+    error_message: err.message?.substring(0, 2000),
+  }).eq("id", taskId);
+}
+```
 
-#### 7. Хелпер `useTaskQueue`
+#### 4. Watchdog в `process-queue`
 
-React-хук для:
-- Постановки задачи в очередь
-- Подписки на статус конкретной задачи (realtime)
-- Показа toast при завершении/ошибке
+Перед обработкой новых задач — проверять зависшие:
+
+```typescript
+// Reset stuck tasks (processing > 10 min)
+await supabase.from("task_queue")
+  .update({ status: "error", error_message: "Timeout: task exceeded 10 minutes" })
+  .eq("status", "processing")
+  .lt("started_at", new Date(Date.now() - 10 * 60 * 1000).toISOString());
+```
 
 ### Порядок реализации
 
-1. Миграция БД + RLS
-2. `enqueue-task` + `process-queue` edge-функции
-3. Страница «Очередь» + маршрут + сайдбар
-4. Хук `useTaskQueue`
-5. Постепенная замена вызовов во frontend (по файлам)
-6. pg_cron fallback
+1. Обновить `process-queue` (fire-and-forget + watchdog)
+2. Обновить все целевые функции (self-update по `_task_id`)
+3. Передеплоить все функции
 
 ### Итого
-- 1 миграция
-- 2 новые edge-функции
-- 1 новая страница + маршрут
-- 1 хук
-- ~10 файлов frontend модифицированы
+- 1 функция переписана (`process-queue`)
+- ~12 функций дополнены блоком self-update
+- 0 миграций
+- 0 изменений фронтенда
 
