@@ -160,9 +160,10 @@ export default function EmailBuilder() {
       initialLoadRef.current = true;
       // Reset hydrating flag after React processes the state updates
       requestAnimationFrame(() => { hydratingRef.current = false; });
-    } else if (!dirtyRef.current && dbHtml && !generatedHtmlRef.current) {
-      // Re-hydrate: DB has generated content but local state is empty (e.g. background generation finished)
+    } else if (dbHtml && !generatedHtmlRef.current) {
+      // Re-hydrate: DB has generated content but local is empty — always accept DB version
       hydratingRef.current = true;
+      dirtyRef.current = false;
       setGeneratedHtml(dbHtml);
       setImagePlaceholders(dbPlaceholders);
       setSubject(letter.subject);
@@ -173,6 +174,7 @@ export default function EmailBuilder() {
 
   useEffect(() => {
     if (dbBlocks && !blocksLoadedRef.current) {
+      hydratingRef.current = true;
       setBlocks(dbBlocks.map((b: any) => ({
         id: b.id,
         block_type: b.block_type as EmailBlockType,
@@ -183,6 +185,7 @@ export default function EmailBuilder() {
         banner_image_url: b.banner_image_url,
       })));
       blocksLoadedRef.current = true;
+      requestAnimationFrame(() => { hydratingRef.current = false; });
     }
   }, [dbBlocks]);
 
@@ -199,7 +202,7 @@ export default function EmailBuilder() {
     if (!letterId || !dirtyRef.current) return;
     setSaveStatus("saving");
     try {
-      await supabase.from("email_letters").update({
+      const updatePayload: any = {
         title, subject, preheader,
         selected_color_scheme_id: colorSchemeId,
         letter_theme_title: letterThemeTitle,
@@ -209,10 +212,14 @@ export default function EmailBuilder() {
         offer_id: offerId,
         case_id: caseId,
         extra_offer_ids: extraOfferIds,
-        generated_html: generatedHtmlRef.current,
-        image_placeholders: imagePlaceholdersRef.current,
         selected_objection_ids: selectedObjectionIds,
-      } as any).eq("id", letterId);
+      };
+      // Safeguard: don't overwrite existing generated content with empty local state
+      if (generatedHtmlRef.current || letter?.status !== "ready") {
+        updatePayload.generated_html = generatedHtmlRef.current;
+        updatePayload.image_placeholders = imagePlaceholdersRef.current;
+      }
+      await supabase.from("email_letters").update(updatePayload).eq("id", letterId);
 
       for (const block of blocks) {
         await supabase.from("email_letter_blocks").upsert({
