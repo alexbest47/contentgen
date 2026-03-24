@@ -56,6 +56,7 @@ export default function EmailBuilder() {
   const [generatingPlaceholderId, setGeneratingPlaceholderId] = useState<string | null>(null);
   const [settingsMode, setSettingsMode] = useState(false);
   const [selectedObjectionIds, setSelectedObjectionIds] = useState<string[]>([]);
+  const [bannerPickerPlaceholderId, setBannerPickerPlaceholderId] = useState<string | null>(null);
 
   const handleChangeCaseId = useCallback(async (id: string | null) => {
     setCaseId(id);
