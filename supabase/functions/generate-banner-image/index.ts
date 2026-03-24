@@ -45,7 +45,7 @@ serve(async (req) => {
   try {
     const body = await req.json();
     taskId = body._task_id || null;
-    const { prompt, banner_type, color_scheme_id } = body;
+    const { prompt, banner_type, color_scheme_id, title, category, program_id, offer_type, note, created_by, generation_prompt } = body;
     if (!prompt || !banner_type) throw new Error("prompt and banner_type are required");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -98,6 +98,29 @@ serve(async (req) => {
 
     const { data: urlData } = supabase.storage.from("generated-images").getPublicUrl(filePath);
     const publicUrl = urlData.publicUrl;
+
+    // Auto-save banner to banners table if metadata provided
+    if (created_by && title) {
+      const freshSb = createClient(supabaseUrl, supabaseServiceKey);
+      const { error: insertError } = await freshSb.from("banners").insert({
+        title,
+        banner_type,
+        category: category || "paid_program",
+        program_id: program_id || null,
+        offer_type: offer_type || null,
+        color_scheme_id: color_scheme_id || null,
+        image_url: publicUrl,
+        source: "generated",
+        generation_prompt: generation_prompt || prompt,
+        note: note || "",
+        created_by,
+      });
+      if (insertError) {
+        console.error("Failed to insert banner row:", insertError.message);
+      } else {
+        console.log("Banner row inserted successfully");
+      }
+    }
 
     const responseData = { success: true, image_url: publicUrl };
     if (taskId) await completeTask(taskId, responseData);
