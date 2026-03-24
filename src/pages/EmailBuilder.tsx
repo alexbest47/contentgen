@@ -180,6 +180,26 @@ export default function EmailBuilder() {
     }
   }, [letter]);
 
+  // Keep image URLs in sync from DB even after initial hydration
+  // This ensures that when the edge function updates image_placeholders in DB,
+  // the local state picks up the new image_url values
+  useEffect(() => {
+    if (!letter?.image_placeholders || !initialLoadRef.current) return;
+    const dbPlaceholders = (letter as any).image_placeholders as ImagePlaceholder[];
+    setImagePlaceholders(prev => {
+      let changed = false;
+      const merged = prev.map(p => {
+        const dbP = dbPlaceholders.find((d: any) => d.id === p.id);
+        if (dbP?.image_url && !p.image_url) {
+          changed = true;
+          return { ...p, image_url: dbP.image_url };
+        }
+        return p;
+      });
+      return changed ? merged : prev;
+    });
+  }, [letter]);
+
   useEffect(() => {
     if (dbBlocks && !blocksLoadedRef.current) {
       hydratingRef.current = true;
@@ -406,7 +426,7 @@ export default function EmailBuilder() {
     if (!ph?.prompt) return;
     setGeneratingPlaceholderId(placeholderId);
     try {
-      await enqueue({
+      const taskId = await enqueue({
         functionName: "generate-email-letter",
         payload: { generate_image: true, placeholder_id: placeholderId, prompt: ph.prompt, letter_id: letterId },
         displayTitle: `Генерация изображения письма`,
@@ -414,9 +434,32 @@ export default function EmailBuilder() {
         targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
+
+      // Poll task status and refresh letter data when image generation completes
+      if (taskId) {
+        const pollInterval = setInterval(async () => {
+          const { data: task } = await supabase
+            .from("task_queue")
+            .select("status")
+            .eq("id", taskId)
+            .single();
+          if (task?.status === "completed" || task?.status === "error") {
+            clearInterval(pollInterval);
+            setGeneratingPlaceholderId(null);
+            if (task.status === "completed") {
+              // Invalidate query to refetch letter with updated image_placeholders
+              queryClient.invalidateQueries({ queryKey: ["email_letter", letterId] });
+            }
+          }
+        }, 3000);
+        // Safety: stop polling after 5 minutes
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setGeneratingPlaceholderId(null);
+        }, 5 * 60 * 1000);
+      }
     } catch (e: any) {
       toast.error(e.message || "Ошибка");
-    } finally {
       setGeneratingPlaceholderId(null);
     }
   };
