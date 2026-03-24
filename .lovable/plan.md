@@ -1,39 +1,18 @@
 
 
-## Проблема: сгенерированное изображение не появляется в письме
+## Переключение generate-project-name на Anthropic Claude API
 
-### Причина
-
-Edge-функция `generate-email-letter` в режиме генерации изображения (строки 86-161):
-1. Генерирует изображение через OpenRouter
-2. Загружает его в storage
-3. Возвращает `{ image_url }` в результате задачи
-4. **НЕ обновляет массив `image_placeholders` в таблице `email_letters`**
-
-Фронтенд при возврате на страницу читает `image_placeholders` из БД через React Query — но там `image_url` по-прежнему пустой. Изображение есть в storage, есть в результате задачи, но письмо об этом не знает.
-
-Дополнительно: payload не содержит `letter_id`, поэтому функция даже не может найти нужную запись.
+### Проблема
+Функция `generate-project-name` — единственная, использующая Lovable AI Gateway. Остальные функции уже работают через Anthropic Claude API. Ошибка 402 вызвана лимитом кредитов Lovable AI, а не OpenRouter/Anthropic.
 
 ### Решение
+Переписать `supabase/functions/generate-project-name/index.ts`: заменить вызов Lovable AI Gateway на Anthropic Messages API (`https://api.anthropic.com/v1/messages`), используя `ANTHROPIC_API_KEY` (уже настроен в секретах).
 
-#### 1. Передавать `letter_id` в payload генерации изображения
-
-В `src/pages/EmailBuilder.tsx`, функция `generatePlaceholderImage` (строка 411): добавить `letter_id: letterId` в payload.
-
-#### 2. Обновлять `image_placeholders` в БД после генерации
-
-В `supabase/functions/generate-email-letter/index.ts` (строки 150-161): после загрузки изображения в storage, прочитать текущий массив `image_placeholders` из `email_letters`, найти элемент с нужным `placeholder_id`, записать туда `image_url`, и сохранить обновлённый массив обратно в БД.
-
-```text
-1. Читаем letter по letter_id из payload
-2. Парсим image_placeholders из letter
-3. Находим placeholder по id → ставим image_url
-4. UPDATE email_letters SET image_placeholders = updated
-```
-
-Это гарантирует, что при следующем заходе фронтенд увидит URL изображения в массиве placeholders.
-
-### Файлы
-- `src/pages/EmailBuilder.tsx` — 1 строка (добавить `letter_id` в payload)
-- `supabase/functions/generate-email-letter/index.ts` — ~10 строк (обновление БД после upload)
+### Изменения
+**Файл:** `supabase/functions/generate-project-name/index.ts`
+- Заменить `LOVABLE_API_KEY` → `ANTHROPIC_API_KEY`
+- Заменить URL `ai.gateway.lovable.dev` → `api.anthropic.com/v1/messages`
+- Использовать формат Anthropic Messages API (заголовки `x-api-key`, `anthropic-version`, тело с `system` + `messages`, `max_tokens`)
+- Модель: `claude-sonnet-4-20250514` (как в остальных функциях)
+- Парсинг ответа: `data.content[0].text` вместо `data.choices[0].message.content`
 
