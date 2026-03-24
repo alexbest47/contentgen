@@ -232,7 +232,7 @@ export default function BannerLibrary() {
   );
 }
 
-function BannerGrid({ banners, onEdit, onDelete }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void }) {
+function BannerGrid({ banners, onEdit, onDelete, onPreview }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void; onPreview: (b: any) => void }) {
   if (banners.length === 0) return null;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
