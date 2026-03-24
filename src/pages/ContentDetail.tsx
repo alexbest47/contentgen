@@ -156,16 +156,15 @@ export default function ContentDetail() {
   const generateImagesMutation = useMutation({
     mutationFn: async (mode: "static" | "banner") => {
       setGeneratingImagesKey(mode);
-      const { data, error } = await supabase.functions.invoke("generate-pipeline-images", {
-        body: { project_id: projectId, content_type: contentType, mode },
+      await enqueue({
+        functionName: "generate-pipeline-images",
+        payload: { project_id: projectId, content_type: contentType, mode },
+        displayTitle: `Генерация изображения: ${mode}`,
+        lane: "openrouter",
       });
-      if (error) throw new Error(error.message || "Ошибка генерации изображений");
-      if (data?.error) throw new Error(data.error);
-      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
-      toast.success("Изображение сгенерировано!");
+      toast.success("Задача добавлена в очередь");
       setGeneratingImagesKey(null);
     },
     onError: (e: Error) => {
