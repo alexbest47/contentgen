@@ -43,6 +43,7 @@ interface Props {
   generatingPlaceholderId?: string | null;
   onUpdateGeneratedHtml?: (html: string) => void;
   onUploadPlaceholderImage?: (placeholderId: string, file: File) => void;
+  onPickFromLibrary?: (placeholderId: string) => void;
 }
 
 /** Restore placeholder markers from rendered HTML back to {{id}} format */
