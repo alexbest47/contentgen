@@ -211,6 +211,7 @@ export default function GeneratedBlockSettings({
           payload: body,
           display_title: `Генерация вариантов: ${block.block_type}`,
           lane: "claude",
+          target_url: window.location.pathname,
         },
       });
 
