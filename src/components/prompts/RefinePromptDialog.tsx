@@ -26,16 +26,20 @@ export default function RefinePromptDialog({ prompt, open, onOpenChange }: Refin
 
   const refineMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("refine-prompt", {
-        body: { prompt_id: prompt?.id, instruction },
+      const { data, error } = await supabase.functions.invoke("enqueue-task", {
+        body: {
+          function_name: "refine-prompt",
+          payload: { prompt_id: prompt?.id, instruction },
+          display_title: `Доработка промпта: ${prompt?.name || ""}`,
+          lane: "claude",
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["prompts"] });
-      toast.success("Промпт доработан с помощью AI");
+      toast.success("Задача доработки добавлена в очередь");
       setInstruction("");
       onOpenChange(false);
     },
