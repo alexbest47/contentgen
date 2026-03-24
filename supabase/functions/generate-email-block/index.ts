@@ -23,11 +23,32 @@ async function fetchGoogleDoc(url: string): Promise<string> {
   return "";
 }
 
+async function completeTask(taskId: string, result: any) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const sb = createClient(supabaseUrl, serviceKey);
+  await sb.from("task_queue").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
+  fetch(`${supabaseUrl}/functions/v1/process-queue`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` }, body: JSON.stringify({ trigger: true }) }).catch(() => {});
+}
+
+async function failTask(taskId: string, errorMessage: string) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const sb = createClient(supabaseUrl, serviceKey);
+  await sb.from("task_queue").update({ status: "error", completed_at: new Date().toISOString(), error_message: errorMessage?.substring(0, 2000) || "Unknown error" }).eq("id", taskId);
+  fetch(`${supabaseUrl}/functions/v1/process-queue`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` }, body: JSON.stringify({ trigger: true }) }).catch(() => {});
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  let taskId: string | null = null;
+
   try {
     const body = await req.json();
+    taskId = body._task_id || null;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY")!;
@@ -57,7 +78,9 @@ serve(async (req) => {
       await sb.storage.from("generated-images").upload(fileName, bytes, { contentType: "image/png", upsert: true });
       const { data: pub } = sb.storage.from("generated-images").getPublicUrl(fileName);
 
-      return new Response(JSON.stringify({ banner_image_url: pub.publicUrl }), {
+      const responseData = { banner_image_url: pub.publicUrl };
+      if (taskId) await completeTask(taskId, responseData);
+      return new Response(JSON.stringify(responseData), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -134,7 +157,7 @@ serve(async (req) => {
       programDocDescription = await fetchGoogleDoc(program.program_doc_url);
     }
 
-    // Build variant context strings (matching generate-pipeline logic)
+    // Build variant context strings
     let leadMagnetContext = "";
     let expertContext = "";
     let mythContext = "";
@@ -145,73 +168,21 @@ serve(async (req) => {
     let referenceContext = "";
 
     if (selectedVariant) {
-      leadMagnetContext = `Выбранный лид-магнит:
-- Название: ${selectedVariant.title}
-- Визуальный формат: ${selectedVariant.visual_format || ""}
-- Визуальный контент: ${selectedVariant.visual_content || ""}
-- Мгновенная ценность: ${selectedVariant.instant_value || ""}
-- Переход к курсу: ${selectedVariant.transition_to_course || ""}`;
-
+      leadMagnetContext = `Выбранный лид-магнит:\n- Название: ${selectedVariant.title}\n- Визуальный формат: ${selectedVariant.visual_format || ""}\n- Визуальный контент: ${selectedVariant.visual_content || ""}\n- Мгновенная ценность: ${selectedVariant.instant_value || ""}\n- Переход к курсу: ${selectedVariant.transition_to_course || ""}`;
       referenceContext = leadMagnetContext;
-
-      expertContext = `Выбранная тема экспертного поста:
-- Название: ${selectedVariant.title}
-- Категория: ${selectedVariant.visual_format || ""}
-- Угол подачи: ${selectedVariant.visual_content || ""}
-- Крючок: ${selectedVariant.instant_value || ""}
-- Переход к офферу: ${selectedVariant.transition_to_course || ""}`;
+      expertContext = `Выбранная тема экспертного поста:\n- Название: ${selectedVariant.title}\n- Категория: ${selectedVariant.visual_format || ""}\n- Угол подачи: ${selectedVariant.visual_content || ""}\n- Крючок: ${selectedVariant.instant_value || ""}\n- Переход к офферу: ${selectedVariant.transition_to_course || ""}`;
 
       let mythHarm = "", mythTruth = "";
-      try {
-        const parsed = JSON.parse(selectedVariant.save_reason || "{}");
-        mythHarm = parsed.harm || "";
-        mythTruth = parsed.truth || "";
-      } catch {}
-      mythContext = `Выбранная тема разбора мифа:
-- Формулировка мифа: ${selectedVariant.title}
-- Категория: ${selectedVariant.visual_format || ""}
-- Почему миф вреден: ${selectedVariant.visual_content || ""}
-- Крючок: ${selectedVariant.instant_value || ""}
-- Вред мифа: ${mythHarm}
-- Правда: ${mythTruth}
-- Переход к офферу: ${selectedVariant.transition_to_course || ""}`;
+      try { const parsed = JSON.parse(selectedVariant.save_reason || "{}"); mythHarm = parsed.harm || ""; mythTruth = parsed.truth || ""; } catch {}
+      mythContext = `Выбранная тема разбора мифа:\n- Формулировка мифа: ${selectedVariant.title}\n- Категория: ${selectedVariant.visual_format || ""}\n- Почему миф вреден: ${selectedVariant.visual_content || ""}\n- Крючок: ${selectedVariant.instant_value || ""}\n- Вред мифа: ${mythHarm}\n- Правда: ${mythTruth}\n- Переход к офферу: ${selectedVariant.transition_to_course || ""}`;
+      provocativeContext = `Выбранная тема провокационного поста:\n- Название: ${selectedVariant.title}\n- Категория: ${selectedVariant.visual_format || ""}\n- Угол подачи: ${selectedVariant.visual_content || ""}\n- Крючок: ${selectedVariant.instant_value || ""}\n- Переход к офферу: ${selectedVariant.transition_to_course || ""}`;
 
-      provocativeContext = `Выбранная тема провокационного поста:
-- Название: ${selectedVariant.title}
-- Категория: ${selectedVariant.visual_format || ""}
-- Угол подачи: ${selectedVariant.visual_content || ""}
-- Крючок: ${selectedVariant.instant_value || ""}
-- Переход к офферу: ${selectedVariant.transition_to_course || ""}`;
+      listContext = JSON.stringify({ subtype: selectedVariant.visual_format || "", list_title: selectedVariant.title, hook: selectedVariant.instant_value || "", items: (() => { try { return JSON.parse(selectedVariant.visual_content || "[]"); } catch { return []; } })(), transition_to_offer: selectedVariant.transition_to_course || "" });
 
-      listContext = JSON.stringify({
-        subtype: selectedVariant.visual_format || "",
-        list_title: selectedVariant.title,
-        hook: selectedVariant.instant_value || "",
-        items: (() => { try { return JSON.parse(selectedVariant.visual_content || "[]"); } catch { return []; } })(),
-        transition_to_offer: selectedVariant.transition_to_course || "",
-      });
-
-      // Case angle (testimonial_content)
       let storyArc = null;
       try { storyArc = JSON.parse(selectedVariant.save_reason || "null"); } catch {}
-      caseAngleContext = JSON.stringify({
-        angle_type: selectedVariant.visual_format || "",
-        angle_title: selectedVariant.title || "",
-        hook: selectedVariant.instant_value || "",
-        key_quote: selectedVariant.visual_content || null,
-        story_arc: storyArc,
-        what_reader_feels: selectedVariant.cta_text || "",
-        transition_to_offer: selectedVariant.transition_to_course || "",
-      }, null, 2);
-
-      // Objection angle
-      objectionAngleContext = JSON.stringify({
-        angle_type: selectedVariant.visual_format || "",
-        angle_title: selectedVariant.title || "",
-        description: selectedVariant.visual_content || "",
-        hook: selectedVariant.instant_value || "",
-        transition_to_offer: selectedVariant.transition_to_course || "",
-      }, null, 2);
+      caseAngleContext = JSON.stringify({ angle_type: selectedVariant.visual_format || "", angle_title: selectedVariant.title || "", hook: selectedVariant.instant_value || "", key_quote: selectedVariant.visual_content || null, story_arc: storyArc, what_reader_feels: selectedVariant.cta_text || "", transition_to_offer: selectedVariant.transition_to_course || "" }, null, 2);
+      objectionAngleContext = JSON.stringify({ angle_type: selectedVariant.visual_format || "", angle_title: selectedVariant.title || "", description: selectedVariant.visual_content || "", hook: selectedVariant.instant_value || "", transition_to_offer: selectedVariant.transition_to_course || "" }, null, 2);
     }
 
     // Build user prompt with all substitutions
@@ -243,7 +214,6 @@ serve(async (req) => {
       .replace(/\{\{letter_theme\}\}/g, letterTheme)
       .replace(/\{\{block_type\}\}/g, block_type);
 
-    // Replace any remaining global variables
     for (const [k, v] of Object.entries(gv)) {
       userPrompt = userPrompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
     }
@@ -267,7 +237,6 @@ serve(async (req) => {
     const aiData = await aiResp.json();
     const text = aiData.content?.[0]?.text || "";
 
-    // Parse JSON from response
     let block_html = "", banner_image_prompt = "";
     try {
       const jsonMatch = text.match(/```json\s*([\s\S]*?)```/) || text.match(/\{[\s\S]*\}/);
@@ -279,24 +248,21 @@ serve(async (req) => {
       block_html = text;
     }
 
-    // Always remove <img> tags — banners are managed separately via banner_image_url
     block_html = block_html.replace(/<img[^>]*\/?>/gi, "");
-    // Remove empty wrappers left after img removal
     block_html = block_html.replace(/<(div|p|figure|span)[^>]*>\s*<\/(div|p|figure|span)>/gi, "");
 
-    // Update block in DB
     if (body.block_id) {
-      await sb.from("email_letter_blocks").update({
-        generated_html: block_html,
-        banner_image_prompt,
-      }).eq("id", body.block_id);
+      await sb.from("email_letter_blocks").update({ generated_html: block_html, banner_image_prompt }).eq("id", body.block_id);
     }
 
-    return new Response(JSON.stringify({ block_html, banner_image_prompt }), {
+    const responseData = { block_html, banner_image_prompt };
+    if (taskId) await completeTask(taskId, responseData);
+    return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("generate-email-block error:", e);
+    if (taskId) await failTask(taskId, e.message).catch(() => {});
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

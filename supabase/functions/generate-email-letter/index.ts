@@ -34,11 +34,48 @@ function normalizeImagePlaceholders(images: any[]): any[] {
   }));
 }
 
+async function completeTask(taskId: string, result: any) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const sb = createClient(supabaseUrl, serviceKey);
+  await sb.from("task_queue").update({
+    status: "completed",
+    completed_at: new Date().toISOString(),
+    result,
+  }).eq("id", taskId);
+  fetch(`${supabaseUrl}/functions/v1/process-queue`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` },
+    body: JSON.stringify({ trigger: true }),
+  }).catch(() => {});
+}
+
+async function failTask(taskId: string, errorMessage: string) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const sb = createClient(supabaseUrl, serviceKey);
+  await sb.from("task_queue").update({
+    status: "error",
+    completed_at: new Date().toISOString(),
+    error_message: errorMessage?.substring(0, 2000) || "Unknown error",
+  }).eq("id", taskId);
+  fetch(`${supabaseUrl}/functions/v1/process-queue`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` },
+    body: JSON.stringify({ trigger: true }),
+  }).catch(() => {});
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  let taskId: string | null = null;
+
   try {
     const body = await req.json();
+    taskId = body._task_id || null;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY")!;
@@ -96,7 +133,6 @@ serve(async (req) => {
         imageUrl = await tryGenerate(body.prompt);
       } catch (firstErr: any) {
         console.error("First attempt failed:", firstErr.message);
-        // Retry with simplified prompt on 400/safety errors
         if (firstErr.message?.startsWith("API_ERROR_4") || firstErr.message === "NO_IMAGE_IN_RESPONSE") {
           console.log("Retrying with simplified prompt...");
           const simplifiedPrompt = `Create a professional, abstract decorative banner image. Use soft gradients and geometric shapes. Size: 600x300 pixels. Modern, clean design.`;
@@ -118,7 +154,9 @@ serve(async (req) => {
       await sb.storage.from("generated-images").upload(fileName, bytes, { contentType: "image/png", upsert: true });
       const { data: pub } = sb.storage.from("generated-images").getPublicUrl(fileName);
 
-      return new Response(JSON.stringify({ image_url: pub.publicUrl }), {
+      const responseData = { image_url: pub.publicUrl };
+      if (taskId) await completeTask(taskId, responseData);
+      return new Response(JSON.stringify(responseData), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -127,7 +165,6 @@ serve(async (req) => {
     const { letter_id } = body;
     if (!letter_id) throw new Error("Missing letter_id");
 
-    // 1. Load letter
     const { data: letter, error: letterErr } = await sb.from("email_letters").select("*").eq("id", letter_id).single();
     if (letterErr || !letter) throw new Error("Письмо не найдено");
 
@@ -139,14 +176,12 @@ serve(async (req) => {
     const templateId = letter.template_id;
     const selectedObjectionIds: string[] = (letter as any).selected_objection_ids || [];
 
-    // 2. Load program
     let program: any = null;
     if (programId) {
       const { data } = await sb.from("paid_programs").select("*").eq("id", programId).single();
       program = data;
     }
 
-    // 3. Load offer
     let offerTitle = "", offerDesc = "", offerTypeLabel = "", offerValue = "", offerImageUrl = "";
     if (offerId) {
       const { data: offer } = await sb.from("offers").select("*").eq("id", offerId).single();
@@ -159,7 +194,6 @@ serve(async (req) => {
       }
     }
 
-    // 4. Load case
     let caseContext = "";
     if (caseId) {
       const { data: caseData } = await sb.from("case_classifications").select("classification_json, file_name").eq("id", caseId).single();
@@ -168,7 +202,6 @@ serve(async (req) => {
       }
     }
 
-    // 5. Load extra offers (for {{offers_selection}})
     let offersSelectionContext = "";
     if (extraOfferIds.length > 0) {
       const { data: extras } = await sb.from("offers").select("title, description, offer_type, doc_url").in("id", extraOfferIds);
@@ -183,21 +216,16 @@ serve(async (req) => {
       }
     }
 
-    // 6. Load template name
     let templateName = "";
     if (templateId) {
       const { data: tpl } = await sb.from("email_templates").select("name").eq("id", templateId).single();
-      if (tpl) {
-        templateName = tpl.name;
-      }
+      if (tpl) templateName = tpl.name;
     }
 
-    // 7. Load objections for direct offer
     let objectionDataMassive = "[]";
     if (selectedObjectionIds.length > 0) {
       const { data: objRows } = await sb.from("objections").select("id, objection_text").in("id", selectedObjectionIds);
       if (objRows && objRows.length > 0) {
-        // Preserve user-specified order
         const ordered = selectedObjectionIds
           .map((id) => objRows.find((r: any) => r.id === id))
           .filter(Boolean)
@@ -206,7 +234,6 @@ serve(async (req) => {
       }
     }
 
-    // 8. Determine prompt slug based on template
     const TEMPLATE_PROMPT_MAP: Record<string, string> = {
       "Прямой оффер": "email-builder-direct-offer",
       "Приглашение на вебинар: письмо 1": "email-builder-webinar-letter-1",
@@ -214,7 +241,6 @@ serve(async (req) => {
     };
     const promptSlug = TEMPLATE_PROMPT_MAP[templateName] || "email-builder-full-letter";
 
-    // 9. Load prompt
     const { data: prompt } = await sb.from("prompts")
       .select("*")
       .eq("slug", promptSlug)
@@ -222,25 +248,21 @@ serve(async (req) => {
       .single();
     if (!prompt) throw new Error(`Промпт ${promptSlug} не найден. Создайте его в разделе «Управление промптами».`);
 
-    // 10. Load global variables
     const { data: gvRows } = await sb.from("prompt_global_variables").select("key, value");
     const gv: Record<string, string> = {};
     gvRows?.forEach((r: any) => { gv[r.key] = r.value; });
 
-    // 11. Load color scheme
     let brandStyle = "";
     if (colorSchemeId) {
       const { data: cs } = await sb.from("color_schemes").select("description").eq("id", colorSchemeId).single();
       if (cs) brandStyle = cs.description;
     }
 
-    // 12. Fetch audience description from audience_segment global variable
     let audienceDescription = "";
     const audienceSegment = (letter as any).audience_segment || "";
     if (audienceSegment && gv[audienceSegment]) {
       audienceDescription = gv[audienceSegment];
     } else {
-      // Fallback to program audience
       audienceDescription = program?.audience_description || "";
       if (program?.audience_doc_url && !audienceDescription) {
         audienceDescription = await fetchGoogleDoc(program.audience_doc_url);
@@ -254,10 +276,8 @@ serve(async (req) => {
       programDocDescription = await fetchGoogleDoc(program.program_doc_url);
     }
 
-    // 13. Build letter theme
     const letterTheme = `${letter.letter_theme_title}\n${letter.letter_theme_description || ""}`;
 
-    // 14. Build user prompt with variable substitution
     let userPrompt = prompt.user_prompt_template || "";
     userPrompt = userPrompt
       .replace(/\{\{program_title\}\}/g, program?.title || "")
@@ -272,21 +292,19 @@ serve(async (req) => {
       .replace(/\{\{brand_style\}\}/g, brandStyle)
       .replace(/\{\{letter_theme\}\}/g, letterTheme)
       .replace(/\{\{template_name\}\}/g, templateName)
-      .replace(/\{\{template_structure\}\}/g, templateName) // backward compat
+      .replace(/\{\{template_structure\}\}/g, templateName)
       .replace(/\{\{case_data\}\}/g, caseContext)
       .replace(/\{\{offers_selection\}\}/g, offersSelectionContext)
-      .replace(/\{\{extra_offers\}\}/g, offersSelectionContext) // backward compat
+      .replace(/\{\{extra_offers\}\}/g, offersSelectionContext)
       .replace(/\{\{offer_rules\}\}/g, gv.offer_rules || "")
       .replace(/\{\{antiAI_rules\}\}/g, gv.antiAI_rules || "")
       .replace(/\{\{brand_voice\}\}/g, gv.brand_voice || "")
       .replace(/\{\{objection_data_massive\}\}/g, objectionDataMassive);
 
-    // Replace remaining global variables
     for (const [k, v] of Object.entries(gv)) {
       userPrompt = userPrompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
     }
 
-    // 13. Call Anthropic
     const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -305,7 +323,6 @@ serve(async (req) => {
     const aiData = await aiResp.json();
     const text = aiData.content?.[0]?.text || "";
 
-    // 14. Parse JSON — support both new (letter_html/images) and old (html/image_placeholders) formats
     let html = "", imagePlaceholders: any[] = [];
     let emailSubject = "", emailPreheader = "";
     try {
@@ -313,21 +330,15 @@ serve(async (req) => {
       const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text;
       const parsed = JSON.parse(jsonStr);
 
-      // New format: letter_html; fallback: html / block_html
       html = parsed.letter_html || parsed.html || parsed.block_html || text;
-
-      // New format: images; fallback: image_placeholders
       const rawImages = parsed.images || parsed.image_placeholders || [];
       imagePlaceholders = normalizeImagePlaceholders(rawImages);
-
-      // Extract subject/preheader if provided
       emailSubject = parsed.email_subject || "";
       emailPreheader = parsed.email_preheader || "";
     } catch {
       html = text;
     }
 
-    // 15. Save to DB
     const updatePayload: Record<string, any> = {
       generated_html: html,
       image_placeholders: imagePlaceholders,
@@ -338,11 +349,14 @@ serve(async (req) => {
 
     await sb.from("email_letters").update(updatePayload).eq("id", letter_id);
 
-    return new Response(JSON.stringify({ html, image_placeholders: imagePlaceholders, email_subject: emailSubject, email_preheader: emailPreheader }), {
+    const responseData = { html, image_placeholders: imagePlaceholders, email_subject: emailSubject, email_preheader: emailPreheader };
+    if (taskId) await completeTask(taskId, responseData);
+    return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("generate-email-letter error:", e);
+    if (taskId) await failTask(taskId, e.message).catch(() => {});
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

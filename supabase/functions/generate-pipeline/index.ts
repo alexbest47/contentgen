@@ -12,11 +12,33 @@ const OFFER_TYPE_LABELS: Record<string, string> = {
   discount: "Промокод", download_pdf: "Скачай PDF",
 };
 
+async function completeTask(taskId: string, result: any) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const sb = createClient(supabaseUrl, serviceKey);
+  await sb.from("task_queue").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
+  fetch(`${supabaseUrl}/functions/v1/process-queue`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` }, body: JSON.stringify({ trigger: true }) }).catch(() => {});
+}
+
+async function failTask(taskId: string, errorMessage: string) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const sb = createClient(supabaseUrl, serviceKey);
+  await sb.from("task_queue").update({ status: "error", completed_at: new Date().toISOString(), error_message: errorMessage?.substring(0, 2000) || "Unknown error" }).eq("id", taskId);
+  fetch(`${supabaseUrl}/functions/v1/process-queue`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` }, body: JSON.stringify({ trigger: true }) }).catch(() => {});
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  let taskId: string | null = null;
+
   try {
-    const { project_id, content_type } = await req.json();
+    const body = await req.json();
+    taskId = body._task_id || null;
+    const { project_id, content_type } = body;
     if (!project_id || !content_type) throw new Error("project_id and content_type are required");
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -76,9 +98,7 @@ serve(async (req) => {
         if (docMatch) {
           const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`;
           const docResponse = await fetch(exportUrl);
-          if (docResponse.ok) {
-            programDocDescription = await docResponse.text();
-          }
+          if (docResponse.ok) programDocDescription = await docResponse.text();
         }
       } catch (e) { console.error("Error fetching program doc:", e); }
     }
@@ -91,9 +111,7 @@ serve(async (req) => {
         if (docMatch) {
           const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`;
           const docResponse = await fetch(exportUrl);
-          if (docResponse.ok) {
-            offerDescription = await docResponse.text();
-          }
+          if (docResponse.ok) offerDescription = await docResponse.text();
         }
       } catch (e) { console.error("Error fetching offer doc:", e); }
     }
@@ -115,51 +133,14 @@ serve(async (req) => {
 
     const prompt = pipelineSteps[0];
 
-    const leadMagnetContext = `Выбранный лид-магнит:
-- Название: ${selectedLead.title}
-- Визуальный формат: ${selectedLead.visual_format || ""}
-- Визуальный контент: ${selectedLead.visual_content || ""}
-- Мгновенная ценность: ${selectedLead.instant_value || ""}
-- Переход к курсу: ${selectedLead.transition_to_course || ""}`;
+    const leadMagnetContext = `Выбранный лид-магнит:\n- Название: ${selectedLead.title}\n- Визуальный формат: ${selectedLead.visual_format || ""}\n- Визуальный контент: ${selectedLead.visual_content || ""}\n- Мгновенная ценность: ${selectedLead.instant_value || ""}\n- Переход к курсу: ${selectedLead.transition_to_course || ""}`;
+    const expertContext = `Выбранная тема экспертного поста:\n- Название: ${selectedLead.title}\n- Категория: ${selectedLead.visual_format || ""}\n- Угол подачи: ${selectedLead.visual_content || ""}\n- Крючок: ${selectedLead.instant_value || ""}\n- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
 
-    const expertContext = `Выбранная тема экспертного поста:
-- Название: ${selectedLead.title}
-- Категория: ${selectedLead.visual_format || ""}
-- Угол подачи: ${selectedLead.visual_content || ""}
-- Крючок: ${selectedLead.instant_value || ""}
-- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
-
-    let mythHarm = "";
-    let mythTruth = "";
-    try {
-      const parsed = JSON.parse(selectedLead.save_reason || "{}");
-      mythHarm = parsed.harm || "";
-      mythTruth = parsed.truth || "";
-    } catch {}
-    const mythContext = `Выбранная тема разбора мифа:
-- Формулировка мифа: ${selectedLead.title}
-- Категория: ${selectedLead.visual_format || ""}
-- Почему миф вреден: ${selectedLead.visual_content || ""}
-- Крючок: ${selectedLead.instant_value || ""}
-- Вред мифа: ${mythHarm}
-- Правда: ${mythTruth}
-- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
-
-    const provocativeContext = `Выбранная тема провокационного поста:
-- Название: ${selectedLead.title}
-- Категория: ${selectedLead.visual_format || ""}
-- Угол подачи: ${selectedLead.visual_content || ""}
-- Крючок: ${selectedLead.instant_value || ""}
-- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
-
-    const listContext = JSON.stringify({
-      id: selectedLead.id,
-      subtype: selectedLead.visual_format || "",
-      list_title: selectedLead.title,
-      hook: selectedLead.instant_value || "",
-      items: (() => { try { return JSON.parse(selectedLead.visual_content || "[]"); } catch { return []; } })(),
-      transition_to_offer: selectedLead.transition_to_course || "",
-    });
+    let mythHarm = "", mythTruth = "";
+    try { const parsed = JSON.parse(selectedLead.save_reason || "{}"); mythHarm = parsed.harm || ""; mythTruth = parsed.truth || ""; } catch {}
+    const mythContext = `Выбранная тема разбора мифа:\n- Формулировка мифа: ${selectedLead.title}\n- Категория: ${selectedLead.visual_format || ""}\n- Почему миф вреден: ${selectedLead.visual_content || ""}\n- Крючок: ${selectedLead.instant_value || ""}\n- Вред мифа: ${mythHarm}\n- Правда: ${mythTruth}\n- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
+    const provocativeContext = `Выбранная тема провокационного поста:\n- Название: ${selectedLead.title}\n- Категория: ${selectedLead.visual_format || ""}\n- Угол подачи: ${selectedLead.visual_content || ""}\n- Крючок: ${selectedLead.instant_value || ""}\n- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
+    const listContext = JSON.stringify({ id: selectedLead.id, subtype: selectedLead.visual_format || "", list_title: selectedLead.title, hook: selectedLead.instant_value || "", items: (() => { try { return JSON.parse(selectedLead.visual_content || "[]"); } catch { return []; } })(), transition_to_offer: selectedLead.transition_to_course || "" });
 
     let userPrompt = prompt.user_prompt_template
       .replace(/\{\{program_title\}\}/g, program.title)
@@ -184,52 +165,26 @@ serve(async (req) => {
 
     // Inject case_data for testimonial_content projects
     if (project.selected_case_id) {
-      const { data: caseData } = await supabase
-        .from("case_classifications")
-        .select("classification_json")
-        .eq("id", project.selected_case_id)
-        .single();
-      if (caseData) {
-        userPrompt = userPrompt.replace(/\{\{case_data\}\}/g, JSON.stringify(caseData.classification_json, null, 2));
-      }
+      const { data: caseData } = await supabase.from("case_classifications").select("classification_json").eq("id", project.selected_case_id).single();
+      if (caseData) userPrompt = userPrompt.replace(/\{\{case_data\}\}/g, JSON.stringify(caseData.classification_json, null, 2));
     }
 
     // Inject case_angle for testimonial_content channel prompts
     if (selectedLead && projectContentType === "testimonial_content") {
       let storyArc = null;
       try { storyArc = JSON.parse(selectedLead.save_reason || "null"); } catch {}
-      const caseAngleContext = JSON.stringify({
-        angle_type: selectedLead.visual_format || "",
-        angle_title: selectedLead.title || "",
-        hook: selectedLead.instant_value || "",
-        key_quote: selectedLead.visual_content || null,
-        story_arc: storyArc,
-        what_reader_feels: selectedLead.cta_text || "",
-        transition_to_offer: selectedLead.transition_to_course || "",
-      }, null, 2);
+      const caseAngleContext = JSON.stringify({ angle_type: selectedLead.visual_format || "", angle_title: selectedLead.title || "", hook: selectedLead.instant_value || "", key_quote: selectedLead.visual_content || null, story_arc: storyArc, what_reader_feels: selectedLead.cta_text || "", transition_to_offer: selectedLead.transition_to_course || "" }, null, 2);
       userPrompt = userPrompt.replace(/\{\{case_angle\}\}/g, caseAngleContext);
     }
 
     // Inject objection_data and objection_angle for objection_handling
     if (projectContentType === "objection_handling") {
       if (project.selected_objection_id) {
-        const { data: objData } = await supabase
-          .from("objections")
-          .select("id, objection_text, tags")
-          .eq("id", project.selected_objection_id)
-          .single();
-        if (objData) {
-          userPrompt = userPrompt.replace(/\{\{objection_data\}\}/g, JSON.stringify(objData, null, 2));
-        }
+        const { data: objData } = await supabase.from("objections").select("id, objection_text, tags").eq("id", project.selected_objection_id).single();
+        if (objData) userPrompt = userPrompt.replace(/\{\{objection_data\}\}/g, JSON.stringify(objData, null, 2));
       }
       if (selectedLead) {
-        const objAngleContext = JSON.stringify({
-          angle_type: selectedLead.visual_format || "",
-          angle_title: selectedLead.title || "",
-          description: selectedLead.visual_content || "",
-          hook: selectedLead.instant_value || "",
-          transition_to_offer: selectedLead.transition_to_course || "",
-        }, null, 2);
+        const objAngleContext = JSON.stringify({ angle_type: selectedLead.visual_format || "", angle_title: selectedLead.title || "", description: selectedLead.visual_content || "", hook: selectedLead.instant_value || "", transition_to_offer: selectedLead.transition_to_course || "" }, null, 2);
         userPrompt = userPrompt.replace(/\{\{objection_angle\}\}/g, objAngleContext);
       }
     }
@@ -237,17 +192,8 @@ serve(async (req) => {
     // Call Claude
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: prompt.model || "claude-sonnet-4-20250514",
-        max_tokens: 64000,
-        system: prompt.system_prompt,
-        messages: [{ role: "user", content: userPrompt }],
-      }),
+      headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: prompt.model || "claude-sonnet-4-20250514", max_tokens: 64000, system: prompt.system_prompt, messages: [{ role: "user", content: userPrompt }] }),
     });
 
     if (!claudeResponse.ok) {
@@ -262,51 +208,34 @@ serve(async (req) => {
     // Extract JSON from response
     let jsonContent = rawContent;
     const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) {
-      jsonContent = jsonMatch[1].trim();
-    }
+    if (jsonMatch) jsonContent = jsonMatch[1].trim();
 
     // Validate JSON
-    try {
-      JSON.parse(jsonContent);
-    } catch {
+    try { JSON.parse(jsonContent); } catch {
       console.error("Claude returned invalid JSON:", rawContent);
       throw new Error("Claude вернул невалидный JSON. Попробуйте ещё раз.");
     }
 
     // Save as pipeline_json_{content_type}
     const categoryKey = `pipeline_json_${content_type}`;
-
-    await supabase.from("content_pieces").delete()
-      .eq("project_id", project_id)
-      .eq("category", categoryKey);
-    await supabase.from("content_pieces").insert({
-      project_id,
-      category: categoryKey,
-      content: jsonContent,
-    });
+    await supabase.from("content_pieces").delete().eq("project_id", project_id).eq("category", categoryKey);
+    await supabase.from("content_pieces").insert({ project_id, category: categoryKey, content: jsonContent });
 
     // Record generation run
     await supabase.from("generation_runs").insert({
-      project_id,
-      prompt_id: prompt.id,
-      type: prompt.category,
-      status: "completed",
-      input_data: {
-        content_type,
-        program_title: program.title,
-        offer_title: offer.title,
-        lead_magnet_title: selectedLead.title,
-      },
-      output_data: { content: jsonContent },
-      completed_at: new Date().toISOString(),
+      project_id, prompt_id: prompt.id, type: prompt.category, status: "completed",
+      input_data: { content_type, program_title: program.title, offer_title: offer.title, lead_magnet_title: selectedLead.title },
+      output_data: { content: jsonContent }, completed_at: new Date().toISOString(),
     });
 
-    return new Response(JSON.stringify({ success: true, content: jsonContent }), {
+    const responseData = { success: true, content: jsonContent };
+    if (taskId) await completeTask(taskId, responseData);
+    return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("generate-pipeline error:", e);
+    if (taskId) await failTask(taskId, e instanceof Error ? e.message : "Unknown error").catch(() => {});
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

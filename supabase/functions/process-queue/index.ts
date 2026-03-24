@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 async function processLane(supabase: any, supabaseUrl: string, serviceKey: string, lane: string): Promise<boolean> {
-  // Atomically grab one pending task for this lane
   // Only grab if no other task is currently processing in this lane
   const { data: processing } = await supabase
     .from("task_queue")
@@ -52,53 +51,21 @@ async function processLane(supabase: any, supabaseUrl: string, serviceKey: strin
     return false;
   }
 
-  console.log(`Processing task ${task.id}: ${task.function_name} (lane: ${lane})`);
+  console.log(`Dispatching task ${task.id}: ${task.function_name} (lane: ${lane})`);
 
-  try {
-    // Call the original edge function
-    const response = await fetch(`${supabaseUrl}/functions/v1/${task.function_name}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceKey}`,
-      },
-      body: JSON.stringify(task.payload),
-    });
+  // Fire-and-forget: call the target function with _task_id in payload
+  const payloadWithTaskId = { ...task.payload, _task_id: task.id };
 
-    const responseText = await response.text();
-    let result: any = null;
-    try {
-      result = JSON.parse(responseText);
-    } catch {
-      result = { raw: responseText };
-    }
-
-    if (!response.ok) {
-      throw new Error(result?.error || `Function returned ${response.status}: ${responseText.substring(0, 500)}`);
-    }
-
-    // Mark as completed
-    await supabase
-      .from("task_queue")
-      .update({
-        status: "completed",
-        completed_at: new Date().toISOString(),
-        result,
-      })
-      .eq("id", task.id);
-
-    console.log(`Task ${task.id} completed successfully`);
-  } catch (err) {
-    console.error(`Task ${task.id} failed:`, err.message);
-    await supabase
-      .from("task_queue")
-      .update({
-        status: "error",
-        completed_at: new Date().toISOString(),
-        error_message: err.message?.substring(0, 2000) || "Unknown error",
-      })
-      .eq("id", task.id);
-  }
+  fetch(`${supabaseUrl}/functions/v1/${task.function_name}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${serviceKey}`,
+    },
+    body: JSON.stringify(payloadWithTaskId),
+  }).catch((err) => {
+    console.error(`Failed to dispatch task ${task.id}:`, err.message);
+  });
 
   return true;
 }
@@ -112,6 +79,18 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
+
+    // Watchdog: reset stuck tasks (processing > 10 min)
+    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    await supabase
+      .from("task_queue")
+      .update({
+        status: "error",
+        completed_at: new Date().toISOString(),
+        error_message: "Timeout: задача выполнялась более 10 минут",
+      })
+      .eq("status", "processing")
+      .lt("started_at", tenMinAgo);
 
     const lanes = ["claude", "openrouter"];
     const results: Record<string, boolean> = {};
