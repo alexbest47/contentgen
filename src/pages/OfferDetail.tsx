@@ -16,6 +16,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { TopicChoiceDialog } from "@/components/offer/TopicChoiceDialog";
 
 const getStatusLabel = (status: string, contentType?: string): string => {
   if (contentType === "reference_material") {
@@ -81,6 +82,8 @@ const statusColors: Record<string, string> = {
   error: "bg-destructive/20 text-destructive",
 };
 
+const TOPIC_DIALOG_TYPES = ["lead_magnet", "reference_material", "expert_content", "provocative_content", "list_content", "myth_busting"];
+
 export default function OfferDetail() {
   const { programId, offerType, offerId } = useParams();
   const { user } = useAuth();
@@ -89,6 +92,7 @@ export default function OfferDetail() {
   const navigate = useNavigate();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [generatingType, setGeneratingType] = useState<string | null>(null);
+  const [topicDialogType, setTopicDialogType] = useState<string | null>(null);
 
   const { data: offer } = useQuery({
     queryKey: ["offer", offerId],
@@ -132,7 +136,7 @@ export default function OfferDetail() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: async (contentType: "lead_magnet" | "reference_material" | "expert_content" | "provocative_content" | "list_content" | "testimonial_content" | "myth_busting" | "objection_handling" = "lead_magnet") => {
+    mutationFn: async ({ contentType, userTopic }: { contentType: string; userTopic: string | null }) => {
       setGeneratingType(contentType);
       const labelMap: Record<string, string> = { reference_material: "справочных материалов", expert_content: "тем экспертного контента", provocative_content: "тем провокационного контента", list_content: "тем списка", testimonial_content: "контент-отзыва", myth_busting: "тем разбора мифа", objection_handling: "отработки возражения" };
       const label = labelMap[contentType] || "лид-магнитов";
@@ -153,9 +157,12 @@ export default function OfferDetail() {
         return { projectId: project.id, label };
       }
 
+      const payload: Record<string, any> = { project_id: project.id, content_type: contentType };
+      if (userTopic) payload.user_topic = userTopic;
+
       await enqueue({
         functionName: "generate-lead-magnets",
-        payload: { project_id: project.id, content_type: contentType },
+        payload,
         displayTitle: `Генерация ${label}: ${nameData.name}`,
         lane: "claude",
         targetUrl: `/programs/${programId}/offers/${offerType}/${offerId}/projects/${project.id}`,
@@ -174,6 +181,21 @@ export default function OfferDetail() {
       setGeneratingType(null);
     },
   });
+
+  const handleGenerateClick = (contentType: string) => {
+    if (TOPIC_DIALOG_TYPES.includes(contentType)) {
+      setTopicDialogType(contentType);
+    } else {
+      generateMutation.mutate({ contentType, userTopic: null });
+    }
+  };
+
+  const handleTopicConfirm = (userTopic: string | null) => {
+    if (!topicDialogType) return;
+    const ct = topicDialogType;
+    setTopicDialogType(null);
+    generateMutation.mutate({ contentType: ct, userTopic });
+  };
 
   const typeLabel = getOfferTypeLabel(offerType ?? "");
 
@@ -242,7 +264,7 @@ export default function OfferDetail() {
 
       <div className="flex flex-wrap justify-center gap-3 pt-2">
         <Button
-          onClick={() => generateMutation.mutate("lead_magnet")}
+          onClick={() => handleGenerateClick("lead_magnet")}
           disabled={!!generatingType}
         >
           {generatingType === "lead_magnet" ? (
@@ -254,7 +276,7 @@ export default function OfferDetail() {
         </Button>
         <Button
           variant="outline"
-          onClick={() => generateMutation.mutate("reference_material")}
+          onClick={() => handleGenerateClick("reference_material")}
           disabled={!!generatingType}
         >
           {generatingType === "reference_material" ? (
@@ -266,7 +288,7 @@ export default function OfferDetail() {
         </Button>
         <Button
           variant="outline"
-          onClick={() => generateMutation.mutate("expert_content")}
+          onClick={() => handleGenerateClick("expert_content")}
           disabled={!!generatingType}
         >
           {generatingType === "expert_content" ? (
@@ -278,7 +300,7 @@ export default function OfferDetail() {
         </Button>
         <Button
           variant="outline"
-          onClick={() => generateMutation.mutate("provocative_content")}
+          onClick={() => handleGenerateClick("provocative_content")}
           disabled={!!generatingType}
         >
           {generatingType === "provocative_content" ? (
@@ -290,7 +312,7 @@ export default function OfferDetail() {
         </Button>
         <Button
           variant="outline"
-          onClick={() => generateMutation.mutate("list_content")}
+          onClick={() => handleGenerateClick("list_content")}
           disabled={!!generatingType}
         >
           {generatingType === "list_content" ? (
@@ -302,7 +324,7 @@ export default function OfferDetail() {
         </Button>
         <Button
           variant="outline"
-          onClick={() => generateMutation.mutate("testimonial_content")}
+          onClick={() => handleGenerateClick("testimonial_content")}
           disabled={!!generatingType}
         >
           {generatingType === "testimonial_content" ? (
@@ -314,7 +336,7 @@ export default function OfferDetail() {
         </Button>
         <Button
           variant="outline"
-          onClick={() => generateMutation.mutate("myth_busting")}
+          onClick={() => handleGenerateClick("myth_busting")}
           disabled={!!generatingType}
         >
           {generatingType === "myth_busting" ? (
@@ -326,7 +348,7 @@ export default function OfferDetail() {
         </Button>
         <Button
           variant="outline"
-          onClick={() => generateMutation.mutate("objection_handling")}
+          onClick={() => handleGenerateClick("objection_handling")}
           disabled={!!generatingType}
         >
           {generatingType === "objection_handling" ? (
@@ -337,6 +359,14 @@ export default function OfferDetail() {
           Сгенерировать отработку возражения
         </Button>
       </div>
+
+      <TopicChoiceDialog
+        open={!!topicDialogType}
+        onOpenChange={(open) => !open && setTopicDialogType(null)}
+        contentType={topicDialogType || "lead_magnet"}
+        onConfirm={handleTopicConfirm}
+        disabled={generateMutation.isPending}
+      />
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>

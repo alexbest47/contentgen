@@ -38,7 +38,7 @@ serve(async (req) => {
   try {
     const body = await req.json();
     taskId = body._task_id || null;
-    const { project_id, content_type = "lead_magnet", case_classification_id, selected_objection_id } = body;
+    const { project_id, content_type = "lead_magnet", case_classification_id, selected_objection_id, user_topic } = body;
     if (!project_id) throw new Error("project_id is required");
     const promptCategory = content_type === "reference_material" ? "reference_materials" : content_type === "expert_content" ? "expert_content" : content_type === "provocative_content" ? "provocative_content" : content_type === "list_content" ? "list_content" : content_type === "testimonial_content" ? "testimonial_content" : content_type === "myth_busting" ? "myth_busting" : content_type === "objection_handling" ? "objection_handling" : "lead_magnets";
 
