@@ -8,10 +8,11 @@ import {
 import {
   GraduationCap, Tag, TableProperties,
   MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion, MailPlus, TreePine, FileText, FilePlus2,
-  BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown,
+  BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown, ListOrdered,
 } from "lucide-react";
 
 const mainNav = [
+  { title: "Очередь задач", url: "/queue", icon: ListOrdered },
   { title: "Создание контента", url: "/programs", icon: GraduationCap },
   { title: "Конструктор писем", url: "/email-builder", icon: MailPlus },
 ];

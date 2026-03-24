@@ -35,6 +35,7 @@ import TopicTree from "@/pages/TopicTree";
 import EmailTemplates from "@/pages/EmailTemplates";
 import PdfMaterials from "@/pages/PdfMaterials";
 import PdfMaterialView from "@/pages/PdfMaterialView";
+import TaskQueue from "@/pages/TaskQueue";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
