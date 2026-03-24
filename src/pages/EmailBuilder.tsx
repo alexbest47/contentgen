@@ -576,8 +576,17 @@ export default function EmailBuilder() {
   const showGenerationPanel = !selectedBlock || settingsMode;
   const isGenerated = !!generatedHtml && !settingsMode;
 
-  // Letter was deleted or not found
-  if (letterId && letter === null && !initialLoadRef.current) {
+  // Loading state — don't render empty builder while data is still loading
+  if (letterId && letterLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+        <p className="text-muted-foreground">Загрузка письма...</p>
+      </div>
+    );
+  }
+
+  // Letter was deleted or not found (only after query has completed)
+  if (letterId && letterFetched && letter === null) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] gap-4">
         <p className="text-lg text-muted-foreground">Письмо не найдено или было удалено</p>
