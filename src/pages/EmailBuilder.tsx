@@ -283,8 +283,9 @@ export default function EmailBuilder() {
     if (!block) return;
     setGeneratingBlockId(blockId);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-email-block", {
-        body: {
+      await enqueue({
+        functionName: "generate-email-block",
+        payload: {
           block_id: blockId,
           block_type: block.block_type,
           config: block.config,
@@ -292,21 +293,12 @@ export default function EmailBuilder() {
           mode: block.config.mode || "text_only",
           letter_id: letterId,
         },
+        displayTitle: `Генерация блока: ${block.block_type}`,
+        lane: "claude",
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setBlocks((prev) => prev.map((b) =>
-        b.id === blockId
-          ? { ...b, generated_html: data.block_html || "", banner_image_prompt: data.banner_image_prompt || "" }
-          : b
-      ));
-      await supabase.from("email_letter_blocks").update({
-        generated_html: data.block_html || "",
-        banner_image_prompt: data.banner_image_prompt || "",
-      }).eq("id", blockId);
-      toast.success("Блок сгенерирован");
+      toast.success("Задача добавлена в очередь");
     } catch (e: any) {
-      toast.error(e.message || "Ошибка генерации");
+      toast.error(e.message || "Ошибка");
     } finally {
       setGeneratingBlockId(null);
     }
