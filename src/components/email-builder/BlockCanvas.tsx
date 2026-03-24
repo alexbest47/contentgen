@@ -364,6 +364,17 @@ export default function BlockCanvas({
                     <FolderOpen className="h-3.5 w-3.5" />
                   </Button>
                 )}
+                {onSavePlaceholderToLibrary && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shadow-md bg-background/90 backdrop-blur-sm"
+                    title="Сохранить в библиотеку"
+                    onClick={() => onSavePlaceholderToLibrary(ph.id)}
+                  >
+                    <BookmarkPlus className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             );
           })}

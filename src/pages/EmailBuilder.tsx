@@ -720,6 +720,7 @@ export default function EmailBuilder() {
             onUpdateGeneratedHtml={setGeneratedHtml}
             onUploadPlaceholderImage={uploadPlaceholderImage}
             onPickFromLibrary={(phId) => setBannerPickerPlaceholderId(phId)}
+            onSavePlaceholderToLibrary={savePlaceholderToLibrary}
           />
         </div>
 
