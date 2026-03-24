@@ -153,8 +153,22 @@ serve(async (req) => {
 
       await sb.storage.from("generated-images").upload(fileName, bytes, { contentType: "image/png", upsert: true });
       const { data: pub } = sb.storage.from("generated-images").getPublicUrl(fileName);
+      const publicUrl = pub.publicUrl;
 
-      const responseData = { image_url: pub.publicUrl };
+      // Update image_placeholders in email_letters so frontend sees the URL on next load
+      const letterId = body.letter_id;
+      if (letterId) {
+        const { data: letterRow } = await sb.from("email_letters").select("image_placeholders").eq("id", letterId).single();
+        if (letterRow) {
+          const placeholders = Array.isArray(letterRow.image_placeholders) ? letterRow.image_placeholders : [];
+          const updated = placeholders.map((p: any) =>
+            (p.id === placeholderId) ? { ...p, image_url: publicUrl } : p
+          );
+          await sb.from("email_letters").update({ image_placeholders: updated }).eq("id", letterId);
+        }
+      }
+
+      const responseData = { image_url: publicUrl };
       if (taskId) await completeTask(taskId, responseData);
       return new Response(JSON.stringify(responseData), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

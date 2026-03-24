@@ -408,7 +408,7 @@ export default function EmailBuilder() {
     try {
       await enqueue({
         functionName: "generate-email-letter",
-        payload: { generate_image: true, placeholder_id: placeholderId, prompt: ph.prompt },
+        payload: { generate_image: true, placeholder_id: placeholderId, prompt: ph.prompt, letter_id: letterId },
         displayTitle: `Генерация изображения письма`,
         lane: "openrouter",
         targetUrl: `/email-builder/${letterId}`,
