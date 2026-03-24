@@ -22,6 +22,7 @@ export default function EmailBuilder() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { enqueue } = useTaskQueue();
 
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
