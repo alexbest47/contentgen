@@ -350,6 +350,7 @@ export default function EmailBuilder() {
         payload: { letter_id: letterId },
         displayTitle: `Генерация письма: ${title || "Без названия"}`,
         lane: "claude",
+        targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
     } catch (e: any) {
