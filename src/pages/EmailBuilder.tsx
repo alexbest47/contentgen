@@ -234,12 +234,20 @@ export default function EmailBuilder() {
     }
   }, [letterId, title, subject, preheader, colorSchemeId, letterThemeTitle, letterThemeDescription, programId, offerType, offerId, caseId, extraOfferIds, generatedHtml, imagePlaceholders, blocks, selectedObjectionIds]);
 
-  useEffect(() => {
-    const interval = setInterval(save, 30000);
-    return () => clearInterval(interval);
-  }, [save]);
+  // Stable ref for save so autosave/unmount always uses latest version
+  const saveRef = useRef(save);
+  useEffect(() => { saveRef.current = save; }, [save]);
 
-  useEffect(() => () => { save(); }, [save]);
+  useEffect(() => {
+    const interval = setInterval(() => saveRef.current(), 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Save only on true component unmount (empty deps = runs once)
+  useEffect(() => {
+    return () => { saveRef.current(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || null;
 
