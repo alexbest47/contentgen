@@ -66,6 +66,7 @@ export default function EmailBuilder() {
   const dirtyRef = useRef(false);
   const initialLoadRef = useRef(false);
   const blocksLoadedRef = useRef(false);
+  const hydratingRef = useRef(false); // true while applying DB data to state
 
   // Refs to always have fresh values for autosave (avoids race conditions)
   const imagePlaceholdersRef = useRef(imagePlaceholders);
