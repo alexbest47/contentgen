@@ -336,6 +336,7 @@ export default function ProjectDetail() {
         payload: { project_id: projectId, content_type: "testimonial_content", case_classification_id: caseId },
         displayTitle: "Генерация углов подачи (кейс)",
         lane: "claude",
+        targetUrl: window.location.pathname,
       });
     },
     onSuccess: () => {
