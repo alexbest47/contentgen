@@ -616,7 +616,7 @@ export default function EmailBuilder() {
               selectedBlockHtml={null}
               onChangeSelectedBlockHtml={() => {}}
               selectedObjectionIds={selectedObjectionIds}
-              onChangeObjectionIds={setSelectedObjectionIds}
+              onChangeObjectionIds={handleChangeObjectionIds}
               noCaseRequired={["Приглашение на вебинар: письмо 1", "Приглашение на вебинар: письмо 2"].includes(template?.name || "")}
             />
           )}
