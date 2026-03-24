@@ -285,19 +285,32 @@ export default function BlockCanvas({
                   height: rect.height,
                 }}
               >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 pointer-events-auto shadow-md bg-background/90 backdrop-blur-sm"
-                  disabled={isGenerating}
-                  onClick={() => onGeneratePlaceholderImage(ph.id)}
-                >
-                  {isGenerating ? (
-                    <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Генерация…</>
-                  ) : (
-                    <><ImageIcon className="h-3.5 w-3.5" /> Сгенерировать</>
+                <div className="flex gap-2 pointer-events-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 shadow-md bg-background/90 backdrop-blur-sm"
+                    disabled={isGenerating}
+                    onClick={() => onGeneratePlaceholderImage(ph.id)}
+                  >
+                    {isGenerating ? (
+                      <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Генерация…</>
+                    ) : (
+                      <><ImageIcon className="h-3.5 w-3.5" /> Сгенерировать</>
+                    )}
+                  </Button>
+                  {onPickFromLibrary && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 shadow-md bg-background/90 backdrop-blur-sm"
+                      disabled={isGenerating}
+                      onClick={() => onPickFromLibrary(ph.id)}
+                    >
+                      <FolderOpen className="h-3.5 w-3.5" /> Из библиотеки
+                    </Button>
                   )}
-                </Button>
+                </div>
               </div>
             );
           })}
