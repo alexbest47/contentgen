@@ -644,6 +644,7 @@ export default function EmailBuilder() {
             generatingPlaceholderId={generatingPlaceholderId}
             onUpdateGeneratedHtml={setGeneratedHtml}
             onUploadPlaceholderImage={uploadPlaceholderImage}
+            onPickFromLibrary={(phId) => setBannerPickerPlaceholderId(phId)}
           />
         </div>
 
