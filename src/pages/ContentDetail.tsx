@@ -146,6 +146,7 @@ export default function ContentDetail() {
         },
         displayTitle: `Карусель слайд ${prompts[i].slide_number}`,
         lane: "openrouter",
+        targetUrl: window.location.pathname,
       });
     }
 
