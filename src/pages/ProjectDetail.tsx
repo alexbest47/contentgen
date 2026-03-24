@@ -103,6 +103,7 @@ export default function ProjectDetail() {
   const { programId, offerType, offerId, projectId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { enqueue } = useTaskQueue();
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [jsonDialog, setJsonDialog] = useState<{ name: string; json: any } | null>(null);
   const [selectingCase, setSelectingCase] = useState(false);
