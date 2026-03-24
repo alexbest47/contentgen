@@ -158,11 +158,13 @@ serve(async (req) => {
       return { project_id, title: lm.title || "Без названия", visual_format: lm.visual_format || "", visual_content: lm.visual_content || "", instant_value: lm.instant_value || "", save_reason: lm.save_reason || "", transition_to_course: lm.transition_to_test || lm.transition_to_course || "", cta_text: lm.cta_text || "", target_segment: lm.target_segment || "" };
     });
 
-    const { error: insertErr } = await supabase.from("lead_magnets").insert(inserts);
+    // Use fresh client to survive HTTP connection timeout
+    const freshSb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { error: insertErr } = await freshSb.from("lead_magnets").insert(inserts);
     if (insertErr) throw insertErr;
 
-    await supabase.from("generation_runs").insert({ project_id, prompt_id: prompt.id, type: promptCategory, status: "completed", input_data: { program_title: program.title, offer_title: offer.title, content_type }, output_data: leadMagnets, completed_at: new Date().toISOString() });
-    await supabase.from("projects").update({ status: "leads_ready" }).eq("id", project_id);
+    await freshSb.from("generation_runs").insert({ project_id, prompt_id: prompt.id, type: promptCategory, status: "completed", input_data: { program_title: program.title, offer_title: offer.title, content_type }, output_data: leadMagnets, completed_at: new Date().toISOString() });
+    await freshSb.from("projects").update({ status: "leads_ready" }).eq("id", project_id);
 
     const responseData = { success: true };
     if (taskId) await completeTask(taskId, responseData);

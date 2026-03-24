@@ -216,13 +216,13 @@ serve(async (req) => {
       throw new Error("Claude вернул невалидный JSON. Попробуйте ещё раз.");
     }
 
-    // Save as pipeline_json_{content_type}
+    // Use fresh client to survive HTTP connection timeout
+    const freshSb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const categoryKey = `pipeline_json_${content_type}`;
-    await supabase.from("content_pieces").delete().eq("project_id", project_id).eq("category", categoryKey);
-    await supabase.from("content_pieces").insert({ project_id, category: categoryKey, content: jsonContent });
+    await freshSb.from("content_pieces").delete().eq("project_id", project_id).eq("category", categoryKey);
+    await freshSb.from("content_pieces").insert({ project_id, category: categoryKey, content: jsonContent });
 
-    // Record generation run
-    await supabase.from("generation_runs").insert({
+    await freshSb.from("generation_runs").insert({
       project_id, prompt_id: prompt.id, type: prompt.category, status: "completed",
       input_data: { content_type, program_title: program.title, offer_title: offer.title, lead_magnet_title: selectedLead.title },
       output_data: { content: jsonContent }, completed_at: new Date().toISOString(),

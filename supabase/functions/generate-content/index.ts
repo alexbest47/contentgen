@@ -109,9 +109,11 @@ serve(async (req) => {
     const claudeData = await claudeResponse.json();
     const content = claudeData.content?.[0]?.text || "";
 
-    const { data: run } = await supabase.from("generation_runs").insert({ project_id, prompt_id: prompt.id, type: category, status: "completed", input_data: { program_title: program.title, offer_title: offer.title, lead_magnet_title: selectedLead.title }, output_data: { content }, completed_at: new Date().toISOString() }).select("id").single();
-    await supabase.from("content_pieces").delete().eq("project_id", project_id).eq("category", category);
-    await supabase.from("content_pieces").insert({ project_id, category, content, generation_run_id: run?.id || null });
+    // Use fresh client to survive HTTP connection timeout
+    const freshSb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: run } = await freshSb.from("generation_runs").insert({ project_id, prompt_id: prompt.id, type: category, status: "completed", input_data: { program_title: program.title, offer_title: offer.title, lead_magnet_title: selectedLead.title }, output_data: { content }, completed_at: new Date().toISOString() }).select("id").single();
+    await freshSb.from("content_pieces").delete().eq("project_id", project_id).eq("category", category);
+    await freshSb.from("content_pieces").insert({ project_id, category, content, generation_run_id: run?.id || null });
 
     const responseData = { success: true, content };
     if (taskId) await completeTask(taskId, responseData);
