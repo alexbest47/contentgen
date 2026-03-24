@@ -84,7 +84,7 @@ export default function EmailBuilder() {
   useEffect(() => { generatedHtmlRef.current = generatedHtml; }, [generatedHtml]);
 
   // Load letter
-  const { data: letter } = useQuery({
+  const { data: letter, isLoading: letterLoading, isFetched: letterFetched } = useQuery({
     queryKey: ["email_letter", letterId],
     queryFn: async () => {
       const { data, error } = await supabase.from("email_letters").select("*").eq("id", letterId!).maybeSingle();
