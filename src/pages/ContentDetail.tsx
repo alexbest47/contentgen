@@ -150,14 +150,7 @@ export default function ContentDetail() {
 
     setGeneratingImagesKey(null);
     setCarouselProgress(null);
-
-    if (failCount === 0) {
-      toast.success("Карусель сгенерирована!");
-    } else if (failCount < prompts.length) {
-      toast.warning(`Готово, но ${failCount} из ${prompts.length} слайдов не удалось сгенерировать`);
-    } else {
-      toast.error("Не удалось сгенерировать ни одного слайда");
-    }
+    toast.success("Задачи карусели добавлены в очередь");
   };
 
   const generateImagesMutation = useMutation({
