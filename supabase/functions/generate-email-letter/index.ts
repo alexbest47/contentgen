@@ -349,7 +349,13 @@ serve(async (req) => {
 
     // Use fresh client to survive HTTP connection timeout
     const freshSb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    await freshSb.from("email_letters").update(updatePayload).eq("id", letter_id);
+    console.log("Updating email_letters", letter_id, "html length:", html.length, "status:", updatePayload.status);
+    const { error: updateErr } = await freshSb.from("email_letters").update(updatePayload).eq("id", letter_id);
+    if (updateErr) {
+      console.error("Failed to update email_letters:", JSON.stringify(updateErr));
+    } else {
+      console.log("Successfully updated email_letters", letter_id);
+    }
 
     const responseData = { html, image_placeholders: imagePlaceholders, email_subject: emailSubject, email_preheader: emailPreheader };
     if (taskId) await completeTask(taskId, responseData);
