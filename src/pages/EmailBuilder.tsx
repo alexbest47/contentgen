@@ -576,6 +576,18 @@ export default function EmailBuilder() {
   const showGenerationPanel = !selectedBlock || settingsMode;
   const isGenerated = !!generatedHtml && !settingsMode;
 
+  // Letter was deleted or not found
+  if (letterId && letter === null && !initialLoadRef.current) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] gap-4">
+        <p className="text-lg text-muted-foreground">Письмо не найдено или было удалено</p>
+        <Button variant="outline" onClick={() => navigate("/email-builder")}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> К списку писем
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
       <div className="px-4 py-2 border-b">
