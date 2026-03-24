@@ -1,68 +1,55 @@
 
 
-## Исправление race condition в очереди задач
+## Кликабельные задачи в очереди
 
-### Проблема
+### Подход
 
-Две задачи в одной линии (`claude`) одновременно в статусе `processing`. Причина — race condition: два параллельных вызова `process-queue` оба выполняют SELECT (processing = 0), затем оба делают UPDATE на разные задачи.
-
-SELECT + UPDATE через Supabase JS — **не атомарная операция**. Между ними проходит время, достаточное для параллельного захвата.
-
-### Решение: атомарный захват через SQL-функцию
-
-Создать PostgreSQL-функцию `claim_next_task(lane)`, которая в одном запросе:
-1. Проверяет, что в линии нет задач со статусом `processing`
-2. Захватывает следующую `pending` задачу с `FOR UPDATE SKIP LOCKED`
-3. Обновляет статус на `processing`
-4. Возвращает задачу или NULL
-
-```sql
-CREATE FUNCTION claim_next_task(p_lane text)
-RETURNS task_queue
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  v_task task_queue;
-BEGIN
-  -- Check if lane already busy
-  IF EXISTS (
-    SELECT 1 FROM task_queue 
-    WHERE lane = p_lane AND status = 'processing'
-    FOR UPDATE SKIP LOCKED
-  ) THEN
-    RETURN NULL;
-  END IF;
-
-  -- Claim next pending task atomically
-  UPDATE task_queue
-  SET status = 'processing', started_at = now()
-  WHERE id = (
-    SELECT id FROM task_queue
-    WHERE lane = p_lane AND status = 'pending'
-    ORDER BY priority DESC, created_at ASC
-    LIMIT 1
-    FOR UPDATE SKIP LOCKED
-  )
-  RETURNING * INTO v_task;
-
-  RETURN v_task;
-END;
-$$;
-```
+Добавить поле `target_url` в `task_queue`. При постановке задачи фронтенд передаёт URL страницы, куда ведёт результат. В таблице очереди название задачи становится ссылкой.
 
 ### Изменения
 
-#### 1. Миграция — создать функцию `claim_next_task`
+#### 1. Миграция — колонка `target_url`
 
-Одна SQL-функция, как описано выше.
+```sql
+ALTER TABLE task_queue ADD COLUMN target_url text;
+```
 
-#### 2. `process-queue/index.ts` — заменить `processLane`
+#### 2. `enqueue-task/index.ts` — принять и сохранить `target_url`
 
-Вместо SELECT + UPDATE через JS-клиент — один вызов `supabase.rpc('claim_next_task', { p_lane: lane })`. Если вернул NULL — линия занята или пустая. Если вернул задачу — dispatch fire-and-forget.
+Добавить `target_url` из body в INSERT.
 
-Это ~15 строк замены в `processLane`.
+#### 3. `useTaskQueue.ts` — расширить интерфейс
+
+```typescript
+interface EnqueueOptions {
+  // ...existing fields
+  targetUrl?: string;
+}
+```
+
+#### 4. Все точки вызова — передать `targetUrl`
+
+| Файл | Функция | targetUrl |
+|------|---------|-----------|
+| `EmailBuilder.tsx` | generate-email-letter, generate-email-block | `/email-builder/${letterId}` |
+| `ProjectDetail.tsx` | generate-lead-magnets, generate-pipeline | текущий URL (проект) |
+| `ContentDetail.tsx` | generate-pipeline, generate-pipeline-images | текущий URL (контент) |
+| `OfferDetail.tsx` | generate-lead-magnets | текущий URL (оффер) |
+| `DiagnosticDetail.tsx` | run-diagnostic-pipeline | `/diagnostics/${diagnosticId}` |
+| `Diagnostics.tsx` | run-diagnostic-pipeline | `/diagnostics/${id}` |
+| `PdfMaterialView.tsx` | generate-pdf-material | `/pdf-materials/${id}` |
+| `CreatePdfWizard.tsx` | generate-pdf-material | `/pdf-materials/${id}` |
+| `GeneratedBlockSettings.tsx` | generate-lead-magnets | текущий URL |
+| `RefinePromptDialog.tsx` | refine-prompt | `/prompts` |
+
+#### 5. `TaskQueue.tsx` — название-ссылка
+
+Обернуть `display_title` в `<Link>` (react-router), если `target_url` задан. Стилизация: подчёркивание при наведении, курсор pointer.
 
 ### Итого
-- 1 миграция (SQL-функция)
-- 1 файл изменён (`process-queue/index.ts`)
+- 1 миграция (1 колонка)
+- 1 edge-функция обновлена
+- 1 хук обновлён
+- ~10 файлов — добавить `targetUrl`
+- 1 файл UI — ссылка в таблице
 
