@@ -295,6 +295,7 @@ export default function EmailBuilder() {
         },
         displayTitle: `Генерация блока: ${block.block_type}`,
         lane: "claude",
+        targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
     } catch (e: any) {
