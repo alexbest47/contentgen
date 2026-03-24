@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useTaskQueue } from "@/hooks/useTaskQueue";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -12,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface Task {
   id: string;
@@ -48,6 +49,8 @@ const statusColors: Record<string, string> = {
 export default function TaskQueue() {
   const { isAdmin } = useAuth();
   const { enqueue } = useTaskQueue();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -174,9 +177,22 @@ export default function TaskQueue() {
                   <TableCell>
                     <div className="font-medium">
                       {task.target_url ? (
-                        <Link to={task.target_url} className="hover:underline text-primary">
+                        <a
+                          href="#"
+                          className="hover:underline text-primary cursor-pointer"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            // Invalidate cached data so the target page fetches fresh
+                            const emailMatch = task.target_url!.match(/\/email-builder\/(.+)/);
+                            if (emailMatch) {
+                              queryClient.removeQueries({ queryKey: ["email_letter", emailMatch[1]] });
+                              queryClient.removeQueries({ queryKey: ["email_letter_blocks", emailMatch[1]] });
+                            }
+                            navigate(task.target_url!);
+                          }}
+                        >
                           {task.display_title}
-                        </Link>
+                        </a>
                       ) : (
                         task.display_title
                       )}

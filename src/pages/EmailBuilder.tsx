@@ -84,7 +84,7 @@ export default function EmailBuilder() {
   useEffect(() => { generatedHtmlRef.current = generatedHtml; }, [generatedHtml]);
 
   // Load letter
-  const { data: letter } = useQuery({
+  const { data: letter, isLoading: letterLoading, isFetched: letterFetched } = useQuery({
     queryKey: ["email_letter", letterId],
     queryFn: async () => {
       const { data, error } = await supabase.from("email_letters").select("*").eq("id", letterId!).maybeSingle();
@@ -407,7 +407,7 @@ export default function EmailBuilder() {
         selected_objection_ids: selectedObjectionIds,
       } as any).eq("id", letterId);
 
-      await enqueue({
+      const taskId = await enqueue({
         functionName: "generate-email-letter",
         payload: { letter_id: letterId },
         displayTitle: `Генерация письма: ${title || "Без названия"}`,
@@ -415,9 +415,34 @@ export default function EmailBuilder() {
         targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
+
+      // Poll task status and refresh letter data when generation completes
+      if (taskId) {
+        const pollInterval = setInterval(async () => {
+          const { data: task } = await supabase
+            .from("task_queue")
+            .select("status")
+            .eq("id", taskId)
+            .single();
+          if (task?.status === "completed" || task?.status === "error") {
+            clearInterval(pollInterval);
+            setGeneratingLetter(false);
+            if (task.status === "completed") {
+              dirtyRef.current = false;
+              queryClient.invalidateQueries({ queryKey: ["email_letter", letterId] });
+              queryClient.invalidateQueries({ queryKey: ["email_letter_blocks", letterId] });
+            }
+          }
+        }, 3000);
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setGeneratingLetter(false);
+        }, 5 * 60 * 1000);
+      } else {
+        setGeneratingLetter(false);
+      }
     } catch (e: any) {
       toast.error(e.message || "Ошибка");
-    } finally {
       setGeneratingLetter(false);
     }
   };
@@ -576,8 +601,17 @@ export default function EmailBuilder() {
   const showGenerationPanel = !selectedBlock || settingsMode;
   const isGenerated = !!generatedHtml && !settingsMode;
 
-  // Letter was deleted or not found
-  if (letterId && letter === null && !initialLoadRef.current) {
+  // Loading state — don't render empty builder while data is still loading
+  if (letterId && letterLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+        <p className="text-muted-foreground">Загрузка письма...</p>
+      </div>
+    );
+  }
+
+  // Letter was deleted or not found (only after query has completed)
+  if (letterId && letterFetched && letter === null) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] gap-4">
         <p className="text-lg text-muted-foreground">Письмо не найдено или было удалено</p>
