@@ -8,7 +8,7 @@ import {
 import {
   GraduationCap, Tag, TableProperties,
   MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion, MailPlus, TreePine, FileText, FilePlus2,
-  BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown, ListOrdered,
+  BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown, ListOrdered, ImageIcon,
 } from "lucide-react";
 
 const mainNav = [
