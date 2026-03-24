@@ -29,6 +29,7 @@ const offerPrepNav = [
 ];
 
 const contentPrepNav = [
+  { title: "Библиотека баннеров", url: "/banner-library", icon: ImageIcon },
   { title: "Платные программы", url: "/manage-programs", icon: GraduationCap },
   { title: "Управление кейсами", url: "/cases", icon: FileVideo },
   { title: "Дерево тем", url: "/topics", icon: TreePine },
