@@ -157,6 +157,13 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
           prompt,
           banner_type: bannerType,
           color_scheme_id: colorSchemeId || null,
+          title: title || getBannerTypeLabel(bannerType),
+          category,
+          program_id: category === "paid_program" && programId ? programId : null,
+          offer_type: category === "offer" ? offerType : null,
+          note,
+          created_by: user?.id,
+          generation_prompt: prompt,
         },
         displayTitle: `Генерация баннера: ${title || getBannerTypeLabel(bannerType)}`,
         lane: "openrouter",
@@ -176,6 +183,11 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
             setGenerating(false);
             const result = task.result as any;
             setGeneratedUrl(result?.image_url || null);
+            // Banner is auto-saved by edge function, refresh library
+            queryClient.invalidateQueries({ queryKey: ["banners"] });
+            toast.success("Баннер сгенерирован и сохранён в библиотеку");
+            onOpenChange(false);
+            resetForm();
           } else if (task?.status === "error") {
             clearInterval(pollInterval);
             setGenerating(false);

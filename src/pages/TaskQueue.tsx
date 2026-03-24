@@ -188,6 +188,9 @@ export default function TaskQueue() {
                               queryClient.removeQueries({ queryKey: ["email_letter", emailMatch[1]] });
                               queryClient.removeQueries({ queryKey: ["email_letter_blocks", emailMatch[1]] });
                             }
+                            if (task.target_url === "/banner-library") {
+                              queryClient.invalidateQueries({ queryKey: ["banners"] });
+                            }
                             navigate(task.target_url!);
                           }}
                         >
