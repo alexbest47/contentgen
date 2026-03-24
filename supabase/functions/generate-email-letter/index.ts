@@ -347,7 +347,9 @@ serve(async (req) => {
     if (emailSubject) updatePayload.subject = emailSubject;
     if (emailPreheader) updatePayload.preheader = emailPreheader;
 
-    await sb.from("email_letters").update(updatePayload).eq("id", letter_id);
+    // Use fresh client to survive HTTP connection timeout
+    const freshSb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    await freshSb.from("email_letters").update(updatePayload).eq("id", letter_id);
 
     const responseData = { html, image_placeholders: imagePlaceholders, email_subject: emailSubject, email_preheader: emailPreheader };
     if (taskId) await completeTask(taskId, responseData);

@@ -252,7 +252,8 @@ serve(async (req) => {
     block_html = block_html.replace(/<(div|p|figure|span)[^>]*>\s*<\/(div|p|figure|span)>/gi, "");
 
     if (body.block_id) {
-      await sb.from("email_letter_blocks").update({ generated_html: block_html, banner_image_prompt }).eq("id", body.block_id);
+      const freshSb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await freshSb.from("email_letter_blocks").update({ generated_html: block_html, banner_image_prompt }).eq("id", body.block_id);
     }
 
     const responseData = { block_html, banner_image_prompt };

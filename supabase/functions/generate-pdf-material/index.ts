@@ -191,7 +191,9 @@ serve(async (req) => {
       }
     }
 
-    const { error: updateErr } = await supabase.from("pdf_materials").update({
+    // Use fresh client to survive HTTP connection timeout
+    const freshSb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { error: updateErr } = await freshSb.from("pdf_materials").update({
       subtitle: result.pdf_subtitle || "", html_content: result.html_content || "", sections_count: result.sections_count || null, word_count: result.word_count || null,
       landing_headline: result.landing_headline || "", landing_descriptor: result.landing_descriptor || "", landing_button_text: result.landing_button_text || "",
       landing_modal_type_word: result.landing_modal_title_type_word || "", landing_html: landingHtml, imagen_prompt: result.imagen_prompt || "",
