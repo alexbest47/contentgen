@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2, RefreshCcw, Upload, FolderOpen } from "lucide-react";
+import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2, RefreshCcw, Upload, FolderOpen, BookmarkPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { blockTypeLabels, isGeneratedBlock, isTemplateLocked, type EmailBlockType } from "./BlockLibrary";
 import { Lock } from "lucide-react";
@@ -44,6 +44,7 @@ interface Props {
   onUpdateGeneratedHtml?: (html: string) => void;
   onUploadPlaceholderImage?: (placeholderId: string, file: File) => void;
   onPickFromLibrary?: (placeholderId: string) => void;
+  onSavePlaceholderToLibrary?: (placeholderId: string) => void;
 }
 
 /** Restore placeholder markers from rendered HTML back to {{id}} format */
@@ -124,7 +125,7 @@ export default function BlockCanvas({
   generatedHtml, imagePlaceholders,
   onGeneratePlaceholderImage, generatingPlaceholderId,
   onUpdateGeneratedHtml, onUploadPlaceholderImage,
-  onPickFromLibrary,
+  onPickFromLibrary, onSavePlaceholderToLibrary,
 }: Props) {
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
@@ -361,6 +362,17 @@ export default function BlockCanvas({
                     onClick={() => onPickFromLibrary(ph.id)}
                   >
                     <FolderOpen className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {onSavePlaceholderToLibrary && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shadow-md bg-background/90 backdrop-blur-sm"
+                    title="Сохранить в библиотеку"
+                    onClick={() => onSavePlaceholderToLibrary(ph.id)}
+                  >
+                    <BookmarkPlus className="h-3.5 w-3.5" />
                   </Button>
                 )}
               </div>
