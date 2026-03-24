@@ -186,9 +186,9 @@ export default function EmailBuilder() {
     }
   }, [dbBlocks]);
 
-  // Mark dirty on changes
+  // Mark dirty on changes — but NOT during hydration from DB
   useEffect(() => {
-    if (initialLoadRef.current) {
+    if (initialLoadRef.current && !hydratingRef.current) {
       dirtyRef.current = true;
       setSaveStatus("unsaved");
     }
