@@ -352,6 +352,17 @@ export default function BlockCanvas({
                 >
                   <Upload className="h-3.5 w-3.5" />
                 </Button>
+                {onPickFromLibrary && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shadow-md bg-background/90 backdrop-blur-sm"
+                    title="Из библиотеки"
+                    onClick={() => onPickFromLibrary(ph.id)}
+                  >
+                    <FolderOpen className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             );
           })}
