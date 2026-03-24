@@ -202,7 +202,7 @@ export default function EmailBuilder() {
     if (!letterId || !dirtyRef.current) return;
     setSaveStatus("saving");
     try {
-      await supabase.from("email_letters").update({
+      const updatePayload: any = {
         title, subject, preheader,
         selected_color_scheme_id: colorSchemeId,
         letter_theme_title: letterThemeTitle,
@@ -212,10 +212,14 @@ export default function EmailBuilder() {
         offer_id: offerId,
         case_id: caseId,
         extra_offer_ids: extraOfferIds,
-        generated_html: generatedHtmlRef.current,
-        image_placeholders: imagePlaceholdersRef.current,
         selected_objection_ids: selectedObjectionIds,
-      } as any).eq("id", letterId);
+      };
+      // Safeguard: don't overwrite existing generated content with empty local state
+      if (generatedHtmlRef.current || letter?.status !== "ready") {
+        updatePayload.generated_html = generatedHtmlRef.current;
+        updatePayload.image_placeholders = imagePlaceholdersRef.current;
+      }
+      await supabase.from("email_letters").update(updatePayload).eq("id", letterId);
 
       for (const block of blocks) {
         await supabase.from("email_letter_blocks").upsert({
