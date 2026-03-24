@@ -18,6 +18,9 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function BannerLibrary() {
   const { user } = useAuth();
@@ -26,6 +29,7 @@ export default function BannerLibrary() {
   const [addOpen, setAddOpen] = useState(false);
   const [editBanner, setEditBanner] = useState<any>(null);
   const [deleteBanner, setDeleteBanner] = useState<any>(null);
+  const [previewBanner, setPreviewBanner] = useState<any>(null);
 
   // Filters
   const [filterProgram, setFilterProgram] = useState<string>("all");
@@ -172,10 +176,10 @@ export default function BannerLibrary() {
             </div>
 
             <TabsContent value="paid_program" className="mt-4">
-              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} />
+              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} />
             </TabsContent>
             <TabsContent value="offer" className="mt-4">
-              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} />
+              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} />
             </TabsContent>
           </Tabs>
 
@@ -193,6 +197,23 @@ export default function BannerLibrary() {
       {editBanner && (
         <EditBannerDialog banner={editBanner} open={!!editBanner} onOpenChange={(o) => !o && setEditBanner(null)} />
       )}
+      <Dialog open={!!previewBanner} onOpenChange={(o) => !o && setPreviewBanner(null)}>
+        <DialogContent className="max-w-4xl p-2 bg-black/95 border-none">
+          <DialogHeader className="px-2 pt-2">
+            <DialogTitle className="text-white text-sm font-medium truncate">
+              {previewBanner?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {previewBanner && (
+            <img
+              src={previewBanner.image_url}
+              alt={previewBanner.title}
+              className="w-full max-h-[85vh] object-contain rounded"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!deleteBanner} onOpenChange={(o) => !o && setDeleteBanner(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -211,15 +232,16 @@ export default function BannerLibrary() {
   );
 }
 
-function BannerGrid({ banners, onEdit, onDelete }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void }) {
+function BannerGrid({ banners, onEdit, onDelete, onPreview }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void; onPreview: (b: any) => void }) {
   if (banners.length === 0) return null;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {banners.map((b: any) => (
         <Card key={b.id} className="overflow-hidden">
           <div
-            className="w-full bg-muted"
+            className="w-full bg-muted cursor-pointer"
             style={{ aspectRatio: `${600} / ${getBannerDims(b.banner_type).h}` }}
+            onClick={() => onPreview(b)}
           >
             <img src={b.image_url} alt={b.title} className="w-full h-full object-cover" />
           </div>
