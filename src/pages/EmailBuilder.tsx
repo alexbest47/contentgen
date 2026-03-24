@@ -180,6 +180,26 @@ export default function EmailBuilder() {
     }
   }, [letter]);
 
+  // Keep image URLs in sync from DB even after initial hydration
+  // This ensures that when the edge function updates image_placeholders in DB,
+  // the local state picks up the new image_url values
+  useEffect(() => {
+    if (!letter?.image_placeholders || !initialLoadRef.current) return;
+    const dbPlaceholders = (letter as any).image_placeholders as ImagePlaceholder[];
+    setImagePlaceholders(prev => {
+      let changed = false;
+      const merged = prev.map(p => {
+        const dbP = dbPlaceholders.find((d: any) => d.id === p.id);
+        if (dbP?.image_url && !p.image_url) {
+          changed = true;
+          return { ...p, image_url: dbP.image_url };
+        }
+        return p;
+      });
+      return changed ? merged : prev;
+    });
+  }, [letter]);
+
   useEffect(() => {
     if (dbBlocks && !blocksLoadedRef.current) {
       hydratingRef.current = true;
