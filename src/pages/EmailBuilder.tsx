@@ -363,24 +363,15 @@ export default function EmailBuilder() {
     if (!ph?.prompt) return;
     setGeneratingPlaceholderId(placeholderId);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-email-letter", {
-        body: { generate_image: true, placeholder_id: placeholderId, prompt: ph.prompt },
+      await enqueue({
+        functionName: "generate-email-letter",
+        payload: { generate_image: true, placeholder_id: placeholderId, prompt: ph.prompt },
+        displayTitle: `Генерация изображения письма`,
+        lane: "openrouter",
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setImagePlaceholders(prev => {
-        const updated = prev.map((p) =>
-          p.id === placeholderId ? { ...p, image_url: data.image_url } : p
-        );
-        // Save to DB immediately with the fresh value
-        supabase.from("email_letters").update({
-          image_placeholders: updated,
-        } as any).eq("id", letterId);
-        return updated;
-      });
-      toast.success("Изображение сгенерировано");
+      toast.success("Задача добавлена в очередь");
     } catch (e: any) {
-      toast.error(e.message || "Ошибка генерации изображения");
+      toast.error(e.message || "Ошибка");
     } finally {
       setGeneratingPlaceholderId(null);
     }
