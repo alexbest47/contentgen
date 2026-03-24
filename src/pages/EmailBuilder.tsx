@@ -407,7 +407,7 @@ export default function EmailBuilder() {
         selected_objection_ids: selectedObjectionIds,
       } as any).eq("id", letterId);
 
-      await enqueue({
+      const taskId = await enqueue({
         functionName: "generate-email-letter",
         payload: { letter_id: letterId },
         displayTitle: `Генерация письма: ${title || "Без названия"}`,
@@ -415,9 +415,34 @@ export default function EmailBuilder() {
         targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
+
+      // Poll task status and refresh letter data when generation completes
+      if (taskId) {
+        const pollInterval = setInterval(async () => {
+          const { data: task } = await supabase
+            .from("task_queue")
+            .select("status")
+            .eq("id", taskId)
+            .single();
+          if (task?.status === "completed" || task?.status === "error") {
+            clearInterval(pollInterval);
+            setGeneratingLetter(false);
+            if (task.status === "completed") {
+              dirtyRef.current = false;
+              queryClient.invalidateQueries({ queryKey: ["email_letter", letterId] });
+              queryClient.invalidateQueries({ queryKey: ["email_letter_blocks", letterId] });
+            }
+          }
+        }, 3000);
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setGeneratingLetter(false);
+        }, 5 * 60 * 1000);
+      } else {
+        setGeneratingLetter(false);
+      }
     } catch (e: any) {
       toast.error(e.message || "Ошибка");
-    } finally {
       setGeneratingLetter(false);
     }
   };
