@@ -1,74 +1,53 @@
 
 
-## Исправление: контент письма пропадает при быстром входе/выходе
+## Проблема: кейс и возражения не сохраняются при возврате на страницу
 
-### Корневая причина
+### Причина
 
-Проблема в гонке между React Query кешем и логикой сохранения:
+React Query при повторном заходе сначала отдаёт **стейл кеш** (данные до выбора кейса/возражений), а потом рефетчит свежие данные. 
 
-1. React Query возвращает **устаревший кеш** (с пустым `generated_html` — из момента до генерации), гидратируя state пустым значением
-2. Загрузка блоков (`dbBlocks`) ставит `dirtyRef.current = true`, потому что `hydratingRef` к этому моменту уже `false`  
-3. Пользователь быстро уходит → unmount-save сохраняет пустой `generatedHtml` в базу → контент потерян
-4. При следующем визите React Query кеш обновился рефетчем → показывает контент → но новый save может снова затереть его
+Цепочка:
+1. Пользователь выбирает кейс + возражения → данные сохраняются в БД (через `generateLetter` или `handleChangeCaseId`)
+2. Пользователь уходит → компонент размонтируется
+3. Пользователь возвращается → React Query возвращает **стейл кеш** (без кейса/возражений)
+4. Первая гидратация (строка 141) записывает `caseId = null`, `selectedObjectionIds = []` из стейл кеша
+5. `initialLoadRef.current = true` — первая загрузка помечена как завершённая
+6. React Query рефетчит свежие данные (с кейсом и возражениями) → но `else if` на строке 163 проверяет только `generatedHtml`, игнорируя `case_id` и `selected_objection_ids`
+7. Результат: кейс и возражения потеряны в UI
 
-Это объясняет чередование: кеш то стал (пустой), то свежий (с контентом).
+### Решение
 
-### План исправления
+#### 1. Расширить ре-гидратацию — синхронизировать case_id и selected_objection_ids при рефетче
 
-#### 1. Защита в `save()` от перезаписи контента пустым значением
-
-В функции `save()` (строки 198-235): если в базе `status = "ready"` а локальный `generatedHtmlRef.current` пустой — не отправлять пустой `generated_html` в update. Это главная страховка.
-
-```typescript
-// В save():
-const updatePayload: any = {
-  title, subject, preheader, ...
-};
-// Только записывать generated_html если он не пустой, 
-// ИЛИ если status ещё не ready (пользователь ещё не генерировал)
-if (generatedHtmlRef.current || letter?.status !== "ready") {
-  updatePayload.generated_html = generatedHtmlRef.current;
-  updatePayload.image_placeholders = imagePlaceholdersRef.current;
-}
-```
-
-#### 2. Включить блоки в зону гидратации
-
-Обернуть загрузку блоков в `hydratingRef = true`, чтобы она не ставила `dirtyRef`:
+В `else if` блоке (строка 163) добавить синхронизацию `case_id` и `selected_objection_ids` из БД, когда локальные значения пусты, а в БД есть данные. Это покроет как текущий баг, так и будущие похожие ситуации.
 
 ```typescript
-useEffect(() => {
-  if (dbBlocks && !blocksLoadedRef.current) {
-    hydratingRef.current = true;
-    setBlocks(dbBlocks.map(...));
-    blocksLoadedRef.current = true;
-    requestAnimationFrame(() => { hydratingRef.current = false; });
-  }
-}, [dbBlocks]);
-```
-
-#### 3. Разрешить ре-гидратацию при рефетче (даже если dirty)
-
-Изменить else-if (строка 163) — убрать проверку `!dirtyRef.current` и проверять только что `generatedHtmlRef.current` пуст, а в базе есть контент:
-
-```typescript
-} else if (dbHtml && !generatedHtmlRef.current) {
-  // DB has content but local is empty — always accept DB version
+} else if (!dirtyRef.current) {
+  // Re-hydrate all fields from DB when there are no unsaved changes
   hydratingRef.current = true;
-  dirtyRef.current = false; // reset dirty since we're accepting DB state
   setGeneratedHtml(dbHtml);
   setImagePlaceholders(dbPlaceholders);
   setSubject(letter.subject);
   setPreheader(letter.preheader);
+  setCaseId((letter as any).case_id || null);
+  setSelectedObjectionIds((letter as any).selected_objection_ids || []);
   requestAnimationFrame(() => { hydratingRef.current = false; });
 }
 ```
 
-### Файлы
-- `src/pages/EmailBuilder.tsx` — 3 точечных изменения
+#### 2. Добавить немедленное сохранение selectedObjectionIds в БД
 
-### Результат
-- Пустой state больше не перезаписывает сгенерированный контент в базе
-- Загрузка блоков не триггерит ложный dirty
-- Рефетч с контентом всегда применяется к пустому локальному state
+По аналогии с `handleChangeCaseId`, который сохраняет `case_id` сразу при выборе, добавить немедленное сохранение `selected_objection_ids` при изменении:
+
+```typescript
+const handleChangeObjectionIds = useCallback(async (ids: string[]) => {
+  setSelectedObjectionIds(ids);
+  if (letterId) {
+    await supabase.from("email_letters").update({ selected_objection_ids: ids } as any).eq("id", letterId);
+  }
+}, [letterId]);
+```
+
+### Файл
+- `src/pages/EmailBuilder.tsx` — 2 изменения
 
