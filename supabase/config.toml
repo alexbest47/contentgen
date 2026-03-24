@@ -53,3 +53,9 @@ verify_jwt = false
 
 [functions.import-prompts-txt]
 verify_jwt = false
+
+[functions.enqueue-task]
+verify_jwt = false
+
+[functions.process-queue]
+verify_jwt = false

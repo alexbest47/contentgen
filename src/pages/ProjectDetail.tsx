@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTaskQueue } from "@/hooks/useTaskQueue";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -102,6 +103,7 @@ export default function ProjectDetail() {
   const { programId, offerType, offerId, projectId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { enqueue } = useTaskQueue();
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [jsonDialog, setJsonDialog] = useState<{ name: string; json: any } | null>(null);
   const [selectingCase, setSelectingCase] = useState(false);
@@ -329,12 +331,12 @@ export default function ProjectDetail() {
       } as any).eq("id", projectId!);
       if (updateErr) throw updateErr;
 
-      // Generate angles
-      const { data, error } = await supabase.functions.invoke("generate-lead-magnets", {
-        body: { project_id: projectId, content_type: "testimonial_content", case_classification_id: caseId },
+      await enqueue({
+        functionName: "generate-lead-magnets",
+        payload: { project_id: projectId, content_type: "testimonial_content", case_classification_id: caseId },
+        displayTitle: "Генерация углов подачи (кейс)",
+        lane: "claude",
       });
-      if (error) throw new Error(error.message || "Ошибка генерации углов");
-      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
@@ -355,11 +357,12 @@ export default function ProjectDetail() {
         selected_objection_id: objectionId,
       } as any).eq("id", projectId!);
       if (updateErr) throw updateErr;
-      const { data, error } = await supabase.functions.invoke("generate-lead-magnets", {
-        body: { project_id: projectId, content_type: "objection_handling", selected_objection_id: objectionId },
+      await enqueue({
+        functionName: "generate-lead-magnets",
+        payload: { project_id: projectId, content_type: "objection_handling", selected_objection_id: objectionId },
+        displayTitle: "Генерация углов подачи (возражение)",
+        lane: "claude",
       });
-      if (error) throw new Error(error.message || "Ошибка генерации углов");
-      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
@@ -397,16 +400,15 @@ export default function ProjectDetail() {
   const generatePipelineMutation = useMutation({
     mutationFn: async (contentType: string) => {
       setGeneratingKey(contentType);
-      const { data, error } = await supabase.functions.invoke("generate-pipeline", {
-        body: { project_id: projectId, content_type: contentType },
+      await enqueue({
+        functionName: "generate-pipeline",
+        payload: { project_id: projectId, content_type: contentType },
+        displayTitle: `Генерация контента: ${contentType}`,
+        lane: "claude",
       });
-      if (error) throw new Error(error.message || "Ошибка генерации");
-      if (data?.error) throw new Error(data.error);
-      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
-      toast.success("Контент сгенерирован!");
+      toast.success("Задача добавлена в очередь");
       setGeneratingKey(null);
     },
     onError: (e: Error) => {

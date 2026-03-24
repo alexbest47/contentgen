@@ -1094,6 +1094,54 @@ export type Database = {
         }
         Relationships: []
       }
+      task_queue: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          display_title: string
+          error_message: string | null
+          function_name: string
+          id: string
+          lane: string
+          payload: Json
+          priority: number
+          result: Json | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          display_title?: string
+          error_message?: string | null
+          function_name: string
+          id?: string
+          lane: string
+          payload?: Json
+          priority?: number
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          display_title?: string
+          error_message?: string | null
+          function_name?: string
+          id?: string
+          lane?: string
+          payload?: Json
+          priority?: number
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       topic_tree: {
         Row: {
           created_at: string

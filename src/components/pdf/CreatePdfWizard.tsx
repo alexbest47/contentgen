@@ -148,13 +148,15 @@ export function CreatePdfWizard({ open, onOpenChange, onSuccess }: Props) {
 
       if (insErr) throw insErr;
 
-      // Call edge function
-      const { data, error } = await supabase.functions.invoke("generate-pdf-material", {
-        body: { pdf_material_id: mat.id },
+      // Enqueue edge function
+      await supabase.functions.invoke("enqueue-task", {
+        body: {
+          function_name: "generate-pdf-material",
+          payload: { pdf_material_id: mat.id },
+          display_title: `Генерация PDF: ${title.trim()}`,
+          lane: "claude",
+        },
       });
-
-      if (error) throw new Error(error.message || "Generation failed");
-      if (data?.error) throw new Error(data.error);
 
       onSuccess();
       onOpenChange(false);

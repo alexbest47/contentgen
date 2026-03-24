@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTaskQueue } from "@/hooks/useTaskQueue";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +84,7 @@ const statusColors: Record<string, string> = {
 export default function OfferDetail() {
   const { programId, offerType, offerId } = useParams();
   const { user } = useAuth();
+  const { enqueue } = useTaskQueue();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -147,16 +149,16 @@ export default function OfferDetail() {
         .single();
       if (projError) throw projError;
 
-      // For testimonial_content and objection_handling, skip lead magnets generation — user picks case/objection first
       if (contentType === "testimonial_content" || contentType === "objection_handling") {
         return { projectId: project.id, label };
       }
 
-      const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
-        body: { project_id: project.id, content_type: contentType },
+      await enqueue({
+        functionName: "generate-lead-magnets",
+        payload: { project_id: project.id, content_type: contentType },
+        displayTitle: `Генерация ${label}: ${nameData.name}`,
+        lane: "claude",
       });
-      if (genError) throw new Error(genError.message || "Ошибка генерации");
-      if (genData?.error) throw new Error(genData.error);
 
       return { projectId: project.id, label };
     },

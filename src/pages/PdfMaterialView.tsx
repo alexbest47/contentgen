@@ -85,18 +85,21 @@ export default function PdfMaterialView() {
     if (!id) return;
     setIsRegenerating(true);
     try {
-      const { error } = await supabase.functions.invoke("generate-pdf-material", {
-        body: { pdf_material_id: id },
+      await supabase.functions.invoke("enqueue-task", {
+        body: {
+          function_name: "generate-pdf-material",
+          payload: { pdf_material_id: id },
+          display_title: `Перегенерация PDF: ${material?.title || id}`,
+          lane: "claude",
+        },
       });
-      if (error) throw error;
-      await refetch();
-      toast.success("Материал перегенерирован");
+      toast.success("Задача добавлена в очередь");
     } catch (e: any) {
-      toast.error("Ошибка: " + (e.message || "не удалось перегенерировать"));
+      toast.error("Ошибка: " + (e.message || "не удалось добавить в очередь"));
     } finally {
       setIsRegenerating(false);
     }
-  }, [id, refetch]);
+  }, [id, material]);
 
   // Landing iframe uses fixed height with internal scroll
 

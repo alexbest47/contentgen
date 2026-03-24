@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTaskQueue } from "@/hooks/useTaskQueue";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,6 +22,7 @@ export default function EmailBuilder() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { enqueue } = useTaskQueue();
 
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
@@ -281,8 +283,9 @@ export default function EmailBuilder() {
     if (!block) return;
     setGeneratingBlockId(blockId);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-email-block", {
-        body: {
+      await enqueue({
+        functionName: "generate-email-block",
+        payload: {
           block_id: blockId,
           block_type: block.block_type,
           config: block.config,
@@ -290,21 +293,12 @@ export default function EmailBuilder() {
           mode: block.config.mode || "text_only",
           letter_id: letterId,
         },
+        displayTitle: `Генерация блока: ${block.block_type}`,
+        lane: "claude",
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setBlocks((prev) => prev.map((b) =>
-        b.id === blockId
-          ? { ...b, generated_html: data.block_html || "", banner_image_prompt: data.banner_image_prompt || "" }
-          : b
-      ));
-      await supabase.from("email_letter_blocks").update({
-        generated_html: data.block_html || "",
-        banner_image_prompt: data.banner_image_prompt || "",
-      }).eq("id", blockId);
-      toast.success("Блок сгенерирован");
+      toast.success("Задача добавлена в очередь");
     } catch (e: any) {
-      toast.error(e.message || "Ошибка генерации");
+      toast.error(e.message || "Ошибка");
     } finally {
       setGeneratingBlockId(null);
     }
@@ -315,18 +309,15 @@ export default function EmailBuilder() {
     if (!block?.banner_image_prompt) return;
     setGeneratingImageBlockId(blockId);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-email-block", {
-        body: { generate_image: true, block_id: blockId, banner_image_prompt: block.banner_image_prompt },
+      await enqueue({
+        functionName: "generate-email-block",
+        payload: { generate_image: true, block_id: blockId, banner_image_prompt: block.banner_image_prompt },
+        displayTitle: `Генерация изображения блока`,
+        lane: "openrouter",
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setBlocks((prev) => prev.map((b) =>
-        b.id === blockId ? { ...b, banner_image_url: data.banner_image_url || "" } : b
-      ));
-      await supabase.from("email_letter_blocks").update({ banner_image_url: data.banner_image_url || "" }).eq("id", blockId);
-      toast.success("Изображение сгенерировано");
+      toast.success("Задача добавлена в очередь");
     } catch (e: any) {
-      toast.error(e.message || "Ошибка генерации изображения");
+      toast.error(e.message || "Ошибка");
     } finally {
       setGeneratingImageBlockId(null);
     }
@@ -338,11 +329,8 @@ export default function EmailBuilder() {
     setGeneratingLetter(true);
     setSettingsMode(false);
     try {
-      // Save current settings first
       await supabase.from("email_letters").update({
-        title,
-        subject,
-        preheader,
+        title, subject, preheader,
         selected_color_scheme_id: colorSchemeId,
         letter_theme_title: letterThemeTitle,
         letter_theme_description: letterThemeDescription,
@@ -355,20 +343,15 @@ export default function EmailBuilder() {
         selected_objection_ids: selectedObjectionIds,
       } as any).eq("id", letterId);
 
-      const { data, error } = await supabase.functions.invoke("generate-email-letter", {
-        body: { letter_id: letterId },
+      await enqueue({
+        functionName: "generate-email-letter",
+        payload: { letter_id: letterId },
+        displayTitle: `Генерация письма: ${title || "Без названия"}`,
+        lane: "claude",
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      setGeneratedHtml(data.html || "");
-      setImagePlaceholders(data.image_placeholders || []);
-      // Update subject/preheader from AI if provided
-      if (data.email_subject) setSubject(data.email_subject);
-      if (data.email_preheader) setPreheader(data.email_preheader);
-      toast.success("Письмо сгенерировано");
+      toast.success("Задача добавлена в очередь");
     } catch (e: any) {
-      toast.error(e.message || "Ошибка генерации письма");
+      toast.error(e.message || "Ошибка");
     } finally {
       setGeneratingLetter(false);
     }
@@ -380,24 +363,15 @@ export default function EmailBuilder() {
     if (!ph?.prompt) return;
     setGeneratingPlaceholderId(placeholderId);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-email-letter", {
-        body: { generate_image: true, placeholder_id: placeholderId, prompt: ph.prompt },
+      await enqueue({
+        functionName: "generate-email-letter",
+        payload: { generate_image: true, placeholder_id: placeholderId, prompt: ph.prompt },
+        displayTitle: `Генерация изображения письма`,
+        lane: "openrouter",
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setImagePlaceholders(prev => {
-        const updated = prev.map((p) =>
-          p.id === placeholderId ? { ...p, image_url: data.image_url } : p
-        );
-        // Save to DB immediately with the fresh value
-        supabase.from("email_letters").update({
-          image_placeholders: updated,
-        } as any).eq("id", letterId);
-        return updated;
-      });
-      toast.success("Изображение сгенерировано");
+      toast.success("Задача добавлена в очередь");
     } catch (e: any) {
-      toast.error(e.message || "Ошибка генерации изображения");
+      toast.error(e.message || "Ошибка");
     } finally {
       setGeneratingPlaceholderId(null);
     }

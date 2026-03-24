@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTaskQueue } from "@/hooks/useTaskQueue";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -23,6 +24,7 @@ export default function ContentDetail() {
   const { programId, offerType, offerId, projectId, contentType } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { enqueue } = useTaskQueue();
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [generatingImagesKey, setGeneratingImagesKey] = useState<string | null>(null);
   const [carouselProgress, setCarouselProgress] = useState<{ current: number; total: number } | null>(null);
@@ -85,16 +87,15 @@ export default function ContentDetail() {
   const generatePipelineMutation = useMutation({
     mutationFn: async () => {
       setGeneratingKey("pipeline");
-      const { data, error } = await supabase.functions.invoke("generate-pipeline", {
-        body: { project_id: projectId, content_type: contentType },
+      await enqueue({
+        functionName: "generate-pipeline",
+        payload: { project_id: projectId, content_type: contentType },
+        displayTitle: `Перегенерация контента: ${contentType}`,
+        lane: "claude",
       });
-      if (error) throw new Error(error.message || "Ошибка генерации");
-      if (data?.error) throw new Error(data.error);
-      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
-      toast.success("Контент обновлён!");
+      toast.success("Задача добавлена в очередь");
       setGeneratingKey(null);
     },
     onError: (e: Error) => {
@@ -134,50 +135,36 @@ export default function ContentDetail() {
 
       setCarouselProgress({ current: i + 1, total: prompts.length });
 
-      try {
-        const { data, error } = await supabase.functions.invoke("generate-pipeline-images", {
-          body: {
-            project_id: projectId,
-            content_type: contentType,
-            mode: "carousel",
-            slide_number: prompts[i].slide_number,
-          },
-        });
-        if (error) throw new Error(error.message);
-        if (data?.error) throw new Error(data.error);
-
-        await queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
-      } catch (e: any) {
-        console.error(`Slide ${prompts[i].slide_number} failed:`, e);
-        failCount++;
-      }
+      await enqueue({
+        functionName: "generate-pipeline-images",
+        payload: {
+          project_id: projectId,
+          content_type: contentType,
+          mode: "carousel",
+          slide_number: prompts[i].slide_number,
+        },
+        displayTitle: `Карусель слайд ${prompts[i].slide_number}`,
+        lane: "openrouter",
+      });
     }
 
     setGeneratingImagesKey(null);
     setCarouselProgress(null);
-
-    if (failCount === 0) {
-      toast.success("Карусель сгенерирована!");
-    } else if (failCount < prompts.length) {
-      toast.warning(`Готово, но ${failCount} из ${prompts.length} слайдов не удалось сгенерировать`);
-    } else {
-      toast.error("Не удалось сгенерировать ни одного слайда");
-    }
+    toast.success("Задачи карусели добавлены в очередь");
   };
 
   const generateImagesMutation = useMutation({
     mutationFn: async (mode: "static" | "banner") => {
       setGeneratingImagesKey(mode);
-      const { data, error } = await supabase.functions.invoke("generate-pipeline-images", {
-        body: { project_id: projectId, content_type: contentType, mode },
+      await enqueue({
+        functionName: "generate-pipeline-images",
+        payload: { project_id: projectId, content_type: contentType, mode },
+        displayTitle: `Генерация изображения: ${mode}`,
+        lane: "openrouter",
       });
-      if (error) throw new Error(error.message || "Ошибка генерации изображений");
-      if (data?.error) throw new Error(data.error);
-      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
-      toast.success("Изображение сгенерировано!");
+      toast.success("Задача добавлена в очередь");
       setGeneratingImagesKey(null);
     },
     onError: (e: Error) => {

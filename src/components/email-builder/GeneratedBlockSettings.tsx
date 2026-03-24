@@ -205,9 +205,14 @@ export default function GeneratedBlockSettings({
       if (block.block_type === "testimonial_content") body.case_classification_id = twoLevelItemId;
       if (block.block_type === "objection_handling") body.selected_objection_id = twoLevelItemId;
 
-      const { data, error: fnError } = await supabase.functions.invoke("generate-lead-magnets", { body });
-      if (fnError) throw fnError;
-      if (data?.error) throw new Error(data.error);
+      await supabase.functions.invoke("enqueue-task", {
+        body: {
+          function_name: "generate-lead-magnets",
+          payload: body,
+          display_title: `Генерация вариантов: ${block.block_type}`,
+          lane: "claude",
+        },
+      });
 
       await queryClient.invalidateQueries({ queryKey: ["variant_projects"] });
       await queryClient.invalidateQueries({ queryKey: ["angle_projects"] });
@@ -233,9 +238,14 @@ export default function GeneratedBlockSettings({
       if (block.block_type === "testimonial_content") body.case_classification_id = twoLevelItemId;
       if (block.block_type === "objection_handling") body.selected_objection_id = twoLevelItemId;
 
-      const { data, error } = await supabase.functions.invoke("generate-lead-magnets", { body });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      await supabase.functions.invoke("enqueue-task", {
+        body: {
+          function_name: "generate-lead-magnets",
+          payload: body,
+          display_title: `Перегенерация вариантов: ${block.block_type}`,
+          lane: "claude",
+        },
+      });
 
       await queryClient.invalidateQueries({ queryKey: ["variants_for_block"] });
       await queryClient.invalidateQueries({ queryKey: ["angles_for_block"] });

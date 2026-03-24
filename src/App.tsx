@@ -35,6 +35,7 @@ import TopicTree from "@/pages/TopicTree";
 import EmailTemplates from "@/pages/EmailTemplates";
 import PdfMaterials from "@/pages/PdfMaterials";
 import PdfMaterialView from "@/pages/PdfMaterialView";
+import TaskQueue from "@/pages/TaskQueue";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,7 +66,8 @@ const App = () => (
             
             <Route path="/auth" element={<AuthRoute />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route path="/" element={<Navigate to="/programs" replace />} />
+              <Route path="/" element={<Navigate to="/queue" replace />} />
+              <Route path="/queue" element={<TaskQueue />} />
               <Route path="/programs" element={<Programs />} />
               <Route path="/programs/:programId" element={<ProgramDetail />} />
               <Route path="/programs/:programId/offers/:offerType" element={<OfferTypeDetail />} />
