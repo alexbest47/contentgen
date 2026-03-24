@@ -331,12 +331,12 @@ export default function ProjectDetail() {
       } as any).eq("id", projectId!);
       if (updateErr) throw updateErr;
 
-      // Generate angles
-      const { data, error } = await supabase.functions.invoke("generate-lead-magnets", {
-        body: { project_id: projectId, content_type: "testimonial_content", case_classification_id: caseId },
+      await enqueue({
+        functionName: "generate-lead-magnets",
+        payload: { project_id: projectId, content_type: "testimonial_content", case_classification_id: caseId },
+        displayTitle: "Генерация углов подачи (кейс)",
+        lane: "claude",
       });
-      if (error) throw new Error(error.message || "Ошибка генерации углов");
-      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
