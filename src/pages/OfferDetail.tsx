@@ -84,6 +84,7 @@ const statusColors: Record<string, string> = {
 export default function OfferDetail() {
   const { programId, offerType, offerId } = useParams();
   const { user } = useAuth();
+  const { enqueue } = useTaskQueue();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [deleteId, setDeleteId] = useState<string | null>(null);
