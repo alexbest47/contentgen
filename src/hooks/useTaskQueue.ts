@@ -19,6 +19,7 @@ export function useTaskQueue() {
           payload: options.payload,
           display_title: options.displayTitle,
           lane: options.lane,
+          target_url: options.targetUrl,
         },
       });
 

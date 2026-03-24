@@ -172,7 +172,15 @@ export default function TaskQueue() {
               tasks.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell>
-                    <div className="font-medium">{task.display_title}</div>
+                    <div className="font-medium">
+                      {task.target_url ? (
+                        <Link to={task.target_url} className="hover:underline text-primary">
+                          {task.display_title}
+                        </Link>
+                      ) : (
+                        task.display_title
+                      )}
+                    </div>
                     {task.error_message && (
                       <div className="text-xs text-destructive mt-1 max-w-md truncate">
                         {task.error_message}

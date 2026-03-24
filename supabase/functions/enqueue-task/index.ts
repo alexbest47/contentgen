@@ -49,6 +49,7 @@ serve(async (req) => {
         display_title: display_title || function_name,
         lane,
         status: "pending",
+        target_url: target_url || null,
       })
       .select("id")
       .single();
