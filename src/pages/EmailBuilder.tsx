@@ -174,6 +174,7 @@ export default function EmailBuilder() {
 
   useEffect(() => {
     if (dbBlocks && !blocksLoadedRef.current) {
+      hydratingRef.current = true;
       setBlocks(dbBlocks.map((b: any) => ({
         id: b.id,
         block_type: b.block_type as EmailBlockType,
@@ -184,6 +185,7 @@ export default function EmailBuilder() {
         banner_image_url: b.banner_image_url,
       })));
       blocksLoadedRef.current = true;
+      requestAnimationFrame(() => { hydratingRef.current = false; });
     }
   }, [dbBlocks]);
 
