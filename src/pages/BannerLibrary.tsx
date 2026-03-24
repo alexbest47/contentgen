@@ -239,8 +239,9 @@ function BannerGrid({ banners, onEdit, onDelete, onPreview }: { banners: any[]; 
       {banners.map((b: any) => (
         <Card key={b.id} className="overflow-hidden">
           <div
-            className="w-full bg-muted"
+            className="w-full bg-muted cursor-pointer"
             style={{ aspectRatio: `${600} / ${getBannerDims(b.banner_type).h}` }}
+            onClick={() => onPreview(b)}
           >
             <img src={b.image_url} alt={b.title} className="w-full h-full object-cover" />
           </div>
