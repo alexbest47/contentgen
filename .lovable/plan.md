@@ -1,18 +1,21 @@
 
 
-## Исправление: крестик закрытия не виден в лайтбоксе баннера
+## Кнопка «Сохранить в библиотеку» для изображений-плейсхолдеров
 
-Крестик (X) рендерится компонентом `DialogContent` из `dialog.tsx`, но на тёмном фоне (`bg-black/95`) он чёрный и не виден.
+Добавить четвёртую кнопку в группу плавающих кнопок справа от заполненного плейсхолдера, которая сохраняет текущее изображение как баннер в библиотеку.
 
-### Решение
+### Что будет сделано
 
-**Файл: `src/pages/BannerLibrary.tsx`, строка 201**
+1. **`src/components/email-builder/BlockCanvas.tsx`** — добавить кнопку «Сохранить в библиотеку» (иконка `Save`/`BookmarkPlus`) в секцию filled placeholders (строки 318–368). Кнопка вызывает новый колбэк `onSavePlaceholderToLibrary(placeholderId)`.
 
-Добавить класс `[&>button]:text-white` к `DialogContent`, чтобы кнопка закрытия стала белой на тёмном фоне:
+2. **`src/pages/EmailBuilder.tsx`** — реализовать функцию `savePlaceholderToLibrary`:
+   - Получить `image_url` плейсхолдера из состояния `imagePlaceholders`.
+   - Определить `banner_type` через `PLACEHOLDER_TO_BANNER_TYPE`.
+   - Вставить запись в таблицу `banners` (title из названия письма + типа, category из контекста письма, image_url, banner_type, program_id, color_scheme_id, source = "manual").
+   - Показать toast об успехе.
+   - Передать этот колбэк в `BlockCanvas` через новый проп `onSavePlaceholderToLibrary`.
 
-```tsx
-<DialogContent className="max-w-4xl p-2 bg-black/95 border-none [&>button]:text-white">
-```
-
-Одна строка, один файл.
+### Файлы
+- `src/components/email-builder/BlockCanvas.tsx` — новая кнопка + проп
+- `src/pages/EmailBuilder.tsx` — логика сохранения + передача пропа
 
