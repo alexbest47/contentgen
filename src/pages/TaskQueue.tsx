@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
+import { Link } from "react-router-dom";
 
 interface Task {
   id: string;
@@ -27,6 +28,7 @@ interface Task {
   error_message: string | null;
   display_title: string;
   priority: number;
+  target_url: string | null;
 }
 
 const statusLabels: Record<string, string> = {
@@ -170,7 +172,15 @@ export default function TaskQueue() {
               tasks.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell>
-                    <div className="font-medium">{task.display_title}</div>
+                    <div className="font-medium">
+                      {task.target_url ? (
+                        <Link to={task.target_url} className="hover:underline text-primary">
+                          {task.display_title}
+                        </Link>
+                      ) : (
+                        task.display_title
+                      )}
+                    </div>
                     {task.error_message && (
                       <div className="text-xs text-destructive mt-1 max-w-md truncate">
                         {task.error_message}

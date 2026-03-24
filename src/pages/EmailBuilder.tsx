@@ -295,6 +295,7 @@ export default function EmailBuilder() {
         },
         displayTitle: `Генерация блока: ${block.block_type}`,
         lane: "claude",
+        targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
     } catch (e: any) {
@@ -314,6 +315,7 @@ export default function EmailBuilder() {
         payload: { generate_image: true, block_id: blockId, banner_image_prompt: block.banner_image_prompt },
         displayTitle: `Генерация изображения блока`,
         lane: "openrouter",
+        targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
     } catch (e: any) {
@@ -348,6 +350,7 @@ export default function EmailBuilder() {
         payload: { letter_id: letterId },
         displayTitle: `Генерация письма: ${title || "Без названия"}`,
         lane: "claude",
+        targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
     } catch (e: any) {
@@ -368,6 +371,7 @@ export default function EmailBuilder() {
         payload: { generate_image: true, placeholder_id: placeholderId, prompt: ph.prompt },
         displayTitle: `Генерация изображения письма`,
         lane: "openrouter",
+        targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
     } catch (e: any) {

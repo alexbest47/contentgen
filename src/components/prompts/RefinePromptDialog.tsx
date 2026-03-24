@@ -32,6 +32,7 @@ export default function RefinePromptDialog({ prompt, open, onOpenChange }: Refin
           payload: { prompt_id: prompt?.id, instruction },
           display_title: `Доработка промпта: ${prompt?.name || ""}`,
           lane: "claude",
+          target_url: "/prompts",
         },
       });
       if (error) throw error;

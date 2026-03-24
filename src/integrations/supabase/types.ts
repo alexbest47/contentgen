@@ -1109,6 +1109,7 @@ export type Database = {
           result: Json | null
           started_at: string | null
           status: string
+          target_url: string | null
         }
         Insert: {
           completed_at?: string | null
@@ -1124,6 +1125,7 @@ export type Database = {
           result?: Json | null
           started_at?: string | null
           status?: string
+          target_url?: string | null
         }
         Update: {
           completed_at?: string | null
@@ -1139,6 +1141,7 @@ export type Database = {
           result?: Json | null
           started_at?: string | null
           status?: string
+          target_url?: string | null
         }
         Relationships: []
       }
@@ -1222,6 +1225,7 @@ export type Database = {
           result: Json | null
           started_at: string | null
           status: string
+          target_url: string | null
         }[]
         SetofOptions: {
           from: "*"

@@ -92,6 +92,7 @@ export default function ContentDetail() {
         payload: { project_id: projectId, content_type: contentType },
         displayTitle: `Перегенерация контента: ${contentType}`,
         lane: "claude",
+        targetUrl: window.location.pathname,
       });
     },
     onSuccess: () => {
@@ -145,6 +146,7 @@ export default function ContentDetail() {
         },
         displayTitle: `Карусель слайд ${prompts[i].slide_number}`,
         lane: "openrouter",
+        targetUrl: window.location.pathname,
       });
     }
 
@@ -161,6 +163,7 @@ export default function ContentDetail() {
         payload: { project_id: projectId, content_type: contentType, mode },
         displayTitle: `Генерация изображения: ${mode}`,
         lane: "openrouter",
+        targetUrl: window.location.pathname,
       });
     },
     onSuccess: () => {

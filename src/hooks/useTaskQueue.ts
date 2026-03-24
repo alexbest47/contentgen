@@ -7,6 +7,7 @@ interface EnqueueOptions {
   payload: Record<string, any>;
   displayTitle: string;
   lane: "claude" | "openrouter";
+  targetUrl?: string;
 }
 
 export function useTaskQueue() {
@@ -18,6 +19,7 @@ export function useTaskQueue() {
           payload: options.payload,
           display_title: options.displayTitle,
           lane: options.lane,
+          target_url: options.targetUrl,
         },
       });
 

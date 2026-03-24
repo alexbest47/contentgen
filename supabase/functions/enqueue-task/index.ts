@@ -30,7 +30,7 @@ serve(async (req) => {
       });
     }
 
-    const { function_name, payload, display_title, lane } = await req.json();
+    const { function_name, payload, display_title, lane, target_url } = await req.json();
 
     if (!function_name || !lane) {
       return new Response(JSON.stringify({ error: "function_name and lane are required" }), {
@@ -49,6 +49,7 @@ serve(async (req) => {
         display_title: display_title || function_name,
         lane,
         status: "pending",
+        target_url: target_url || null,
       })
       .select("id")
       .single();

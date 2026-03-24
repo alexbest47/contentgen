@@ -91,6 +91,7 @@ export default function PdfMaterialView() {
           payload: { pdf_material_id: id },
           display_title: `Перегенерация PDF: ${material?.title || id}`,
           lane: "claude",
+          target_url: `/pdf-materials/${id}`,
         },
       });
       toast.success("Задача добавлена в очередь");

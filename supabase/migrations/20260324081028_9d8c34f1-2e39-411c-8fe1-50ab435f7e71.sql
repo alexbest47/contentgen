@@ -1,0 +1,1 @@
+ALTER TABLE public.task_queue ADD COLUMN target_url text;
