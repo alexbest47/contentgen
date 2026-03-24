@@ -87,7 +87,7 @@ export default function EmailBuilder() {
   const { data: letter } = useQuery({
     queryKey: ["email_letter", letterId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("email_letters").select("*").eq("id", letterId!).single();
+      const { data, error } = await supabase.from("email_letters").select("*").eq("id", letterId!).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -575,6 +575,18 @@ export default function EmailBuilder() {
   // Determine right panel content
   const showGenerationPanel = !selectedBlock || settingsMode;
   const isGenerated = !!generatedHtml && !settingsMode;
+
+  // Letter was deleted or not found
+  if (letterId && letter === null && !initialLoadRef.current) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] gap-4">
+        <p className="text-lg text-muted-foreground">Письмо не найдено или было удалено</p>
+        <Button variant="outline" onClick={() => navigate("/email-builder")}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> К списку писем
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
