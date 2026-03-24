@@ -518,6 +518,34 @@ export default function EmailBuilder() {
     }
   };
 
+  const savePlaceholderToLibrary = async (placeholderId: string) => {
+    if (!letterId || !user?.id) return;
+    const ph = imagePlaceholders.find(p => p.id === placeholderId);
+    if (!ph || !ph.image_url) {
+      toast.error("Нет изображения для сохранения");
+      return;
+    }
+    try {
+      const bannerType = PLACEHOLDER_TO_BANNER_TYPE[placeholderId] || "header_banner";
+      const bannerLabel = getBannerTypeLabel(bannerType);
+      const { error } = await supabase.from("banners").insert({
+        title: `${title || "Письмо"} — ${bannerLabel}`,
+        banner_type: bannerType,
+        category: offerType === "new_stream" || offerType === "spot_available" ? "paid_program" : "offer",
+        image_url: ph.image_url,
+        created_by: user.id,
+        source: "manual",
+        program_id: programId || null,
+        color_scheme_id: colorSchemeId || null,
+        generation_prompt: ph.prompt || null,
+      });
+      if (error) throw error;
+      toast.success("Сохранено в библиотеку баннеров");
+    } catch (e: any) {
+      toast.error(e.message || "Ошибка сохранения");
+    }
+  };
+
   const handleBannerPick = (imageUrl: string) => {
     if (!bannerPickerPlaceholderId || !letterId) return;
     setImagePlaceholders(prev => {
