@@ -1,21 +1,40 @@
 
 
-## Кнопка «Сохранить в библиотеку» для изображений-плейсхолдеров
+## Диалог выбора темы + переменная `{{content_theme}}`
 
-Добавить четвёртую кнопку в группу плавающих кнопок справа от заполненного плейсхолдера, которая сохраняет текущее изображение как баннер в библиотеку.
+Добавить промежуточный шаг перед генерацией для 6 типов контента (лид-магниты, справочные материалы, экспертный контент, провокационный контент, списки, разбор мифов). Пользователь выбирает: автоматически или задать тему вручную. Введённая тема передаётся в edge-функцию и подставляется как `{{content_theme}}`.
 
-### Что будет сделано
+### Что увидит пользователь
 
-1. **`src/components/email-builder/BlockCanvas.tsx`** — добавить кнопку «Сохранить в библиотеку» (иконка `Save`/`BookmarkPlus`) в секцию filled placeholders (строки 318–368). Кнопка вызывает новый колбэк `onSavePlaceholderToLibrary(placeholderId)`.
+Клик по кнопке генерации → модальное окно:
+- **«Автоматически»** — как сейчас.
+- **«Задать тему»** — текстовое поле с примером из психологии:
+  - Лид-магниты: «5 признаков эмоционального выгорания, которые вы не замечаете»
+  - Справочный материал: «Чек-лист восстановления после стресса»
+  - Экспертный контент: «Почему позитивное мышление не работает без проработки травм»
+  - Провокационный контент: «Вы сами создаёте свою тревожность — и вот почему»
+  - Список: «7 ошибок в общении с подростком, которые разрушают доверие»
+  - Разбор мифа: «Миф о том, что депрессия — это просто лень»
 
-2. **`src/pages/EmailBuilder.tsx`** — реализовать функцию `savePlaceholderToLibrary`:
-   - Получить `image_url` плейсхолдера из состояния `imagePlaceholders`.
-   - Определить `banner_type` через `PLACEHOLDER_TO_BANNER_TYPE`.
-   - Вставить запись в таблицу `banners` (title из названия письма + типа, category из контекста письма, image_url, banner_type, program_id, color_scheme_id, source = "manual").
-   - Показать toast об успехе.
-   - Передать этот колбэк в `BlockCanvas` через новый проп `onSavePlaceholderToLibrary`.
+### Технические детали
+
+**1. `src/components/offer/TopicChoiceDialog.tsx`** (новый)
+- Props: `open`, `onOpenChange`, `contentType`, `onConfirm(userTopic: string | null)`, `disabled`.
+- RadioGroup (авто/вручную), Textarea с placeholder по типу, кнопка «Сгенерировать».
+
+**2. `src/pages/OfferDetail.tsx`**
+- Состояние `topicDialogType` (string | null).
+- 6 кнопок генерации открывают диалог вместо прямого вызова мутации.
+- `testimonial_content` и `objection_handling` — без изменений.
+- Мутация принимает `{ contentType, userTopic }`, передаёт `user_topic` в payload edge-функции.
+
+**3. `supabase/functions/generate-lead-magnets/index.ts`**
+- Принять `user_topic` из body.
+- Подставить в промпт: `.replace(/\{\{content_theme\}\}/g, user_topic || "")`.
+- Если `user_topic` задан, но `{{content_theme}}` нет в шаблоне — дописать в конец промпта блок с темой.
 
 ### Файлы
-- `src/components/email-builder/BlockCanvas.tsx` — новая кнопка + проп
-- `src/pages/EmailBuilder.tsx` — логика сохранения + передача пропа
+- `src/components/offer/TopicChoiceDialog.tsx` — новый
+- `src/pages/OfferDetail.tsx` — диалог + изменённая мутация
+- `supabase/functions/generate-lead-magnets/index.ts` — поддержка `{{content_theme}}`
 
