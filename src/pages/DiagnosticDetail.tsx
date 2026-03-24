@@ -293,7 +293,6 @@ export default function DiagnosticDetail() {
   const handleGenerate = async () => {
     if (!diagnostic || isGenerating) return;
 
-    // Update status immediately, clearing old results to avoid stale data
     await supabase
       .from("diagnostics")
       .update({ status: "generating", generation_progress: null, quiz_json: null, card_prompt: null, thank_you_json: null } as any)
@@ -301,18 +300,27 @@ export default function DiagnosticDetail() {
 
     updateStepsFromStatus("generating", null);
 
-    // Fire-and-forget call to pipeline (entire process runs server-side)
-    supabase.functions.invoke("run-diagnostic-pipeline", {
+    const { data, error } = await supabase.functions.invoke("enqueue-task", {
       body: {
-        diagnostic_id: diagnostic.id,
-        program_id: diagnostic.program_id,
-        name: diagnostic.name,
-        description: "",
-        audience_tags: diagnostic.audience_tags || [],
+        function_name: "run-diagnostic-pipeline",
+        payload: {
+          diagnostic_id: diagnostic.id,
+          program_id: diagnostic.program_id,
+          name: diagnostic.name,
+          description: "",
+          audience_tags: diagnostic.audience_tags || [],
+        },
+        display_title: `Диагностика: ${diagnostic.name}`,
+        lane: "claude",
       },
-    }).catch((err) => console.error("Pipeline call failed:", err));
+    });
 
-    // Start polling for progress
+    if (error) {
+      toast.error("Не удалось добавить в очередь");
+      return;
+    }
+
+    toast.success("Задача добавлена в очередь");
     startPolling();
   };
 

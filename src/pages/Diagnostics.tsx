@@ -102,17 +102,22 @@ export default function Diagnostics() {
       toast.error("Не удалось запустить перегенерацию");
       return;
     }
-    supabase.functions.invoke("run-diagnostic-pipeline", {
+    await supabase.functions.invoke("enqueue-task", {
       body: {
-        diagnostic_id: d.id,
-        program_id: d.program_id,
-        name: d.name,
-        description: d.description || "",
-        audience_tags: d.audience_tags || [],
-        prompt_id: d.prompt_id,
+        function_name: "run-diagnostic-pipeline",
+        payload: {
+          diagnostic_id: d.id,
+          program_id: d.program_id,
+          name: d.name,
+          description: d.description || "",
+          audience_tags: d.audience_tags || [],
+          prompt_id: d.prompt_id,
+        },
+        display_title: `Перегенерация диагностики: ${d.name}`,
+        lane: "claude",
       },
     });
-    toast.success("Перегенерация запущена");
+    toast.success("Задача добавлена в очередь");
     navigate(`/diagnostics/${d.id}`);
   };
 
