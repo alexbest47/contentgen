@@ -149,16 +149,16 @@ export default function OfferDetail() {
         .single();
       if (projError) throw projError;
 
-      // For testimonial_content and objection_handling, skip lead magnets generation — user picks case/objection first
       if (contentType === "testimonial_content" || contentType === "objection_handling") {
         return { projectId: project.id, label };
       }
 
-      const { data: genData, error: genError } = await supabase.functions.invoke("generate-lead-magnets", {
-        body: { project_id: project.id, content_type: contentType },
+      await enqueue({
+        functionName: "generate-lead-magnets",
+        payload: { project_id: project.id, content_type: contentType },
+        displayTitle: `Генерация ${label}: ${nameData.name}`,
+        lane: "claude",
       });
-      if (genError) throw new Error(genError.message || "Ошибка генерации");
-      if (genData?.error) throw new Error(genData.error);
 
       return { projectId: project.id, label };
     },
