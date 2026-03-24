@@ -177,9 +177,22 @@ export default function TaskQueue() {
                   <TableCell>
                     <div className="font-medium">
                       {task.target_url ? (
-                        <Link to={task.target_url} className="hover:underline text-primary">
+                        <a
+                          href="#"
+                          className="hover:underline text-primary cursor-pointer"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            // Invalidate cached data so the target page fetches fresh
+                            const emailMatch = task.target_url!.match(/\/email-builder\/(.+)/);
+                            if (emailMatch) {
+                              queryClient.removeQueries({ queryKey: ["email_letter", emailMatch[1]] });
+                              queryClient.removeQueries({ queryKey: ["email_letter_blocks", emailMatch[1]] });
+                            }
+                            navigate(task.target_url!);
+                          }}
+                        >
                           {task.display_title}
-                        </Link>
+                        </a>
                       ) : (
                         task.display_title
                       )}
