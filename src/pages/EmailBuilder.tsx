@@ -492,6 +492,18 @@ export default function EmailBuilder() {
     }
   };
 
+  const handleBannerPick = (imageUrl: string) => {
+    if (!bannerPickerPlaceholderId || !letterId) return;
+    setImagePlaceholders(prev => {
+      const updated = prev.map((p) =>
+        p.id === bannerPickerPlaceholderId ? { ...p, image_url: imageUrl } : p
+      );
+      supabase.from("email_letters").update({ image_placeholders: updated } as any).eq("id", letterId);
+      return updated;
+    });
+    setBannerPickerPlaceholderId(null);
+    toast.success("Баннер подставлен");
+  };
 
   const handleExport = () => {
     const header = emailSettings?.email_header_html || "";
