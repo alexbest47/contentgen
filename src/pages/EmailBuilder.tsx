@@ -426,7 +426,7 @@ export default function EmailBuilder() {
     if (!ph?.prompt) return;
     setGeneratingPlaceholderId(placeholderId);
     try {
-      await enqueue({
+      const taskId = await enqueue({
         functionName: "generate-email-letter",
         payload: { generate_image: true, placeholder_id: placeholderId, prompt: ph.prompt, letter_id: letterId },
         displayTitle: `Генерация изображения письма`,
@@ -434,9 +434,32 @@ export default function EmailBuilder() {
         targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
+
+      // Poll task status and refresh letter data when image generation completes
+      if (taskId) {
+        const pollInterval = setInterval(async () => {
+          const { data: task } = await supabase
+            .from("task_queue")
+            .select("status")
+            .eq("id", taskId)
+            .single();
+          if (task?.status === "completed" || task?.status === "error") {
+            clearInterval(pollInterval);
+            setGeneratingPlaceholderId(null);
+            if (task.status === "completed") {
+              // Invalidate query to refetch letter with updated image_placeholders
+              queryClient.invalidateQueries({ queryKey: ["email_letter", letterId] });
+            }
+          }
+        }, 3000);
+        // Safety: stop polling after 5 minutes
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setGeneratingPlaceholderId(null);
+        }, 5 * 60 * 1000);
+      }
     } catch (e: any) {
       toast.error(e.message || "Ошибка");
-    } finally {
       setGeneratingPlaceholderId(null);
     }
   };
