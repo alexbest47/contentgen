@@ -160,9 +160,10 @@ export default function EmailBuilder() {
       initialLoadRef.current = true;
       // Reset hydrating flag after React processes the state updates
       requestAnimationFrame(() => { hydratingRef.current = false; });
-    } else if (!dirtyRef.current && dbHtml && !generatedHtmlRef.current) {
-      // Re-hydrate: DB has generated content but local state is empty (e.g. background generation finished)
+    } else if (dbHtml && !generatedHtmlRef.current) {
+      // Re-hydrate: DB has generated content but local is empty — always accept DB version
       hydratingRef.current = true;
+      dirtyRef.current = false;
       setGeneratedHtml(dbHtml);
       setImagePlaceholders(dbPlaceholders);
       setSubject(letter.subject);
