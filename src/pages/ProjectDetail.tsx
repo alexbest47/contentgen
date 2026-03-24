@@ -357,11 +357,12 @@ export default function ProjectDetail() {
         selected_objection_id: objectionId,
       } as any).eq("id", projectId!);
       if (updateErr) throw updateErr;
-      const { data, error } = await supabase.functions.invoke("generate-lead-magnets", {
-        body: { project_id: projectId, content_type: "objection_handling", selected_objection_id: objectionId },
+      await enqueue({
+        functionName: "generate-lead-magnets",
+        payload: { project_id: projectId, content_type: "objection_handling", selected_objection_id: objectionId },
+        displayTitle: "Генерация углов подачи (возражение)",
+        lane: "claude",
       });
-      if (error) throw new Error(error.message || "Ошибка генерации углов");
-      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
