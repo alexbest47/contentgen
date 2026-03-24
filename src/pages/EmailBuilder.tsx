@@ -160,14 +160,15 @@ export default function EmailBuilder() {
       initialLoadRef.current = true;
       // Reset hydrating flag after React processes the state updates
       requestAnimationFrame(() => { hydratingRef.current = false; });
-    } else if (dbHtml && !generatedHtmlRef.current) {
-      // Re-hydrate: DB has generated content but local is empty — always accept DB version
+    } else if (!dirtyRef.current) {
+      // Re-hydrate all fields from DB when there are no unsaved local changes
       hydratingRef.current = true;
-      dirtyRef.current = false;
       setGeneratedHtml(dbHtml);
       setImagePlaceholders(dbPlaceholders);
       setSubject(letter.subject);
       setPreheader(letter.preheader);
+      setCaseId((letter as any).case_id || null);
+      setSelectedObjectionIds((letter as any).selected_objection_ids || []);
       requestAnimationFrame(() => { hydratingRef.current = false; });
     }
   }, [letter]);
