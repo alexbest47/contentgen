@@ -28,6 +28,7 @@ interface Task {
   error_message: string | null;
   display_title: string;
   priority: number;
+  target_url: string | null;
 }
 
 const statusLabels: Record<string, string> = {
