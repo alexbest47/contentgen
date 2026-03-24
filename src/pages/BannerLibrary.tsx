@@ -29,6 +29,7 @@ export default function BannerLibrary() {
   const [addOpen, setAddOpen] = useState(false);
   const [editBanner, setEditBanner] = useState<any>(null);
   const [deleteBanner, setDeleteBanner] = useState<any>(null);
+  const [previewBanner, setPreviewBanner] = useState<any>(null);
 
   // Filters
   const [filterProgram, setFilterProgram] = useState<string>("all");
