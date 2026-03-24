@@ -718,6 +718,15 @@ export default function EmailBuilder() {
         onSelect={(id) => handleChangeCaseId(id)}
         selectedCaseId={caseId}
       />
+
+      {bannerPickerPlaceholderId && (
+        <BannerPickerDialog
+          open={!!bannerPickerPlaceholderId}
+          onOpenChange={(o) => !o && setBannerPickerPlaceholderId(null)}
+          placeholderId={bannerPickerPlaceholderId}
+          onSelect={handleBannerPick}
+        />
+      )}
     </div>
   );
 }
