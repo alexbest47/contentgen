@@ -135,23 +135,17 @@ export default function ContentDetail() {
 
       setCarouselProgress({ current: i + 1, total: prompts.length });
 
-      try {
-        const { data, error } = await supabase.functions.invoke("generate-pipeline-images", {
-          body: {
-            project_id: projectId,
-            content_type: contentType,
-            mode: "carousel",
-            slide_number: prompts[i].slide_number,
-          },
-        });
-        if (error) throw new Error(error.message);
-        if (data?.error) throw new Error(data.error);
-
-        await queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
-      } catch (e: any) {
-        console.error(`Slide ${prompts[i].slide_number} failed:`, e);
-        failCount++;
-      }
+      await enqueue({
+        functionName: "generate-pipeline-images",
+        payload: {
+          project_id: projectId,
+          content_type: contentType,
+          mode: "carousel",
+          slide_number: prompts[i].slide_number,
+        },
+        displayTitle: `Карусель слайд ${prompts[i].slide_number}`,
+        lane: "openrouter",
+      });
     }
 
     setGeneratingImagesKey(null);
