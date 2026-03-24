@@ -400,16 +400,15 @@ export default function ProjectDetail() {
   const generatePipelineMutation = useMutation({
     mutationFn: async (contentType: string) => {
       setGeneratingKey(contentType);
-      const { data, error } = await supabase.functions.invoke("generate-pipeline", {
-        body: { project_id: projectId, content_type: contentType },
+      await enqueue({
+        functionName: "generate-pipeline",
+        payload: { project_id: projectId, content_type: contentType },
+        displayTitle: `Генерация контента: ${contentType}`,
+        lane: "claude",
       });
-      if (error) throw new Error(error.message || "Ошибка генерации");
-      if (data?.error) throw new Error(data.error);
-      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
-      toast.success("Контент сгенерирован!");
+      toast.success("Задача добавлена в очередь");
       setGeneratingKey(null);
     },
     onError: (e: Error) => {
