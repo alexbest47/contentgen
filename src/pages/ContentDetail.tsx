@@ -24,6 +24,7 @@ export default function ContentDetail() {
   const { programId, offerType, offerId, projectId, contentType } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { enqueue } = useTaskQueue();
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [generatingImagesKey, setGeneratingImagesKey] = useState<string | null>(null);
   const [carouselProgress, setCarouselProgress] = useState<{ current: number; total: number } | null>(null);
