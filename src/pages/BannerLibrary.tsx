@@ -198,7 +198,7 @@ export default function BannerLibrary() {
         <EditBannerDialog banner={editBanner} open={!!editBanner} onOpenChange={(o) => !o && setEditBanner(null)} />
       )}
       <Dialog open={!!previewBanner} onOpenChange={(o) => !o && setPreviewBanner(null)}>
-        <DialogContent className="max-w-4xl p-2 bg-black/95 border-none">
+        <DialogContent className="max-w-4xl p-2 bg-black/95 border-none [&>button]:text-white">
           <DialogHeader className="px-2 pt-2">
             <DialogTitle className="text-white text-sm font-medium truncate">
               {previewBanner?.title}
