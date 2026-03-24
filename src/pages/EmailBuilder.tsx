@@ -132,9 +132,15 @@ export default function EmailBuilder() {
     enabled: !!templateId,
   });
 
-  // Initialize state from DB
+  // Initialize state from DB (and re-hydrate if DB has newer generated content)
   useEffect(() => {
-    if (letter && !initialLoadRef.current) {
+    if (!letter) return;
+    const dbHtml = (letter as any).generated_html || "";
+    const dbPlaceholders = ((letter as any).image_placeholders as ImagePlaceholder[]) || [];
+
+    if (!initialLoadRef.current) {
+      // First load — hydrate everything without marking dirty
+      hydratingRef.current = true;
       setTitle(letter.title);
       setSubject(letter.subject);
       setPreheader(letter.preheader);
@@ -148,10 +154,20 @@ export default function EmailBuilder() {
       setCaseId((letter as any).case_id || null);
       setExtraOfferIds((letter as any).extra_offer_ids || []);
       setAudienceSegment((letter as any).audience_segment || "");
-      setGeneratedHtml((letter as any).generated_html || "");
-      setImagePlaceholders(((letter as any).image_placeholders as ImagePlaceholder[]) || []);
+      setGeneratedHtml(dbHtml);
+      setImagePlaceholders(dbPlaceholders);
       setSelectedObjectionIds((letter as any).selected_objection_ids || []);
       initialLoadRef.current = true;
+      // Reset hydrating flag after React processes the state updates
+      requestAnimationFrame(() => { hydratingRef.current = false; });
+    } else if (!dirtyRef.current && dbHtml && !generatedHtmlRef.current) {
+      // Re-hydrate: DB has generated content but local state is empty (e.g. background generation finished)
+      hydratingRef.current = true;
+      setGeneratedHtml(dbHtml);
+      setImagePlaceholders(dbPlaceholders);
+      setSubject(letter.subject);
+      setPreheader(letter.preheader);
+      requestAnimationFrame(() => { hydratingRef.current = false; });
     }
   }, [letter]);
 
