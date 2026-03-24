@@ -36,6 +36,7 @@ import EmailTemplates from "@/pages/EmailTemplates";
 import PdfMaterials from "@/pages/PdfMaterials";
 import PdfMaterialView from "@/pages/PdfMaterialView";
 import TaskQueue from "@/pages/TaskQueue";
+import BannerLibrary from "@/pages/BannerLibrary";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
