@@ -371,6 +371,7 @@ export default function EmailBuilder() {
         payload: { generate_image: true, placeholder_id: placeholderId, prompt: ph.prompt },
         displayTitle: `Генерация изображения письма`,
         lane: "openrouter",
+        targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
     } catch (e: any) {

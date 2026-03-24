@@ -115,6 +115,7 @@ export default function Diagnostics() {
         },
         display_title: `Перегенерация диагностики: ${d.name}`,
         lane: "claude",
+        target_url: `/diagnostics/${d.id}`,
       },
     });
     toast.success("Задача добавлена в очередь");

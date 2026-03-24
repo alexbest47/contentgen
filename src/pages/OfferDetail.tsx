@@ -158,6 +158,7 @@ export default function OfferDetail() {
         payload: { project_id: project.id, content_type: contentType },
         displayTitle: `Генерация ${label}: ${nameData.name}`,
         lane: "claude",
+        targetUrl: `/programs/${programId}/offers/${offerType}/${offerId}/projects/${project.id}`,
       });
 
       return { projectId: project.id, label };

@@ -163,6 +163,7 @@ export default function ContentDetail() {
         payload: { project_id: projectId, content_type: contentType, mode },
         displayTitle: `Генерация изображения: ${mode}`,
         lane: "openrouter",
+        targetUrl: window.location.pathname,
       });
     },
     onSuccess: () => {

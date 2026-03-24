@@ -155,6 +155,7 @@ export function CreatePdfWizard({ open, onOpenChange, onSuccess }: Props) {
           payload: { pdf_material_id: mat.id },
           display_title: `Генерация PDF: ${title.trim()}`,
           lane: "claude",
+          target_url: `/pdf-materials/${mat.id}`,
         },
       });
 

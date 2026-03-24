@@ -312,6 +312,7 @@ export default function DiagnosticDetail() {
         },
         display_title: `Диагностика: ${diagnostic.name}`,
         lane: "claude",
+        target_url: `/diagnostics/${diagnostic.id}`,
       },
     });
 

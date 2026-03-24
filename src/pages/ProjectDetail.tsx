@@ -407,6 +407,7 @@ export default function ProjectDetail() {
         payload: { project_id: projectId, content_type: contentType },
         displayTitle: `Генерация контента: ${contentType}`,
         lane: "claude",
+        targetUrl: window.location.pathname,
       });
     },
     onSuccess: () => {
