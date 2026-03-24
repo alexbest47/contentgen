@@ -66,6 +66,7 @@ export default function EmailBuilder() {
   const dirtyRef = useRef(false);
   const initialLoadRef = useRef(false);
   const blocksLoadedRef = useRef(false);
+  const hydratingRef = useRef(false); // true while applying DB data to state
 
   // Refs to always have fresh values for autosave (avoids race conditions)
   const imagePlaceholdersRef = useRef(imagePlaceholders);
@@ -131,9 +132,15 @@ export default function EmailBuilder() {
     enabled: !!templateId,
   });
 
-  // Initialize state from DB
+  // Initialize state from DB (and re-hydrate if DB has newer generated content)
   useEffect(() => {
-    if (letter && !initialLoadRef.current) {
+    if (!letter) return;
+    const dbHtml = (letter as any).generated_html || "";
+    const dbPlaceholders = ((letter as any).image_placeholders as ImagePlaceholder[]) || [];
+
+    if (!initialLoadRef.current) {
+      // First load — hydrate everything without marking dirty
+      hydratingRef.current = true;
       setTitle(letter.title);
       setSubject(letter.subject);
       setPreheader(letter.preheader);
@@ -147,10 +154,20 @@ export default function EmailBuilder() {
       setCaseId((letter as any).case_id || null);
       setExtraOfferIds((letter as any).extra_offer_ids || []);
       setAudienceSegment((letter as any).audience_segment || "");
-      setGeneratedHtml((letter as any).generated_html || "");
-      setImagePlaceholders(((letter as any).image_placeholders as ImagePlaceholder[]) || []);
+      setGeneratedHtml(dbHtml);
+      setImagePlaceholders(dbPlaceholders);
       setSelectedObjectionIds((letter as any).selected_objection_ids || []);
       initialLoadRef.current = true;
+      // Reset hydrating flag after React processes the state updates
+      requestAnimationFrame(() => { hydratingRef.current = false; });
+    } else if (!dirtyRef.current && dbHtml && !generatedHtmlRef.current) {
+      // Re-hydrate: DB has generated content but local state is empty (e.g. background generation finished)
+      hydratingRef.current = true;
+      setGeneratedHtml(dbHtml);
+      setImagePlaceholders(dbPlaceholders);
+      setSubject(letter.subject);
+      setPreheader(letter.preheader);
+      requestAnimationFrame(() => { hydratingRef.current = false; });
     }
   }, [letter]);
 
@@ -169,9 +186,9 @@ export default function EmailBuilder() {
     }
   }, [dbBlocks]);
 
-  // Mark dirty on changes
+  // Mark dirty on changes — but NOT during hydration from DB
   useEffect(() => {
-    if (initialLoadRef.current) {
+    if (initialLoadRef.current && !hydratingRef.current) {
       dirtyRef.current = true;
       setSaveStatus("unsaved");
     }
@@ -217,12 +234,20 @@ export default function EmailBuilder() {
     }
   }, [letterId, title, subject, preheader, colorSchemeId, letterThemeTitle, letterThemeDescription, programId, offerType, offerId, caseId, extraOfferIds, generatedHtml, imagePlaceholders, blocks, selectedObjectionIds]);
 
-  useEffect(() => {
-    const interval = setInterval(save, 30000);
-    return () => clearInterval(interval);
-  }, [save]);
+  // Stable ref for save so autosave/unmount always uses latest version
+  const saveRef = useRef(save);
+  useEffect(() => { saveRef.current = save; }, [save]);
 
-  useEffect(() => () => { save(); }, [save]);
+  useEffect(() => {
+    const interval = setInterval(() => saveRef.current(), 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Save only on true component unmount (empty deps = runs once)
+  useEffect(() => {
+    return () => { saveRef.current(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || null;
 
