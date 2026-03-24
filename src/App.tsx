@@ -66,7 +66,8 @@ const App = () => (
             
             <Route path="/auth" element={<AuthRoute />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route path="/" element={<Navigate to="/programs" replace />} />
+              <Route path="/" element={<Navigate to="/queue" replace />} />
+              <Route path="/queue" element={<TaskQueue />} />
               <Route path="/programs" element={<Programs />} />
               <Route path="/programs/:programId" element={<ProgramDetail />} />
               <Route path="/programs/:programId/offers/:offerType" element={<OfferTypeDetail />} />
