@@ -63,6 +63,13 @@ export default function EmailBuilder() {
     }
   }, [letterId]);
 
+  const handleChangeObjectionIds = useCallback(async (ids: string[]) => {
+    setSelectedObjectionIds(ids);
+    if (letterId) {
+      await supabase.from("email_letters").update({ selected_objection_ids: ids } as any).eq("id", letterId);
+    }
+  }, [letterId]);
+
   const dirtyRef = useRef(false);
   const initialLoadRef = useRef(false);
   const blocksLoadedRef = useRef(false);
