@@ -197,6 +197,23 @@ export default function BannerLibrary() {
       {editBanner && (
         <EditBannerDialog banner={editBanner} open={!!editBanner} onOpenChange={(o) => !o && setEditBanner(null)} />
       )}
+      <Dialog open={!!previewBanner} onOpenChange={(o) => !o && setPreviewBanner(null)}>
+        <DialogContent className="max-w-4xl p-2 bg-black/95 border-none">
+          <DialogHeader className="px-2 pt-2">
+            <DialogTitle className="text-white text-sm font-medium truncate">
+              {previewBanner?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {previewBanner && (
+            <img
+              src={previewBanner.image_url}
+              alt={previewBanner.title}
+              className="w-full max-h-[85vh] object-contain rounded"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!deleteBanner} onOpenChange={(o) => !o && setDeleteBanner(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
