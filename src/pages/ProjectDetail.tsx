@@ -363,6 +363,7 @@ export default function ProjectDetail() {
         payload: { project_id: projectId, content_type: "objection_handling", selected_objection_id: objectionId },
         displayTitle: "Генерация углов подачи (возражение)",
         lane: "claude",
+        targetUrl: window.location.pathname,
       });
     },
     onSuccess: () => {
