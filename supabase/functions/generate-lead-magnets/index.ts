@@ -38,7 +38,7 @@ serve(async (req) => {
   try {
     const body = await req.json();
     taskId = body._task_id || null;
-    const { project_id, content_type = "lead_magnet", case_classification_id, selected_objection_id } = body;
+    const { project_id, content_type = "lead_magnet", case_classification_id, selected_objection_id, user_topic } = body;
     if (!project_id) throw new Error("project_id is required");
     const promptCategory = content_type === "reference_material" ? "reference_materials" : content_type === "expert_content" ? "expert_content" : content_type === "provocative_content" ? "provocative_content" : content_type === "list_content" ? "list_content" : content_type === "testimonial_content" ? "testimonial_content" : content_type === "myth_busting" ? "myth_busting" : content_type === "objection_handling" ? "objection_handling" : "lead_magnets";
 
@@ -104,7 +104,11 @@ serve(async (req) => {
 
     const systemPrompt = prompt.system_prompt;
     let userPrompt = prompt.user_prompt_template
-      .replace(/\{\{program_title\}\}/g, program.title).replace(/\{\{offer_type\}\}/g, OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type).replace(/\{\{offer_title\}\}/g, offer.title).replace(/\{\{audience_description\}\}/g, audienceDescription).replace(/\{\{offer_value\}\}/g, offer.description || "").replace(/\{\{offer_description\}\}/g, offerDescription).replace(/\{\{offer_image\}\}/g, offer.image_url || "").replace(/\{\{program_doc_description\}\}/g, programDocDescription).replace(/\{\{brand_style\}\}/g, brandStyle).replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "").replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "").replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "");
+      .replace(/\{\{program_title\}\}/g, program.title).replace(/\{\{offer_type\}\}/g, OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type).replace(/\{\{offer_title\}\}/g, offer.title).replace(/\{\{audience_description\}\}/g, audienceDescription).replace(/\{\{offer_value\}\}/g, offer.description || "").replace(/\{\{offer_description\}\}/g, offerDescription).replace(/\{\{offer_image\}\}/g, offer.image_url || "").replace(/\{\{program_doc_description\}\}/g, programDocDescription).replace(/\{\{brand_style\}\}/g, brandStyle).replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "").replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "").replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "").replace(/\{\{content_theme\}\}/g, user_topic || "");
+
+    if (user_topic && !prompt.user_prompt_template.includes("{{content_theme}}")) {
+      userPrompt += `\n\nВАЖНО: Пользователь задал конкретную тему/направление: "${user_topic}". Все сгенерированные варианты должны быть связаны с этой темой.`;
+    }
 
     if (content_type === "testimonial_content" && case_classification_id) {
       const { data: caseData, error: caseErr } = await supabase.from("case_classifications").select("classification_json").eq("id", case_classification_id).single();
