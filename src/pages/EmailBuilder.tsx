@@ -315,6 +315,7 @@ export default function EmailBuilder() {
         payload: { generate_image: true, block_id: blockId, banner_image_prompt: block.banner_image_prompt },
         displayTitle: `Генерация изображения блока`,
         lane: "openrouter",
+        targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
     } catch (e: any) {
