@@ -329,11 +329,8 @@ export default function EmailBuilder() {
     setGeneratingLetter(true);
     setSettingsMode(false);
     try {
-      // Save current settings first
       await supabase.from("email_letters").update({
-        title,
-        subject,
-        preheader,
+        title, subject, preheader,
         selected_color_scheme_id: colorSchemeId,
         letter_theme_title: letterThemeTitle,
         letter_theme_description: letterThemeDescription,
@@ -346,20 +343,15 @@ export default function EmailBuilder() {
         selected_objection_ids: selectedObjectionIds,
       } as any).eq("id", letterId);
 
-      const { data, error } = await supabase.functions.invoke("generate-email-letter", {
-        body: { letter_id: letterId },
+      await enqueue({
+        functionName: "generate-email-letter",
+        payload: { letter_id: letterId },
+        displayTitle: `Генерация письма: ${title || "Без названия"}`,
+        lane: "claude",
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      setGeneratedHtml(data.html || "");
-      setImagePlaceholders(data.image_placeholders || []);
-      // Update subject/preheader from AI if provided
-      if (data.email_subject) setSubject(data.email_subject);
-      if (data.email_preheader) setPreheader(data.email_preheader);
-      toast.success("Письмо сгенерировано");
+      toast.success("Задача добавлена в очередь");
     } catch (e: any) {
-      toast.error(e.message || "Ошибка генерации письма");
+      toast.error(e.message || "Ошибка");
     } finally {
       setGeneratingLetter(false);
     }
