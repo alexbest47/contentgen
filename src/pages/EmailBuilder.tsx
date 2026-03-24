@@ -309,18 +309,15 @@ export default function EmailBuilder() {
     if (!block?.banner_image_prompt) return;
     setGeneratingImageBlockId(blockId);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-email-block", {
-        body: { generate_image: true, block_id: blockId, banner_image_prompt: block.banner_image_prompt },
+      await enqueue({
+        functionName: "generate-email-block",
+        payload: { generate_image: true, block_id: blockId, banner_image_prompt: block.banner_image_prompt },
+        displayTitle: `Генерация изображения блока`,
+        lane: "openrouter",
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setBlocks((prev) => prev.map((b) =>
-        b.id === blockId ? { ...b, banner_image_url: data.banner_image_url || "" } : b
-      ));
-      await supabase.from("email_letter_blocks").update({ banner_image_url: data.banner_image_url || "" }).eq("id", blockId);
-      toast.success("Изображение сгенерировано");
+      toast.success("Задача добавлена в очередь");
     } catch (e: any) {
-      toast.error(e.message || "Ошибка генерации изображения");
+      toast.error(e.message || "Ошибка");
     } finally {
       setGeneratingImageBlockId(null);
     }
