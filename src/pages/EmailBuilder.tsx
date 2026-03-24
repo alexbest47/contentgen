@@ -87,7 +87,7 @@ export default function EmailBuilder() {
   const { data: letter } = useQuery({
     queryKey: ["email_letter", letterId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("email_letters").select("*").eq("id", letterId!).single();
+      const { data, error } = await supabase.from("email_letters").select("*").eq("id", letterId!).maybeSingle();
       if (error) throw error;
       return data;
     },
