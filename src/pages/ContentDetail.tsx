@@ -92,6 +92,7 @@ export default function ContentDetail() {
         payload: { project_id: projectId, content_type: contentType },
         displayTitle: `Перегенерация контента: ${contentType}`,
         lane: "claude",
+        targetUrl: window.location.pathname,
       });
     },
     onSuccess: () => {
