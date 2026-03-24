@@ -16,6 +16,7 @@ import CreateLetterWizard from "@/components/email-builder/CreateLetterWizard";
 import LetterGenerationPanel, { type ImagePlaceholder } from "@/components/email-builder/LetterGenerationPanel";
 import CasePickerDialog from "@/components/email-builder/CasePickerDialog";
 import BannerPickerDialog from "@/components/banners/BannerPickerDialog";
+import { PLACEHOLDER_TO_BANNER_TYPE, getBannerTypeLabel } from "@/lib/bannerConstants";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function EmailBuilder() {
