@@ -8,49 +8,19 @@ const corsHeaders = {
 };
 
 async function processLane(supabase: any, supabaseUrl: string, serviceKey: string, lane: string): Promise<boolean> {
-  // Only grab if no other task is currently processing in this lane
-  const { data: processing } = await supabase
-    .from("task_queue")
-    .select("id")
-    .eq("lane", lane)
-    .eq("status", "processing")
-    .limit(1);
+  // Atomically claim next pending task (returns empty array if lane busy or no tasks)
+  const { data: tasks, error: rpcError } = await supabase.rpc("claim_next_task", { p_lane: lane });
 
-  if (processing && processing.length > 0) {
-    console.log(`Lane ${lane} already has a processing task, skipping`);
+  if (rpcError) {
+    console.error(`RPC claim_next_task error for lane ${lane}:`, rpcError.message);
     return false;
   }
 
-  // Get the next pending task
-  const { data: tasks, error: fetchError } = await supabase
-    .from("task_queue")
-    .select("*")
-    .eq("lane", lane)
-    .eq("status", "pending")
-    .order("priority", { ascending: false })
-    .order("created_at", { ascending: true })
-    .limit(1);
-
-  if (fetchError || !tasks || tasks.length === 0) {
+  if (!tasks || tasks.length === 0) {
     return false;
   }
 
   const task = tasks[0];
-
-  // Atomically mark as processing
-  const { data: claimed, error: claimError } = await supabase
-    .from("task_queue")
-    .update({ status: "processing", started_at: new Date().toISOString() })
-    .eq("id", task.id)
-    .eq("status", "pending")
-    .select("id")
-    .single();
-
-  if (claimError || !claimed) {
-    console.log(`Failed to claim task ${task.id}, already taken`);
-    return false;
-  }
-
   console.log(`Dispatching task ${task.id}: ${task.function_name} (lane: ${lane})`);
 
   // Fire-and-forget: call the target function with _task_id in payload

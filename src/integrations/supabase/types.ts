@@ -1206,6 +1206,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_next_task: {
+        Args: { p_lane: string }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          display_title: string
+          error_message: string | null
+          function_name: string
+          id: string
+          lane: string
+          payload: Json
+          priority: number
+          result: Json | null
+          started_at: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "task_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
