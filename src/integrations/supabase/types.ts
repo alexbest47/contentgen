@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      banners: {
+        Row: {
+          banner_type: string
+          category: string
+          color_scheme_id: string | null
+          created_at: string
+          created_by: string
+          generation_prompt: string | null
+          id: string
+          image_url: string
+          note: string | null
+          offer_type: string | null
+          program_id: string | null
+          source: string
+          title: string
+        }
+        Insert: {
+          banner_type: string
+          category: string
+          color_scheme_id?: string | null
+          created_at?: string
+          created_by: string
+          generation_prompt?: string | null
+          id?: string
+          image_url: string
+          note?: string | null
+          offer_type?: string | null
+          program_id?: string | null
+          source?: string
+          title: string
+        }
+        Update: {
+          banner_type?: string
+          category?: string
+          color_scheme_id?: string | null
+          created_at?: string
+          created_by?: string
+          generation_prompt?: string | null
+          id?: string
+          image_url?: string
+          note?: string | null
+          offer_type?: string | null
+          program_id?: string | null
+          source?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banners_color_scheme_id_fkey"
+            columns: ["color_scheme_id"]
+            isOneToOne: false
+            referencedRelation: "color_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banners_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "paid_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_classifications: {
         Row: {
           classification_json: Json

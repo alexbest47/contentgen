@@ -15,6 +15,7 @@ import EmailBuilderHeader from "@/components/email-builder/EmailBuilderHeader";
 import CreateLetterWizard from "@/components/email-builder/CreateLetterWizard";
 import LetterGenerationPanel, { type ImagePlaceholder } from "@/components/email-builder/LetterGenerationPanel";
 import CasePickerDialog from "@/components/email-builder/CasePickerDialog";
+import BannerPickerDialog from "@/components/banners/BannerPickerDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function EmailBuilder() {
@@ -55,6 +56,7 @@ export default function EmailBuilder() {
   const [generatingPlaceholderId, setGeneratingPlaceholderId] = useState<string | null>(null);
   const [settingsMode, setSettingsMode] = useState(false);
   const [selectedObjectionIds, setSelectedObjectionIds] = useState<string[]>([]);
+  const [bannerPickerPlaceholderId, setBannerPickerPlaceholderId] = useState<string | null>(null);
 
   const handleChangeCaseId = useCallback(async (id: string | null) => {
     setCaseId(id);
@@ -490,6 +492,18 @@ export default function EmailBuilder() {
     }
   };
 
+  const handleBannerPick = (imageUrl: string) => {
+    if (!bannerPickerPlaceholderId || !letterId) return;
+    setImagePlaceholders(prev => {
+      const updated = prev.map((p) =>
+        p.id === bannerPickerPlaceholderId ? { ...p, image_url: imageUrl } : p
+      );
+      supabase.from("email_letters").update({ image_placeholders: updated } as any).eq("id", letterId);
+      return updated;
+    });
+    setBannerPickerPlaceholderId(null);
+    toast.success("Баннер подставлен");
+  };
 
   const handleExport = () => {
     const header = emailSettings?.email_header_html || "";
@@ -630,6 +644,7 @@ export default function EmailBuilder() {
             generatingPlaceholderId={generatingPlaceholderId}
             onUpdateGeneratedHtml={setGeneratedHtml}
             onUploadPlaceholderImage={uploadPlaceholderImage}
+            onPickFromLibrary={(phId) => setBannerPickerPlaceholderId(phId)}
           />
         </div>
 
@@ -703,6 +718,15 @@ export default function EmailBuilder() {
         onSelect={(id) => handleChangeCaseId(id)}
         selectedCaseId={caseId}
       />
+
+      {bannerPickerPlaceholderId && (
+        <BannerPickerDialog
+          open={!!bannerPickerPlaceholderId}
+          onOpenChange={(o) => !o && setBannerPickerPlaceholderId(null)}
+          placeholderId={bannerPickerPlaceholderId}
+          onSelect={handleBannerPick}
+        />
+      )}
     </div>
   );
 }

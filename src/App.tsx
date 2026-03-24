@@ -36,6 +36,7 @@ import EmailTemplates from "@/pages/EmailTemplates";
 import PdfMaterials from "@/pages/PdfMaterials";
 import PdfMaterialView from "@/pages/PdfMaterialView";
 import TaskQueue from "@/pages/TaskQueue";
+import BannerLibrary from "@/pages/BannerLibrary";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +86,7 @@ const App = () => (
               <Route path="/offers/:offerType" element={<ProtectedRoute adminOnly><OfferTypeManagement /></ProtectedRoute>} />
               <Route path="/pdf-materials" element={<ProtectedRoute adminOnly><PdfMaterials /></ProtectedRoute>} />
               <Route path="/pdf-materials/:id" element={<ProtectedRoute adminOnly><PdfMaterialView /></ProtectedRoute>} />
+              <Route path="/banner-library" element={<ProtectedRoute adminOnly><BannerLibrary /></ProtectedRoute>} />
               <Route path="/cases" element={<ProtectedRoute adminOnly><CaseManagement /></ProtectedRoute>} />
               <Route path="/manage-programs" element={<ProtectedRoute adminOnly><ManagePrograms /></ProtectedRoute>} />
               <Route path="/manage-programs/:programId" element={<ProtectedRoute adminOnly><ManageProgramDetail /></ProtectedRoute>} />
