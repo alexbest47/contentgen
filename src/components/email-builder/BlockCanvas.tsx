@@ -223,6 +223,23 @@ export default function BlockCanvas({
       });
     }
 
+    // Filled: find elements with data-placeholder-filled (background-image placeholders)
+    const filledBgEls = container.querySelectorAll<HTMLElement>("[data-placeholder-filled]");
+    filledBgEls.forEach(el => {
+      const id = el.getAttribute("data-placeholder-id");
+      if (!id) return;
+      // Skip if already added by the unfilled selector above
+      if (rects.some(r => r.id === id)) return;
+      const elRect = el.getBoundingClientRect();
+      rects.push({
+        id,
+        top: elRect.top - containerRect.top + container.scrollTop,
+        left: elRect.left - containerRect.left + container.scrollLeft,
+        width: elRect.width,
+        height: elRect.height,
+      });
+    });
+
     setPlaceholderRects(rects);
   }, [filledPlaceholders]);
 
