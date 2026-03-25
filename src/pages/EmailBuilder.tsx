@@ -464,7 +464,7 @@ export default function EmailBuilder() {
   const generatePlaceholderImage = async (placeholderId: string) => {
     const ph = imagePlaceholders.find((p) => p.id === placeholderId);
     if (!ph?.prompt) return;
-    setGeneratingPlaceholderId(placeholderId);
+    setGeneratingPlaceholderIds(prev => new Set(prev).add(placeholderId));
     try {
       const taskId = await enqueue({
         functionName: "generate-email-letter",
@@ -480,27 +480,47 @@ export default function EmailBuilder() {
         const pollInterval = setInterval(async () => {
           const { data: task } = await supabase
             .from("task_queue")
-            .select("status")
+            .select("status, result")
             .eq("id", taskId)
             .single();
           if (task?.status === "completed" || task?.status === "error") {
             clearInterval(pollInterval);
-            setGeneratingPlaceholderId(null);
             if (task.status === "completed") {
-              // Invalidate query to refetch letter with updated image_placeholders
+              // Immediately update local state with the generated image URL
+              const resultData = task.result as any;
+              const imageUrl = resultData?.image_url;
+              if (imageUrl) {
+                setImagePlaceholders(prev =>
+                  prev.map(p => p.id === placeholderId ? { ...p, image_url: imageUrl } : p)
+                );
+              }
               queryClient.invalidateQueries({ queryKey: ["email_letter", letterId] });
             }
+            // Remove this placeholder from the generating set
+            setGeneratingPlaceholderIds(prev => {
+              const next = new Set(prev);
+              next.delete(placeholderId);
+              return next;
+            });
           }
         }, 3000);
         // Safety: stop polling after 5 minutes
         setTimeout(() => {
           clearInterval(pollInterval);
-          setGeneratingPlaceholderId(null);
+          setGeneratingPlaceholderIds(prev => {
+            const next = new Set(prev);
+            next.delete(placeholderId);
+            return next;
+          });
         }, 5 * 60 * 1000);
       }
     } catch (e: any) {
       toast.error(e.message || "Ошибка");
-      setGeneratingPlaceholderId(null);
+      setGeneratingPlaceholderIds(prev => {
+        const next = new Set(prev);
+        next.delete(placeholderId);
+        return next;
+      });
     }
   };
 
