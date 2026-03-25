@@ -41,7 +41,7 @@ interface Props {
   generatedHtml?: string;
   imagePlaceholders?: ImagePlaceholder[];
   onGeneratePlaceholderImage?: (placeholderId: string) => void;
-  generatingPlaceholderId?: string | null;
+  generatingPlaceholderIds?: Set<string>;
   onUpdateGeneratedHtml?: (html: string) => void;
   onUploadPlaceholderImage?: (placeholderId: string, file: File) => void;
   onPickFromLibrary?: (placeholderId: string) => void;
