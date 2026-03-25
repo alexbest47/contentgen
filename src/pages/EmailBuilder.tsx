@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Copy } from "lucide-react";
 import BlockLibrary, { type EmailBlockType, isTemplateLocked } from "@/components/email-builder/BlockLibrary";
+import FormattingToolbar from "@/components/email-builder/FormattingToolbar";
 import BlockCanvas, { type EmailBlock } from "@/components/email-builder/BlockCanvas";
 import BlockSettingsPanel from "@/components/email-builder/BlockSettingsPanel";
 import EmailBuilderHeader from "@/components/email-builder/EmailBuilderHeader";
