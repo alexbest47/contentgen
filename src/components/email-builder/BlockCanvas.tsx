@@ -368,7 +368,7 @@ export default function BlockCanvas({
                   ...(isBgPlaceholder ? {
                     border: "2px dashed #ccc",
                     borderRadius: 8,
-                    background: "rgba(255,255,255,0.07)",
+                    background: "rgba(255,255,255,0.92)",
                   } : {}),
                 }}
               >
