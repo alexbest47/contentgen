@@ -76,9 +76,19 @@ function restorePlaceholderMarkers(
       );
     }
     // Replace fallback style back to background-image: url({{id}})
+    const escapedId = ph.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     result = result.replace(
       new RegExp(`background-image:\\s*none;\\s*background-color:\\s*#e5e7eb`, 'g'),
       `background-image: url({{${ph.id}}})`
+    );
+    // Remove injected data-placeholder-* attributes for this placeholder
+    result = result.replace(
+      new RegExp(`\\s*data-placeholder-id\\s*=\\s*["']${escapedId}["']`, 'g'),
+      ''
+    );
+    result = result.replace(
+      /\s*data-placeholder-(?:filled|unfilled)\s*=\s*["']true["']/g,
+      ''
     );
 
     // Replace <div data-placeholder-id="id">...</div> back to {{id}} or <img src="{{id}}">
@@ -114,16 +124,16 @@ function preprocessHtmlWithPlaceholders(
     }
   );
 
-  // Replace background-image: url({{id}}) patterns
+  // Replace background-image: url({{id}}) patterns — inject data attributes into the parent tag
   result = result.replace(
-    /background-image:\s*url\(\s*\{\{(image_placeholder_\w+)\}\}\s*\)/g,
-    (_match, id) => {
+    /(<[a-zA-Z][^>]*?)(\s*style\s*=\s*["'][^"']*?)background-image:\s*url\(\s*\{\{(image_placeholder_\w+)\}\}\s*\)([^"']*["'][^>]*?>)/g,
+    (_match, tagStart, styleBefore, id, styleAfter) => {
       const ph = phMap.get(id);
       if (!ph) return _match;
       if (ph.image_url) {
-        return `background-image: url(${ph.image_url})`;
+        return `${tagStart} data-placeholder-id="${id}" data-placeholder-filled="true"${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
       }
-      return `background-image: none; background-color: #e5e7eb`;
+      return `${tagStart} data-placeholder-id="${id}" data-placeholder-unfilled="true"${styleBefore}background-image: none; background-color: #e5e7eb${styleAfter}`;
     }
   );
 
@@ -222,6 +232,23 @@ export default function BlockCanvas({
         }
       });
     }
+
+    // Filled: find elements with data-placeholder-filled (background-image placeholders)
+    const filledBgEls = container.querySelectorAll<HTMLElement>("[data-placeholder-filled]");
+    filledBgEls.forEach(el => {
+      const id = el.getAttribute("data-placeholder-id");
+      if (!id) return;
+      // Skip if already added by the unfilled selector above
+      if (rects.some(r => r.id === id)) return;
+      const elRect = el.getBoundingClientRect();
+      rects.push({
+        id,
+        top: elRect.top - containerRect.top + container.scrollTop,
+        left: elRect.left - containerRect.left + container.scrollLeft,
+        width: elRect.width,
+        height: elRect.height,
+      });
+    });
 
     setPlaceholderRects(rects);
   }, [filledPlaceholders]);
