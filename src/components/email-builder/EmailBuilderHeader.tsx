@@ -81,7 +81,7 @@ export default function EmailBuilderHeader({
             {testingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             Проверить письмо
           </Button>
-          <Button variant="outline" size="sm" onClick={onExportHtml} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={() => setConfirmExportOpen(true)} className="gap-1.5">
             <Download className="h-3.5 w-3.5" />
             Экспортировать HTML
           </Button>
