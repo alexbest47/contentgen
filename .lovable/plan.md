@@ -1,17 +1,28 @@
 
 
-## Выровнять ширину статических блоков
+## Ограничить ширину статических блоков до 600px
 
 ### Проблема
-В `buildHtml()` обоих компонентов внешний контейнер имеет `padding:16px 32px`, а у карточки и ИИ-блоков — `padding:16px 0`. Из-за лишних 32px по бокам белые карточки статических блоков уже остальных.
+Внутренние белые карточки статических блоков имеют `width="100%"` без ограничения `max-width`, в то время как карточки и ИИ-блоки используют `max-width:600px;margin:0 auto`. Из-за этого статические блоки растягиваются на всю ширину.
 
 ### Решение
+Добавить `max-width:600px;margin:0 auto` к внутренней белой таблице-карточке в `buildHtml()` обоих компонентов.
 
-**`src/components/email-builder/PaidProgramsCollectionSettings.tsx`** (строка 100):
-- Изменить `padding:16px 32px` → `padding:16px 0` во внешней обёртке
+**`src/components/email-builder/PaidProgramsCollectionSettings.tsx`** (строка 94):
+```
+// Было:
+style="background:#FFFFFF;border-radius:12px;overflow:hidden;"
+// Стало:
+style="max-width:600px;margin:0 auto;background:#FFFFFF;border-radius:12px;overflow:hidden;"
+```
 
-**`src/components/email-builder/FreeCoursesGridSettings.tsx`** (строка 104):
-- Изменить `padding:16px 32px` → `padding:16px 0` во внешней обёртке
+**`src/components/email-builder/FreeCoursesGridSettings.tsx`** (аналогичная строка):
+```
+// Было:
+style="background:#FFFFFF;border-radius:12px;overflow:hidden;"
+// Стало:
+style="max-width:600px;margin:0 auto;background:#FFFFFF;border-radius:12px;overflow:hidden;"
+```
 
-Это два однострочных изменения — после них белые карточки статических блоков будут той же ширины, что и остальные блоки письма.
+Два однострочных изменения — после них ширина совпадёт с остальными блоками письма.
 
