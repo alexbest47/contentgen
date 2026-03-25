@@ -42,6 +42,7 @@ export default function EmailBuilderHeader({
 }: Props) {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [confirmExportOpen, setConfirmExportOpen] = useState(false);
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
