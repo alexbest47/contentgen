@@ -41,7 +41,7 @@ interface Props {
   generatedHtml?: string;
   imagePlaceholders?: ImagePlaceholder[];
   onGeneratePlaceholderImage?: (placeholderId: string) => void;
-  generatingPlaceholderId?: string | null;
+  generatingPlaceholderIds?: Set<string>;
   onUpdateGeneratedHtml?: (html: string) => void;
   onUploadPlaceholderImage?: (placeholderId: string, file: File) => void;
   onPickFromLibrary?: (placeholderId: string) => void;
@@ -174,7 +174,7 @@ export default function BlockCanvas({
   onSelectBlock, onMoveBlock, onDeleteBlock,
   onGenerateImage, generatingImageBlockId,
   generatedHtml, imagePlaceholders,
-  onGeneratePlaceholderImage, generatingPlaceholderId,
+  onGeneratePlaceholderImage, generatingPlaceholderIds,
   onUpdateGeneratedHtml, onUploadPlaceholderImage,
   onPickFromLibrary, onSavePlaceholderToLibrary,
 }: Props) {
@@ -426,7 +426,7 @@ export default function BlockCanvas({
             const ph = (imagePlaceholders || []).find(p => p.id === rect.id);
             if (!ph) return null;
             const isFilled = !!ph.image_url;
-            const isGenerating = generatingPlaceholderId === ph.id;
+            const isGenerating = generatingPlaceholderIds?.has(ph.id) ?? false;
             return (
               <div
                 key={`ph-buttons-${rect.id}`}
