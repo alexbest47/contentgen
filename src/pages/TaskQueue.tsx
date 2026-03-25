@@ -182,7 +182,7 @@ export default function TaskQueue() {
                 </TableCell>
               </TableRow>
             ) : (
-              tasks.map((task) => (
+              paginatedTasks.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell>
                     <div className="font-medium">
