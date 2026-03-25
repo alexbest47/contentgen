@@ -1,30 +1,22 @@
 
 
-## Восстановить кнопки управления для background-image плейсхолдеров
+## Разделить поведение левой и правой ячеек баннера
 
 ### Проблема
-
-Кнопки «Сгенерировать», «Из библиотеки», «Сохранить в библиотеку» не появляются для плейсхолдеров, использующих `background-image: url({{id}})`, потому что:
-
-1. **Unfilled**: замена ставит `background-image: none; background-color: #e5e7eb`, но НЕ добавляет `data-placeholder-id` на элемент → `measurePlaceholders` не находит его.
-2. **Filled**: измерение ищет только `<img>` элементы, а элементы с `background-image` не проверяются.
+Regex в `preprocessHtmlWithPlaceholders` обрабатывает ВСЕ вхождения `background-image: url({{id}})` одинаково. Обе ячейки получают серую заглушку и кнопки, хотя правая ячейка — это текстовый блок с тёмным фоном, который не нуждается в управлении изображением.
 
 ### Решение
 
 **Файл: `src/components/email-builder/BlockCanvas.tsx`**
 
-**1. `preprocessHtmlWithPlaceholders`** — при замене `background-image: url({{id}})`:
-- Расширить regex, чтобы захватить открывающий тег элемента (td, div и т.д.), содержащий этот стиль.
-- Вставить атрибут `data-placeholder-id="id"` в этот тег.
-- Для unfilled: также добавить `data-placeholder-unfilled="true"`.
-- Для filled: добавить `data-placeholder-filled="true"`.
+**1. `preprocessHtmlWithPlaceholders`** — для каждого placeholder ID, только ПЕРВОЕ вхождение `background-image: url({{id}})` получает полное placeholder-поведение:
+- Первое вхождение: `data-placeholder-id`, `data-placeholder-unfilled/filled`, серая заглушка (unfilled) или реальный URL (filled) — как сейчас.
+- Последующие вхождения того же ID: подставить реальный URL (filled) или просто убрать `background-image` без серой заглушки и без data-атрибутов. Остальные стили элемента (включая `background-color: #1C1C2E`) сохраняются.
 
-**2. `measurePlaceholders`** — добавить поиск элементов с `data-placeholder-unfilled` и `data-placeholder-filled`:
-- `[data-placeholder-filled]` — добавлять rect для filled-плейсхолдеров (аналогично img-логике).
-- `[data-placeholder-unfilled]` уже покрывается существующим `[data-placeholder-id]` селектором, если атрибут добавлен.
+Реализация: вместо одного `.replace()` — пройтись по `matchAll`, отслеживая `Set<string>` уже обработанных ID. Первый матч — полная обработка, остальные — только замена URL.
 
-**3. `restorePlaceholderMarkers`** — при обратной замене удалять добавленные `data-placeholder-id`, `data-placeholder-unfilled`, `data-placeholder-filled` атрибуты из тегов.
+**2. `restorePlaceholderMarkers`** — без изменений, текущая логика уже корректно восстанавливает все вхождения обратно в `{{id}}`.
 
 ### Файлы
-- `src/components/email-builder/BlockCanvas.tsx`
+- `src/components/email-builder/BlockCanvas.tsx` — только `preprocessHtmlWithPlaceholders`
 
