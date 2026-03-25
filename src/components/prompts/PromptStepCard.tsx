@@ -17,6 +17,8 @@ interface PromptStepCardProps {
 }
 
 export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdit, onToggle, onDuplicate, onRefine }: PromptStepCardProps) {
+  const [versionsOpen, setVersionsOpen] = useState(false);
+
   return (
     <div className="flex items-start gap-4">
       {showStepNumber && (
@@ -39,6 +41,9 @@ export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdi
               checked={p.is_active}
               onCheckedChange={(v) => onToggle(p.id, v)}
             />
+            <Button variant="ghost" size="icon" onClick={() => setVersionsOpen(true)} title="История версий">
+              <History className="h-4 w-4" />
+            </Button>
             {onRefine && (
               <Button variant="ghost" size="icon" onClick={() => onRefine(p)} title="Доработать с AI">
                 <Sparkles className="h-4 w-4" />
@@ -56,6 +61,12 @@ export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdi
           <CardContent className="pt-0 text-sm text-muted-foreground">{p.description}</CardContent>
         )}
       </Card>
+      <PromptVersionsDialog
+        promptId={p.id}
+        promptName={p.name}
+        open={versionsOpen}
+        onOpenChange={setVersionsOpen}
+      />
     </div>
   );
 }
