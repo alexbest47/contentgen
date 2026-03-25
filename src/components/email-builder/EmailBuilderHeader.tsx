@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Sparkles, Download, Loader2, Tag, Send } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +42,7 @@ export default function EmailBuilderHeader({
 }: Props) {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [confirmExportOpen, setConfirmExportOpen] = useState(false);
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
@@ -79,7 +81,7 @@ export default function EmailBuilderHeader({
             {testingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             Проверить письмо
           </Button>
-          <Button variant="outline" size="sm" onClick={onExportHtml} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={() => setConfirmExportOpen(true)} className="gap-1.5">
             <Download className="h-3.5 w-3.5" />
             Экспортировать HTML
           </Button>
@@ -154,6 +156,18 @@ export default function EmailBuilderHeader({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmExportOpen} onOpenChange={setConfirmExportOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Вы уверены, что добавили в письма все необходимые ссылки?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Вернуться к письму</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { onExportHtml(); setConfirmExportOpen(false); }}>Да</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
