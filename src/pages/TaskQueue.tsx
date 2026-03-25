@@ -72,6 +72,7 @@ export default function TaskQueue() {
       .order("created_at", { ascending: false })
       .limit(100);
 
+    setPage(1);
     if (filter !== "all") {
       query = query.eq("status", filter);
     }
