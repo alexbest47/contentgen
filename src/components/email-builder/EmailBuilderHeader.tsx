@@ -75,6 +75,10 @@ export default function EmailBuilderHeader({
           </Button>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setTestDialogOpen(true)} className="gap-1.5">
+            {testingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            Проверить письмо
+          </Button>
           <Button variant="outline" size="sm" onClick={onExportHtml} className="gap-1.5">
             <Download className="h-3.5 w-3.5" />
             Экспортировать HTML
