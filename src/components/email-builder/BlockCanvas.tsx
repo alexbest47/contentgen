@@ -216,7 +216,16 @@ export default function BlockCanvas({
     els.forEach(el => {
       const id = el.getAttribute("data-placeholder-id");
       if (!id) return;
-      const elRect = el.getBoundingClientRect();
+      // For background-image placeholders, measure the nearest <table> ancestor (full banner)
+      const isBgPlaceholder = el.hasAttribute("data-placeholder-bg");
+      let measureEl: HTMLElement = el;
+      if (isBgPlaceholder && el.hasAttribute("data-placeholder-unfilled")) {
+        const tableAncestor = el.closest("table");
+        if (tableAncestor && container.contains(tableAncestor)) {
+          measureEl = tableAncestor;
+        }
+      }
+      const elRect = measureEl.getBoundingClientRect();
       rects.push({
         id,
         top: elRect.top - containerRect.top + container.scrollTop,
