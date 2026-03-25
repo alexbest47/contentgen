@@ -26,9 +26,11 @@ interface Props {
   onSave: () => void;
   onChangeTheme: () => void;
   onGenerateLetter: () => void;
+  onTestEmail: (email: string) => void;
   
   generatingLetter: boolean;
   canGenerate: boolean;
+  testingEmail: boolean;
 }
 
 export default function EmailBuilderHeader({
