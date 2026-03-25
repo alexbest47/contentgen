@@ -579,7 +579,7 @@ export default function BlockCanvas({
                   {block.generated_html ? (
                     <div dangerouslySetInnerHTML={{ __html: block.generated_html }} />
                   ) : block.block_type === "card" ? (
-                    <div style={{ backgroundColor: accentColor || "#F0EDF7", padding: "16px 0" }}>
+                    <div style={{ backgroundColor: accentColor || "#F0EDF7", padding: "16px 16px" }}>
                       <div style={{ backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "24px 32px", maxWidth: "100%" }}>
                         {(block.config.children || []).map((child: any, ci: number) => (
                           <div key={ci}>
