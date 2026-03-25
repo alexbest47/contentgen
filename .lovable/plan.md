@@ -1,28 +1,40 @@
 
+## Исправить не ширину карточки, а внешний горизонтальный gutter
 
-## Ограничить ширину статических блоков до 600px
+### Что происходит сейчас
+Проблема не в `max-width`, а в том, что у статических блоков внешний цветной контейнер стоит с `padding:16px 0`, поэтому белая карточка упирается в края и фон по бокам почти не виден.
 
-### Проблема
-Внутренние белые карточки статических блоков имеют `width="100%"` без ограничения `max-width`, в то время как карточки и ИИ-блоки используют `max-width:600px;margin:0 auto`. Из-за этого статические блоки растягиваются на всю ширину.
+У верхних блоков визуально есть боковой отступ, поэтому нужно вернуть **видимый фон слева и справа**, но сделать его **умеренным**, не как раньше с `32px`.
 
-### Решение
-Добавить `max-width:600px;margin:0 auto` к внутренней белой таблице-карточке в `buildHtml()` обоих компонентов.
+### Что нужно сделать
+Привести все карточные блоки к одному паттерну:
+- внешний фон: `padding:16px 16px`
+- внутренняя белая карточка: остаётся с `border-radius:12px`
+- внутренний контент карточки: `padding:24px 32px`
 
-**`src/components/email-builder/PaidProgramsCollectionSettings.tsx`** (строка 94):
-```
-// Было:
-style="background:#FFFFFF;border-radius:12px;overflow:hidden;"
-// Стало:
-style="max-width:600px;margin:0 auto;background:#FFFFFF;border-radius:12px;overflow:hidden;"
-```
+### Файлы
+**1. `src/components/email-builder/PaidProgramsCollectionSettings.tsx`**
+- В `buildHtml()` изменить внешний `<td>`:
+  - было: `padding:16px 0;`
+  - станет: `padding:16px 16px;`
 
-**`src/components/email-builder/FreeCoursesGridSettings.tsx`** (аналогичная строка):
-```
-// Было:
-style="background:#FFFFFF;border-radius:12px;overflow:hidden;"
-// Стало:
-style="max-width:600px;margin:0 auto;background:#FFFFFF;border-radius:12px;overflow:hidden;"
-```
+**2. `src/components/email-builder/FreeCoursesGridSettings.tsx`**
+- В `buildHtml()` сделать то же самое:
+  - было: `padding:16px 0;`
+  - станет: `padding:16px 16px;`
 
-Два однострочных изменения — после них ширина совпадёт с остальными блоками письма.
+### Чтобы не осталось новой рассинхронизации
+Заодно выровнять тот же паттерн у ручной карточки:
 
+**3. `src/pages/EmailBuilder.tsx`**
+- В HTML для `block_type === "card"` поменять внешний wrapper:
+  - `padding:16px 0;` → `padding:16px 16px;`
+
+**4. `src/components/email-builder/BlockCanvas.tsx`**
+- В preview для `block_type === "card"` поменять:
+  - `padding: "16px 0"` → `padding: "16px 16px"`
+
+### Ожидаемый результат
+- у блоков «Программы, на которые открыт набор» и «Подборка бесплатных курсов» снова появится видимый фон по бокам;
+- блоки не будут ни слишком узкими, ни растянутыми до краёв;
+- статические блоки и ручная «Карточка» будут выглядеть одинаково по системе отступов.
