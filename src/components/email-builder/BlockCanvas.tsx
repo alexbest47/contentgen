@@ -75,17 +75,12 @@ function restorePlaceholderMarkers(
         `background-image: url({{${ph.id}}})`
       );
     }
-    // Replace fallback style back to background-image: url({{id}})
+    // Replace fallback styles (unfilled placeholders) back to background-image: url({{id}})
+    // Handles both: "background-image: none; background-color: transparent" and bare "background-image: none"
     const escapedId = ph.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     result = result.replace(
-      new RegExp(`background-image:\\s*none;\\s*background-color:\\s*#e5e7eb`, 'g'),
-      `background-image: url({{${ph.id}}})`
-    );
-    // Also handle the new transparent unfilled style (background-image: none without gray bg)
-    // We need to restore these only for elements that have placeholder attributes
-    result = result.replace(
-      new RegExp(`(data-placeholder-id\\s*=\\s*["']${escapedId}["'][^>]*?)background-image:\\s*none([^;])`, 'g'),
-      `$1background-image: url({{${ph.id}}})$2`
+      new RegExp(`(data-placeholder-id\\s*=\\s*["']${escapedId}["'][^>]*?)background-image:\\s*none(?:;\\s*background-color:\\s*(?:#e5e7eb|transparent))?`, 'g'),
+      `$1background-image: url({{${ph.id}}})`
     );
     // Remove injected data-placeholder-* attributes for this placeholder
     result = result.replace(
