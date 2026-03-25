@@ -23,6 +23,7 @@ export default function ManagePrograms() {
   const [audienceDocUrl, setAudienceDocUrl] = useState("");
   const [programDocUrl, setProgramDocUrl] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [filterTagIds, setFilterTagIds] = useState<string[]>([]);
 
   const { data: allTags } = useQuery({
     queryKey: ["tags"],
