@@ -336,7 +336,6 @@ export default function BlockCanvas({
       {/* Full letter mode — single editable container with overlay buttons */}
       {isFullLetterMode && (
         <div className="relative">
-          <FormattingToolbar />
           <div
             ref={contentRef}
             contentEditable
@@ -344,7 +343,28 @@ export default function BlockCanvas({
             className="outline-none focus:ring-2 focus:ring-primary/20 rounded"
             style={{ maxWidth: "100%", overflow: "hidden", wordBreak: "break-word" }}
             dangerouslySetInnerHTML={{ __html: processedHtml }}
+            onClick={(e) => {
+              // Detect click on <a> elements for link editing
+              const target = e.target as HTMLElement;
+              const anchor = target.closest("a") as HTMLAnchorElement | null;
+              if (anchor && contentRef.current?.contains(anchor)) {
+                e.preventDefault();
+                const rect = anchor.getBoundingClientRect();
+                const containerRect = contentRef.current!.getBoundingClientRect();
+                setEditingLink({
+                  el: anchor,
+                  href: anchor.getAttribute("href") || "",
+                  top: rect.bottom - containerRect.top + contentRef.current!.scrollTop + 4,
+                  left: rect.left - containerRect.left,
+                });
+              } else {
+                setEditingLink(null);
+              }
+            }}
             onBlur={(e) => {
+              // Don't close link popup if clicking inside it
+              const related = e.relatedTarget as HTMLElement | null;
+              if (related?.closest("[data-link-popup]")) return;
               let html = e.currentTarget.innerHTML;
               if (imagePlaceholders?.length) {
                 html = restorePlaceholderMarkers(html, imagePlaceholders);
@@ -352,6 +372,58 @@ export default function BlockCanvas({
               onUpdateGeneratedHtml?.(html);
             }}
           />
+
+          {/* Link editing popup */}
+          {editingLink && (
+            <div
+              data-link-popup
+              className="absolute z-30 bg-background border border-border rounded-md shadow-lg p-2 flex items-center gap-1.5"
+              style={{ top: editingLink.top, left: editingLink.left, maxWidth: 360 }}
+            >
+              <Input
+                className="h-7 text-xs flex-1"
+                value={editingLink.href}
+                placeholder="https://..."
+                onChange={(e) => setEditingLink({ ...editingLink, href: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    editingLink.el.href = editingLink.href;
+                    setEditingLink(null);
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                className="h-7 text-xs px-2"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  editingLink.el.href = editingLink.href;
+                  setEditingLink(null);
+                }}
+              >
+                OK
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs px-2 text-destructive"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  // Remove the link, keep text
+                  const parent = editingLink.el.parentNode;
+                  if (parent) {
+                    while (editingLink.el.firstChild) {
+                      parent.insertBefore(editingLink.el.firstChild, editingLink.el);
+                    }
+                    parent.removeChild(editingLink.el);
+                  }
+                  setEditingLink(null);
+                }}
+              >
+                ✕
+              </Button>
+            </div>
+          )}
 
           {/* Overlay buttons for UNFILLED placeholders (centered) */}
           {onGeneratePlaceholderImage && placeholderRects.map(rect => {
