@@ -124,16 +124,29 @@ function preprocessHtmlWithPlaceholders(
     }
   );
 
-  // Replace background-image: url({{id}}) patterns — inject data attributes into the parent tag
-  result = result.replace(
-    /(<[a-zA-Z][^>]*?)(\s*style\s*=\s*["'][^"']*?)background-image:\s*url\(\s*\{\{(image_placeholder_\w+)\}\}\s*\)([^"']*["'][^>]*?>)/g,
+  // Replace background-image: url({{id}}) patterns — only FIRST occurrence per ID gets controls
+  const bgSeenIds = new Set<string>();
+  const bgRegex = /(<[a-zA-Z][^>]*?)(\s*style\s*=\s*["'][^"']*?)background-image:\s*url\(\s*\{\{(image_placeholder_\w+)\}\}\s*\)([^"']*["'][^>]*?>)/g;
+  result = result.replace(bgRegex,
     (_match, tagStart, styleBefore, id, styleAfter) => {
       const ph = phMap.get(id);
       if (!ph) return _match;
-      if (ph.image_url) {
-        return `${tagStart} data-placeholder-id="${id}" data-placeholder-filled="true"${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
+      const isFirst = !bgSeenIds.has(id);
+      bgSeenIds.add(id);
+      if (isFirst) {
+        // First occurrence: full placeholder behaviour with controls
+        if (ph.image_url) {
+          return `${tagStart} data-placeholder-id="${id}" data-placeholder-filled="true"${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
+        }
+        return `${tagStart} data-placeholder-id="${id}" data-placeholder-unfilled="true"${styleBefore}background-image: none; background-color: #e5e7eb${styleAfter}`;
+      } else {
+        // Subsequent occurrences: just substitute URL, no controls, keep existing styles
+        if (ph.image_url) {
+          return `${tagStart}${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
+        }
+        // Unfilled: remove background-image but keep element's own background-color
+        return `${tagStart}${styleBefore}background-image: none${styleAfter}`;
       }
-      return `${tagStart} data-placeholder-id="${id}" data-placeholder-unfilled="true"${styleBefore}background-image: none; background-color: #e5e7eb${styleAfter}`;
     }
   );
 
