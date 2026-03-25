@@ -67,6 +67,8 @@ export default function PaidProgramsCollectionSettings({ block, colorSchemeId, o
     onUpdateConfig({ ...config, program_ids: newIds });
   };
 
+  const bgColor = schemeColors?.[1] || "#F0EDF7";
+
   const buildHtml = () => {
     const htmlParts: string[] = [];
     for (const pid of selectedProgramIds) {
@@ -88,11 +90,14 @@ export default function PaidProgramsCollectionSettings({ block, colorSchemeId, o
 </table>
 <hr style="border:none;border-top:1px solid ${dividerColor};margin:0 0 24px 0;">`);
     }
-    return `<table width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:12px;overflow:hidden;"><tr><td style="padding:24px 32px;">
+
+    const card = `<table width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:12px;overflow:hidden;"><tr><td style="padding:24px 32px;">
 <p style="font-family:Arial,sans-serif;font-size:20px;font-weight:bold;color:${headingColor};margin:0 0 8px 0;">Программы, на которые открыт набор</p>
 <p style="font-family:Arial,sans-serif;font-size:15px;color:#444444;margin:0 0 24px 0;line-height:1.5;">Выберите программу, которая подходит именно вам.</p>
 ${htmlParts.join("\n")}
 </td></tr></table>`;
+
+    return `<table width="100%" cellpadding="0" cellspacing="0" style="background-color:${bgColor};"><tr><td style="padding:16px 32px;">${card}</td></tr></table>`;
   };
 
   const handleUpdateBlock = () => {

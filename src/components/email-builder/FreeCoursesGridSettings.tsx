@@ -80,6 +80,8 @@ export default function FreeCoursesGridSettings({ block, colorSchemeId, onUpdate
     <a href="#" style="font-family:Arial,sans-serif;font-size:14px;color:${accentColor};text-decoration:none;">Пройти бесплатно →</a>`;
   };
 
+  const bgColor = schemeColors?.[1] || "#F0EDF7";
+
   const buildHtml = () => {
     const rows: string[] = [];
     for (let i = 0; i < cellCount; i += 2) {
@@ -91,13 +93,15 @@ export default function FreeCoursesGridSettings({ block, colorSchemeId, onUpdate
 </tr>`);
     }
 
-    return `<table width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:12px;overflow:hidden;"><tr><td style="padding:24px 32px;">
+    const card = `<table width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:12px;overflow:hidden;"><tr><td style="padding:24px 32px;">
 <p style="font-family:Arial,sans-serif;font-size:20px;font-weight:bold;color:${headingColor};margin:0 0 8px 0;">Подборка бесплатных курсов</p>
 <p style="font-family:Arial,sans-serif;font-size:15px;color:#444444;margin:0 0 24px 0;line-height:1.5;">Подготовили для вас подборку бесплатных мини-курсов на интересные темы.</p>
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
 ${rows.join("\n")}
 </table>
 </td></tr></table>`;
+
+    return `<table width="100%" cellpadding="0" cellspacing="0" style="background-color:${bgColor};"><tr><td style="padding:16px 32px;">${card}</td></tr></table>`;
   };
 
   const handleUpdateBlock = () => {
