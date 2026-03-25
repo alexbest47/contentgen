@@ -144,7 +144,7 @@ function preprocessHtmlWithPlaceholders(
           return `${tagStart} data-placeholder-id="${id}" data-placeholder-filled="true"${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
         }
         // Unfilled first occurrence: mark for overlay but keep transparent (no gray bg)
-        return `${tagStart} data-placeholder-id="${id}" data-placeholder-unfilled="true" data-placeholder-bg="true"${styleBefore}background-image: none${styleAfter}`;
+        return `${tagStart} data-placeholder-id="${id}" data-placeholder-unfilled="true" data-placeholder-bg="true"${styleBefore}background-image: none; background-color: transparent${styleAfter}`;
       } else {
         if (ph.image_url) {
           return `${tagStart}${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
