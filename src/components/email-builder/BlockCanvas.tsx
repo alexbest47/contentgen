@@ -134,17 +134,15 @@ function preprocessHtmlWithPlaceholders(
       const isFirst = !bgSeenIds.has(id);
       bgSeenIds.add(id);
       if (isFirst) {
-        // First occurrence: full placeholder behaviour with controls
         if (ph.image_url) {
           return `${tagStart} data-placeholder-id="${id}" data-placeholder-filled="true"${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
         }
-        return `${tagStart} data-placeholder-id="${id}" data-placeholder-unfilled="true"${styleBefore}background-image: none; background-color: #e5e7eb${styleAfter}`;
+        // Unfilled first occurrence: mark for overlay but keep transparent (no gray bg)
+        return `${tagStart} data-placeholder-id="${id}" data-placeholder-unfilled="true" data-placeholder-bg="true"${styleBefore}background-image: none${styleAfter}`;
       } else {
-        // Subsequent occurrences: just substitute URL, no controls, keep existing styles
         if (ph.image_url) {
           return `${tagStart}${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
         }
-        // Unfilled: remove background-image but keep element's own background-color
         return `${tagStart}${styleBefore}background-image: none${styleAfter}`;
       }
     }
