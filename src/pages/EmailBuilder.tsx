@@ -55,7 +55,7 @@ export default function EmailBuilder() {
   const [audienceSegment, setAudienceSegment] = useState("");
   const [generatingLetter, setGeneratingLetter] = useState(false);
   const [casePickerOpen, setCasePickerOpen] = useState(false);
-  const [generatingPlaceholderId, setGeneratingPlaceholderId] = useState<string | null>(null);
+  const [generatingPlaceholderIds, setGeneratingPlaceholderIds] = useState<Set<string>>(new Set());
   const [settingsMode, setSettingsMode] = useState(false);
   const [selectedObjectionIds, setSelectedObjectionIds] = useState<string[]>([]);
   const [bannerPickerPlaceholderId, setBannerPickerPlaceholderId] = useState<string | null>(null);
