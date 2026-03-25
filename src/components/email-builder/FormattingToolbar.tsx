@@ -2,9 +2,14 @@ import { useState } from "react";
 import { Bold, Italic, Underline, AArrowUp, AArrowDown, Highlighter, Link } from "lucide-react";
 
 const HIGHLIGHT_COLORS = [
-  "#FFFF00", "#FFD700", "#FFA500", "#FF6347",
-  "#FF69B4", "#DA70D6", "#BA55D3", "#7B68EE",
-  "#00BFFF", "#00CED1", "#00FA9A", "#98FB98",
+  // Жёлтые / оранжевые
+  "#FFFF00", "#FFEE58", "#FFD700", "#FFAB40", "#FFA500", "#FF8A65",
+  // Красные / розовые
+  "#FF6347", "#EF5350", "#FF69B4", "#F06292", "#E91E63", "#AD1457",
+  // Фиолетовые / синие
+  "#DA70D6", "#BA55D3", "#7B68EE", "#7C4DFF", "#536DFE", "#448AFF",
+  // Голубые / зелёные
+  "#00BFFF", "#00CED1", "#26C6DA", "#00FA9A", "#69F0AE", "#98FB98",
 ];
 
 export default function FormattingToolbar() {
@@ -119,7 +124,7 @@ export default function FormattingToolbar() {
             <Highlighter className="h-4 w-4" />
           </button>
           {showColors && (
-            <div className="absolute top-full left-0 mt-1 grid grid-cols-4 gap-1 bg-background border border-border rounded-md p-1.5 shadow-lg z-30 w-[120px]">
+            <div className="absolute top-full left-0 mt-1 grid grid-cols-6 gap-1 bg-background border border-border rounded-md p-1.5 shadow-lg z-30 w-[180px]">
               {HIGHLIGHT_COLORS.map(color => (
                 <button
                   key={color}
