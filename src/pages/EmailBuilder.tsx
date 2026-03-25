@@ -626,6 +626,11 @@ export default function EmailBuilder() {
           letterBody = letterBody.replace(placeholder, "");
         }
       }
+      // Normalize outer wrapper background to match header/footer (#F6F6F6)
+      letterBody = letterBody.replace(
+        /^(<table[^>]*style\s*=\s*["'][^"']*?)background(?:-color)?:\s*#[0-9A-Fa-f]{3,6}/,
+        "$1background-color:#F6F6F6"
+      );
     }
 
     const blocksBody = blocks
