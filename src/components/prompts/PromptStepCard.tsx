@@ -13,10 +13,9 @@ interface PromptStepCardProps {
   onEdit: (prompt: any) => void;
   onToggle: (id: string, is_active: boolean) => void;
   onDuplicate: (prompt: any) => void;
-  onRefine?: (prompt: any) => void;
 }
 
-export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdit, onToggle, onDuplicate, onRefine }: PromptStepCardProps) {
+export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdit, onToggle, onDuplicate }: PromptStepCardProps) {
   const [versionsOpen, setVersionsOpen] = useState(false);
 
   return (
