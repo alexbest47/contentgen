@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2, RefreshCcw, Upload, FolderOpen, BookmarkPlus, Bold, Italic, Underline, AArrowUp, AArrowDown, Highlighter } from "lucide-react";
+import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2, RefreshCcw, Upload, FolderOpen, BookmarkPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { blockTypeLabels, isGeneratedBlock, isTemplateLocked, type EmailBlockType } from "./BlockLibrary";
 import { Lock } from "lucide-react";
 import type { ImagePlaceholder } from "./LetterGenerationPanel";
