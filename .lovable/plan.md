@@ -1,55 +1,67 @@
 
 
-## Обнуление письма при повторной генерации
+## Проблема: разные фоновые цвета в экспортированном письме
 
-### Что нужно сделать
+### Суть
+`buildFullHtml()` в `EmailBuilder.tsx` просто конкатенирует header + body + footer. Каждая часть содержит свой внешний `<table width="100%">` с собственным фоном:
+- Header: `#F6F6F6`
+- Body (AI): `#F0F0F0`  
+- Footer: `#F6F6F6`
 
-При нажатии «Сгенерировать письмо» — перед постановкой задачи в очередь очистить все данные предыдущей генерации, сохраняя только настройки из Wizard.
+В Gmail это отображается как три горизонтальные полосы разных оттенков.
 
-### Изменения
+### Решение
 
-**Файл: `src/pages/EmailBuilder.tsx`** — функция `generateLetter()`
+**Файл: `src/pages/EmailBuilder.tsx`** — функция `buildFullHtml()`
 
-После сохранения настроек (строки 409–421) и **перед** `enqueue()` добавить:
+1. **Обернуть всё в единую внешнюю таблицу** с фиксированным фоном `#F6F6F6` (тот же цвет, что в header/footer).
 
-1. **Удалить все блоки письма из БД**:
-   ```ts
-   await supabase.from("email_letter_blocks").delete().eq("letter_id", letterId);
-   ```
+2. **Снять внешнюю обёртку** с `generated_html` перед вставкой — убрать самую верхнюю `<table width="100%" ... style="background:#F0F0F0">` и её `<tr><td>`, оставив только внутреннее содержимое (таблицу шириной 600px).
 
-2. **Очистить generated_html и image_placeholders в БД**:
-   ```ts
-   await supabase.from("email_letters").update({
-     generated_html: "",
-     image_placeholders: [],
-     status: "draft",
-   }).eq("id", letterId);
-   ```
-
-3. **Очистить локальный state**:
-   ```ts
-   setBlocks([]);
-   setGeneratedHtml("");
-   setImagePlaceholders([]);
-   ```
-
-### Порядок в `generateLetter()`
-
-```
-1. Сохранить настройки в БД (уже есть)
-2. ★ Удалить блоки из email_letter_blocks
-3. ★ Обнулить generated_html / image_placeholders / status в email_letters
-4. ★ Очистить локальный state (blocks, html, placeholders)
-5. Поставить задачу в очередь (уже есть)
-6. Поллинг результата (уже есть)
+Конкретно:
+- В `buildFullHtml()` добавить функцию `stripOuterWrapper(html)`, которая через regex находит и убирает первый уровень `<table width="100%"...background:...><tr><td...>` ... `</td></tr></table>` если внутренний контент — это таблица с `width="600"`.
+- Обернуть финальный результат в:
+```html
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F6F6F6;">
+  <tr><td align="center">
+    {header_inner}
+    {body_inner}
+    {footer_inner}
+  </td></tr>
+</table>
 ```
 
-### Что НЕ меняем
+Альтернативный (более простой и надёжный) подход:
+- Не трогать структуру header/footer/body.
+- Просто заменить в `generated_html` фон внешней обёртки с `#F0F0F0` на `#F6F6F6` перед конкатенацией.
 
-- Edge-функция `generate-email-letter` — она и так перезаписывает поля, дополнительных изменений не нужно.
-- Wizard и настройки — они сохраняются на шаге 1, до очистки.
-- Логику поллинга и гидрации после генерации.
+### Рекомендация
+
+Второй подход проще и безопаснее — одна замена цвета:
+
+```ts
+// В buildFullHtml(), после формирования letterBody:
+letterBody = letterBody.replace(
+  /background:\s*#F0F0F0/gi,
+  "background-color:#F6F6F6"
+);
+```
+
+Но это хрупко — AI может сгенерировать другой цвет в следующий раз.
+
+### Надёжный подход
+
+Лучше всего — обязать AI не генерировать внешнюю обёртку, а добавлять её самим в `buildFullHtml()`. Но это требует изменения промпта.
+
+Компромисс для кода: в `buildFullHtml()` **заменять фон самой внешней таблицы** в `letterBody` на фон из header (`#F6F6F6`), используя regex только для первого `<table`:
+
+```ts
+letterBody = letterBody.replace(
+  /^(<table[^>]*style\s*=\s*["'][^"']*?)background(?:-color)?:\s*#[0-9A-Fa-f]{3,6}/,
+  "$1background-color:#F6F6F6"
+);
+```
 
 ### Файлы
-- `src/pages/EmailBuilder.tsx` — единственный файл
+- `src/pages/EmailBuilder.tsx` — единственное изменение в `buildFullHtml()`
 
