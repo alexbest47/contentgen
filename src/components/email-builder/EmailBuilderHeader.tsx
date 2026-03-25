@@ -156,6 +156,18 @@ export default function EmailBuilderHeader({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmExportOpen} onOpenChange={setConfirmExportOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Вы уверены, что добавили в письма все необходимые ссылки?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Вернуться к письму</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { onExportHtml(); setConfirmExportOpen(false); }}>Да</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
