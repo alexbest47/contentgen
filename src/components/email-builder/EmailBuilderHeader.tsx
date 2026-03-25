@@ -36,9 +36,11 @@ interface Props {
 export default function EmailBuilderHeader({
   title, subject, preheader, colorSchemeId, letterThemeTitle, saveStatus,
   onChangeTitle, onChangeSubject, onChangePreheader, onChangeColorScheme,
-  onExportHtml, onSave, onChangeTheme, onGenerateLetter,
-  generatingLetter, canGenerate,
+  onExportHtml, onSave, onChangeTheme, onGenerateLetter, onTestEmail,
+  generatingLetter, canGenerate, testingEmail,
 }: Props) {
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
