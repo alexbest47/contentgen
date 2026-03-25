@@ -172,7 +172,7 @@ function preprocessHtmlWithPlaceholders(
   return result;
 }
 
-const USER_BLOCK_TYPES = ["text", "image", "cta", "divider", "paid_programs_collection", "free_courses_grid"];
+const USER_BLOCK_TYPES = ["text", "image", "cta", "divider", "card", "paid_programs_collection", "free_courses_grid"];
 
 export default function BlockCanvas({
   blocks, selectedBlockId, headerHtml, footerHtml, colorSchemeId,
@@ -578,6 +578,33 @@ export default function BlockCanvas({
 
                   {block.generated_html ? (
                     <div dangerouslySetInnerHTML={{ __html: block.generated_html }} />
+                  ) : block.block_type === "card" ? (
+                    <div style={{ backgroundColor: accentColor || "#F0EDF7", padding: "16px 0" }}>
+                      <div style={{ backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "24px 32px", maxWidth: "100%" }}>
+                        {(block.config.children || []).map((child: any, ci: number) => (
+                          <div key={ci}>
+                            {child.type === "text" && child.html && (
+                              <div style={{ textAlign: child.align || "left" }} dangerouslySetInnerHTML={{ __html: child.html }} />
+                            )}
+                            {child.type === "image" && child.url && (
+                              <div style={{ textAlign: "center", padding: "8px 0" }}>
+                                <img src={child.url} alt={child.alt || ""} style={{ maxWidth: "100%", borderRadius: "6px" }} />
+                              </div>
+                            )}
+                            {child.type === "cta" && child.text && (
+                              <div style={{ textAlign: "center", padding: "12px 0" }}>
+                                <a href={child.url || "#"} style={{ display: "inline-block", padding: "12px 32px", backgroundColor: child.color || accentColor || "#6366f1", color: "#ffffff", borderRadius: "6px", textDecoration: "none", fontWeight: 600 }}>
+                                  {child.text}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {(!block.config.children || block.config.children.length === 0) && (
+                          <p className="text-sm text-muted-foreground text-center py-4">Пустая карточка — добавьте элементы в настройках</p>
+                        )}
+                      </div>
+                    </div>
                   ) : block.block_type === "divider" ? (
                     <hr style={{ border: "none", borderTop: `1px solid ${accentColor || "hsl(var(--border))"}`, margin: "24px 0" }} />
                   ) : block.block_type === "text" && block.config.html ? (

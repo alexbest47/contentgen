@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import {
-  MessageSquareQuote, Type, ImageIcon, MousePointerClick, Minus,
-  GraduationCap, BookOpen, ShieldQuestion,
+  MessageSquareQuote, Type, ImageIcon, MousePointerClick,
+  GraduationCap, BookOpen, ShieldQuestion, Square,
 } from "lucide-react";
 
 export type EmailBlockType =
@@ -9,6 +9,7 @@ export type EmailBlockType =
   | "list_content" | "testimonial_content" | "myth_busting" | "objection_handling"
   | "offer_collection"
   | "paid_programs_collection" | "free_courses_grid"
+  | "card"
   | "text" | "image" | "cta" | "divider";
 
 interface BlockDef {
@@ -26,13 +27,16 @@ const generatedBlocksDirectOffer: BlockDef[] = [
   { type: "objection_handling", label: "Возражение", icon: ShieldQuestion },
 ];
 
-const userBlocks: BlockDef[] = [
+const readyBlocks: BlockDef[] = [
   { type: "paid_programs_collection", label: "Курсы на которые идёт набор", icon: GraduationCap },
   { type: "free_courses_grid", label: "Подборка бесплатных курсов", icon: BookOpen },
+];
+
+const elementBlocks: BlockDef[] = [
+  { type: "card", label: "Карточка", icon: Square },
   { type: "text", label: "Текстовый блок", icon: Type },
   { type: "image", label: "Изображение", icon: ImageIcon },
   { type: "cta", label: "Кнопка CTA", icon: MousePointerClick },
-  { type: "divider", label: "Разделитель", icon: Minus },
 ];
 
 interface Props {
@@ -71,12 +75,33 @@ export default function BlockLibrary({ onAddBlock, isFullLetterMode, templateNam
           </div>
         </div>
       )}
+
       <div>
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-          Пользовательские
+          Готовые блоки
         </h3>
         <div className="space-y-1">
-          {userBlocks.map((b) => (
+          {readyBlocks.map((b) => (
+            <Button
+              key={b.type}
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2 text-sm h-9"
+              onClick={() => onAddBlock(b.type)}
+            >
+              <b.icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{b.label}</span>
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+          Добавить элемент
+        </h3>
+        <div className="space-y-1">
+          {elementBlocks.map((b) => (
             <Button
               key={b.type}
               variant="ghost"
@@ -100,6 +125,7 @@ export const blockTypeLabels: Record<string, string> = {
   paid_programs_collection: "Курсы на которые идёт набор",
   free_courses_grid: "Подборка бесплатных курсов",
   offer_collection: "Подборка офферов",
+  card: "Карточка",
   text: "Текстовый блок",
   image: "Изображение",
   cta: "Кнопка CTA",
