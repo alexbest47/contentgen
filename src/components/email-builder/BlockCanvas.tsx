@@ -172,7 +172,7 @@ function preprocessHtmlWithPlaceholders(
   return result;
 }
 
-const USER_BLOCK_TYPES = ["text", "image", "cta", "divider", "paid_programs_collection", "free_courses_grid"];
+const USER_BLOCK_TYPES = ["text", "image", "cta", "divider", "card", "paid_programs_collection", "free_courses_grid"];
 
 export default function BlockCanvas({
   blocks, selectedBlockId, headerHtml, footerHtml, colorSchemeId,
