@@ -100,6 +100,19 @@ function preprocessHtmlWithPlaceholders(
     }
   );
 
+  // Replace background-image: url({{id}}) patterns
+  result = result.replace(
+    /background-image:\s*url\(\s*\{\{(image_placeholder_\w+)\}\}\s*\)/g,
+    (_match, id) => {
+      const ph = phMap.get(id);
+      if (!ph) return _match;
+      if (ph.image_url) {
+        return `background-image: url(${ph.image_url})`;
+      }
+      return `background-image: none; background-color: #e5e7eb`;
+    }
+  );
+
   // Replace standalone {{id}} patterns
   result = result.replace(
     /\{\{(image_placeholder_\w+)\}\}/g,
