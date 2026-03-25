@@ -1,27 +1,30 @@
 
 
-## Поддержка `background-image: url({{placeholder}})` в конструкторе писем
+## Восстановить кнопки управления для background-image плейсхолдеров
 
-Расширить существующую логику обработки плейсхолдеров в `BlockCanvas.tsx`, чтобы она покрывала не только `<img src="{{id}}">` и standalone `{{id}}`, но и `background-image: url({{id}})`.
+### Проблема
 
-### Что изменится для пользователя
+Кнопки «Сгенерировать», «Из библиотеки», «Сохранить в библиотеку» не появляются для плейсхолдеров, использующих `background-image: url({{id}})`, потому что:
 
-- Вместо видимого текста `{{image_placeholder_1}}` в CSS — серая заглушка с подписью типа и размера.
-- Когда изображение сгенерировано/выбрано — реальный URL подставляется в `background-image`.
+1. **Unfilled**: замена ставит `background-image: none; background-color: #e5e7eb`, но НЕ добавляет `data-placeholder-id` на элемент → `measurePlaceholders` не находит его.
+2. **Filled**: измерение ищет только `<img>` элементы, а элементы с `background-image` не проверяются.
 
-### Технические детали
+### Решение
 
 **Файл: `src/components/email-builder/BlockCanvas.tsx`**
 
-**1. `preprocessHtmlWithPlaceholders`** — добавить третий `.replace()`:
-- Regex: `background-image:\s*url\(\s*\{\{(image_placeholder_\w+)\}\}\s*\)`
-- Если `ph.image_url` есть → `background-image: url(реальный_url)`
-- Если нет → `background-image: none; background-color: #e5e7eb` (серая заглушка; текст-подпись уже есть в ячейке или добавляется через `::after` нет — проще заменить фон на серый, а текст внутри ячейки останется видимым)
+**1. `preprocessHtmlWithPlaceholders`** — при замене `background-image: url({{id}})`:
+- Расширить regex, чтобы захватить открывающий тег элемента (td, div и т.д.), содержащий этот стиль.
+- Вставить атрибут `data-placeholder-id="id"` в этот тег.
+- Для unfilled: также добавить `data-placeholder-unfilled="true"`.
+- Для filled: добавить `data-placeholder-filled="true"`.
 
-**2. `restorePlaceholderMarkers`** — добавить обратную замену:
-- Для каждого плейсхолдера с `image_url`: заменить `background-image:\s*url\(реальный_url\)` обратно на `background-image: url({{id}})`
-- Для плейсхолдеров без URL: заменить `background-image: none; background-color: #e5e7eb` обратно на `background-image: url({{id}})`
+**2. `measurePlaceholders`** — добавить поиск элементов с `data-placeholder-unfilled` и `data-placeholder-filled`:
+- `[data-placeholder-filled]` — добавлять rect для filled-плейсхолдеров (аналогично img-логике).
+- `[data-placeholder-unfilled]` уже покрывается существующим `[data-placeholder-id]` селектором, если атрибут добавлен.
+
+**3. `restorePlaceholderMarkers`** — при обратной замене удалять добавленные `data-placeholder-id`, `data-placeholder-unfilled`, `data-placeholder-filled` атрибуты из тегов.
 
 ### Файлы
-- `src/components/email-builder/BlockCanvas.tsx` — обе функции
+- `src/components/email-builder/BlockCanvas.tsx`
 
