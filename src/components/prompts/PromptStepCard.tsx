@@ -43,11 +43,6 @@ export default function PromptStepCard({ prompt: p, showStepNumber = true, onEdi
             <Button variant="ghost" size="icon" onClick={() => setVersionsOpen(true)} title="История версий">
               <History className="h-4 w-4" />
             </Button>
-            {onRefine && (
-              <Button variant="ghost" size="icon" onClick={() => onRefine(p)} title="Доработать с AI">
-                <Sparkles className="h-4 w-4" />
-              </Button>
-            )}
             <Button variant="ghost" size="icon" onClick={() => onDuplicate(p)} title="Дублировать">
               <Copy className="h-4 w-4" />
             </Button>
