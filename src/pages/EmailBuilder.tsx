@@ -249,10 +249,12 @@ export default function EmailBuilder() {
         extra_offer_ids: extraOfferIds,
         selected_objection_ids: selectedObjectionIds,
       };
-      // Safeguard: don't overwrite existing generated content with empty local state
-      if (generatedHtmlRef.current || letter?.status !== "ready") {
-        updatePayload.generated_html = generatedHtmlRef.current;
-        updatePayload.image_placeholders = imagePlaceholdersRef.current;
+      // Safeguard: don't overwrite generated content during active generation or with empty state
+      if (!generatingLetterRef.current) {
+        if (generatedHtmlRef.current || letter?.status !== "ready") {
+          updatePayload.generated_html = generatedHtmlRef.current;
+          updatePayload.image_placeholders = imagePlaceholdersRef.current;
+        }
       }
       await supabase.from("email_letters").update(updatePayload).eq("id", letterId);
 
