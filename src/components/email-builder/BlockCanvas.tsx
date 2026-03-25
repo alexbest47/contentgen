@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2, RefreshCcw, Upload, FolderOpen, BookmarkPlus } from "lucide-react";
+import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2, RefreshCcw, Upload, FolderOpen, BookmarkPlus, Bold, Italic, Underline, AArrowUp, AArrowDown, Highlighter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { blockTypeLabels, isGeneratedBlock, isTemplateLocked, type EmailBlockType } from "./BlockLibrary";
 import { Lock } from "lucide-react";
@@ -173,6 +173,126 @@ function preprocessHtmlWithPlaceholders(
 
 const USER_BLOCK_TYPES = ["text", "image", "cta", "divider", "paid_programs_collection", "free_courses_grid"];
 
+const HIGHLIGHT_COLORS = ["#FFFF00", "#00FF00", "#00FFFF", "#FF69B4", "#FFA500", "#FF0000"];
+
+function FormattingToolbar() {
+  const exec = (cmd: string, value?: string) => {
+    document.execCommand(cmd, false, value);
+  };
+
+  const changeFontSize = (direction: "up" | "down") => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    // Get current fontSize level (1-7, default 3)
+    const current = document.queryCommandValue("fontSize");
+    const currentLevel = current ? parseInt(current, 10) : 3;
+    const next = direction === "up"
+      ? Math.min(currentLevel + 1, 7)
+      : Math.max(currentLevel - 1, 1);
+    exec("fontSize", String(next));
+  };
+
+  const [showColors, setShowColors] = useState(false);
+
+  const prevent = (e: React.MouseEvent) => e.preventDefault();
+
+  return (
+    <div className="sticky top-0 z-20 flex items-center gap-0.5 bg-background border-b border-border px-2 py-1 rounded-t-md">
+      <button
+        type="button"
+        className="p-1.5 rounded hover:bg-muted transition-colors"
+        title="Жирный"
+        onMouseDown={prevent}
+        onClick={() => exec("bold")}
+      >
+        <Bold className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        className="p-1.5 rounded hover:bg-muted transition-colors"
+        title="Курсив"
+        onMouseDown={prevent}
+        onClick={() => exec("italic")}
+      >
+        <Italic className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        className="p-1.5 rounded hover:bg-muted transition-colors"
+        title="Подчёркивание"
+        onMouseDown={prevent}
+        onClick={() => exec("underline")}
+      >
+        <Underline className="h-4 w-4" />
+      </button>
+
+      <div className="w-px h-5 bg-border mx-1" />
+
+      <button
+        type="button"
+        className="p-1.5 rounded hover:bg-muted transition-colors"
+        title="Увеличить шрифт"
+        onMouseDown={prevent}
+        onClick={() => changeFontSize("up")}
+      >
+        <AArrowUp className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        className="p-1.5 rounded hover:bg-muted transition-colors"
+        title="Уменьшить шрифт"
+        onMouseDown={prevent}
+        onClick={() => changeFontSize("down")}
+      >
+        <AArrowDown className="h-4 w-4" />
+      </button>
+
+      <div className="w-px h-5 bg-border mx-1" />
+
+      <div className="relative">
+        <button
+          type="button"
+          className="p-1.5 rounded hover:bg-muted transition-colors"
+          title="Выделить цветом"
+          onMouseDown={prevent}
+          onClick={() => setShowColors(!showColors)}
+        >
+          <Highlighter className="h-4 w-4" />
+        </button>
+        {showColors && (
+          <div className="absolute top-full left-0 mt-1 flex gap-1 bg-background border border-border rounded-md p-1.5 shadow-lg z-30">
+            {HIGHLIGHT_COLORS.map(color => (
+              <button
+                key={color}
+                type="button"
+                className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                style={{ backgroundColor: color }}
+                onMouseDown={prevent}
+                onClick={() => {
+                  exec("hiliteColor", color);
+                  setShowColors(false);
+                }}
+              />
+            ))}
+            <button
+              type="button"
+              className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform flex items-center justify-center text-xs text-muted-foreground"
+              title="Убрать выделение"
+              onMouseDown={prevent}
+              onClick={() => {
+                exec("hiliteColor", "transparent");
+                setShowColors(false);
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function BlockCanvas({
   blocks, selectedBlockId, headerHtml, footerHtml, colorSchemeId,
   onSelectBlock, onMoveBlock, onDeleteBlock,
@@ -335,6 +455,7 @@ export default function BlockCanvas({
       {/* Full letter mode — single editable container with overlay buttons */}
       {isFullLetterMode && (
         <div className="relative">
+          <FormattingToolbar />
           <div
             ref={contentRef}
             contentEditable
