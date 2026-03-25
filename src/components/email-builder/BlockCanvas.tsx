@@ -114,16 +114,16 @@ function preprocessHtmlWithPlaceholders(
     }
   );
 
-  // Replace background-image: url({{id}}) patterns
+  // Replace background-image: url({{id}}) patterns — inject data attributes into the parent tag
   result = result.replace(
-    /background-image:\s*url\(\s*\{\{(image_placeholder_\w+)\}\}\s*\)/g,
-    (_match, id) => {
+    /(<[a-zA-Z][^>]*?)(\s*style\s*=\s*["'][^"']*?)background-image:\s*url\(\s*\{\{(image_placeholder_\w+)\}\}\s*\)([^"']*["'][^>]*?>)/g,
+    (_match, tagStart, styleBefore, id, styleAfter) => {
       const ph = phMap.get(id);
       if (!ph) return _match;
       if (ph.image_url) {
-        return `background-image: url(${ph.image_url})`;
+        return `${tagStart} data-placeholder-id="${id}" data-placeholder-filled="true"${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
       }
-      return `background-image: none; background-color: #e5e7eb`;
+      return `${tagStart} data-placeholder-id="${id}" data-placeholder-unfilled="true"${styleBefore}background-image: none; background-color: #e5e7eb${styleAfter}`;
     }
   );
 
