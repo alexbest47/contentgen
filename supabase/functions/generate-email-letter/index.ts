@@ -358,6 +358,10 @@ serve(async (req) => {
       html = text;
     }
 
+    if (!html) {
+      throw new Error("ИИ вернул пустой ответ. Попробуйте сгенерировать письмо ещё раз.");
+    }
+
     const updatePayload: Record<string, any> = {
       generated_html: html,
       image_placeholders: imagePlaceholders,
