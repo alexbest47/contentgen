@@ -1,40 +1,27 @@
 
 
-## Функция «Проверить письмо» — отправка тестового HTML через Resend
+## Поддержка `background-image: url({{placeholder}})` в конструкторе писем
 
-Добавить кнопку «Проверить письмо» в хедер конструктора. При нажатии — диалог с полем ввода email-адреса. После подтверждения собирается полный HTML письма (как при экспорте) и отправляется через Edge Function, которая вызывает Resend API.
+Расширить существующую логику обработки плейсхолдеров в `BlockCanvas.tsx`, чтобы она покрывала не только `<img src="{{id}}">` и standalone `{{id}}`, но и `background-image: url({{id}})`.
 
-### Что увидит пользователь
+### Что изменится для пользователя
 
-Рядом с кнопкой «Экспортировать HTML» появится кнопка «Проверить письмо». Клик открывает диалог с полем email. После отправки — toast «Письмо отправлено» или ошибка.
-
-### Предварительное условие
-
-Потребуется секрет `RESEND_API_KEY` — запрошу его через инструмент добавления секретов.
+- Вместо видимого текста `{{image_placeholder_1}}` в CSS — серая заглушка с подписью типа и размера.
+- Когда изображение сгенерировано/выбрано — реальный URL подставляется в `background-image`.
 
 ### Технические детали
 
-**1. Edge Function: `supabase/functions/send-test-email/index.ts`**
-- Принимает `{ html, subject, to, preheader }`.
-- Вызывает `https://api.resend.com/emails` с `RESEND_API_KEY`.
-- From: `onboarding@resend.dev` (или настраиваемый домен).
-- Возвращает результат.
+**Файл: `src/components/email-builder/BlockCanvas.tsx`**
 
-**2. `src/components/email-builder/EmailBuilderHeader.tsx`**
-- Добавить prop `onTestEmail: (email: string) => void`, `testingEmail: boolean`.
-- Добавить кнопку `Send` (иконка) рядом с «Экспортировать HTML».
-- Встроить маленький Dialog с полем email и кнопкой «Отправить».
+**1. `preprocessHtmlWithPlaceholders`** — добавить третий `.replace()`:
+- Regex: `background-image:\s*url\(\s*\{\{(image_placeholder_\w+)\}\}\s*\)`
+- Если `ph.image_url` есть → `background-image: url(реальный_url)`
+- Если нет → `background-image: none; background-color: #e5e7eb` (серая заглушка; текст-подпись уже есть в ячейке или добавляется через `::after` нет — проще заменить фон на серый, а текст внутри ячейки останется видимым)
 
-**3. `src/pages/EmailBuilder.tsx`**
-- Добавить функцию `handleTestEmail(email: string)`:
-  - Собирает HTML (та же логика что `handleExport`).
-  - Вызывает `supabase.functions.invoke("send-test-email", { body: { html, subject, to: email, preheader } })`.
-- Состояние `testingEmail`.
-- Передать в `EmailBuilderHeader`.
+**2. `restorePlaceholderMarkers`** — добавить обратную замену:
+- Для каждого плейсхолдера с `image_url`: заменить `background-image:\s*url\(реальный_url\)` обратно на `background-image: url({{id}})`
+- Для плейсхолдеров без URL: заменить `background-image: none; background-color: #e5e7eb` обратно на `background-image: url({{id}})`
 
 ### Файлы
-- Секрет `RESEND_API_KEY` — запрос у пользователя
-- `supabase/functions/send-test-email/index.ts` — новый
-- `src/components/email-builder/EmailBuilderHeader.tsx` — кнопка + диалог
-- `src/pages/EmailBuilder.tsx` — логика сборки HTML и вызова функции
+- `src/components/email-builder/BlockCanvas.tsx` — обе функции
 
