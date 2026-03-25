@@ -122,6 +122,38 @@ export default function EmailBuilderHeader({
           </Select>
         </div>
       </div>
+
+      <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Отправить тестовое письмо</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Email получателя</Label>
+            <Input
+              type="email"
+              placeholder="test@example.com"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                if (testEmail) {
+                  onTestEmail(testEmail);
+                  setTestDialogOpen(false);
+                }
+              }}
+              disabled={!testEmail || testingEmail}
+              className="gap-1.5"
+            >
+              {testingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Отправить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
