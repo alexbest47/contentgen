@@ -67,6 +67,20 @@ function restorePlaceholderMarkers(
         `{{${ph.id}}}`
       );
     }
+    // Replace background-image: url(real_url) back to background-image: url({{id}})
+    if (ph.image_url) {
+      const escapedUrl = ph.image_url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(
+        new RegExp(`background-image:\\s*url\\(\\s*${escapedUrl}\\s*\\)`, 'g'),
+        `background-image: url({{${ph.id}}})`
+      );
+    }
+    // Replace fallback style back to background-image: url({{id}})
+    result = result.replace(
+      new RegExp(`background-image:\\s*none;\\s*background-color:\\s*#e5e7eb`, 'g'),
+      `background-image: url({{${ph.id}}})`
+    );
+
     // Replace <div data-placeholder-id="id">...</div> back to {{id}} or <img src="{{id}}">
     const divRegex = new RegExp(
       `<div[^>]*data-placeholder-id\\s*=\\s*["']${ph.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>.*?</div>`,
@@ -97,6 +111,19 @@ function preprocessHtmlWithPlaceholders(
         return `${before}${ph.image_url}${after}`;
       }
       return `<div data-placeholder-id="${id}" style="display:block;width:100%;min-height:200px;background:#f0f0f0;border:2px dashed #ccc;border-radius:8px;text-align:center;padding:40px 20px;color:#999;font-size:14px;">${ph.type || "Изображение"} — ${ph.size || "нажмите сгенерировать"}</div>`;
+    }
+  );
+
+  // Replace background-image: url({{id}}) patterns
+  result = result.replace(
+    /background-image:\s*url\(\s*\{\{(image_placeholder_\w+)\}\}\s*\)/g,
+    (_match, id) => {
+      const ph = phMap.get(id);
+      if (!ph) return _match;
+      if (ph.image_url) {
+        return `background-image: url(${ph.image_url})`;
+      }
+      return `background-image: none; background-color: #e5e7eb`;
     }
   );
 
