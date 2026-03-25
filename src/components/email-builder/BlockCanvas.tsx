@@ -78,9 +78,15 @@ function restorePlaceholderMarkers(
     // Replace fallback styles (unfilled placeholders) back to background-image: url({{id}})
     // Handles both: "background-image: none; background-color: transparent" and bare "background-image: none"
     const escapedId = ph.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // First pass: tagged elements (with data-placeholder-id)
     result = result.replace(
       new RegExp(`(data-placeholder-id\\s*=\\s*["']${escapedId}["'][^>]*?)background-image:\\s*none(?:;\\s*background-color:\\s*(?:#e5e7eb|transparent))?`, 'g'),
       `$1background-image: url({{${ph.id}}})`
+    );
+    // Second pass: untagged elements (second occurrence without data-placeholder-id)
+    result = result.replace(
+      /background-image:\s*none;\s*background-color:\s*transparent/g,
+      `background-image: url({{${ph.id}}})`
     );
     // Remove injected data-placeholder-* attributes for this placeholder
     result = result.replace(
@@ -144,7 +150,7 @@ function preprocessHtmlWithPlaceholders(
         if (ph.image_url) {
           return `${tagStart}${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
         }
-        return `${tagStart}${styleBefore}background-image: none${styleAfter}`;
+        return `${tagStart}${styleBefore}background-image: none; background-color: transparent${styleAfter}`;
       }
     }
   );
@@ -368,7 +374,7 @@ export default function BlockCanvas({
                   ...(isBgPlaceholder ? {
                     border: "2px dashed #ccc",
                     borderRadius: 8,
-                    background: "rgba(255,255,255,0.07)",
+                    background: "rgba(255,255,255,0.92)",
                   } : {}),
                 }}
               >
