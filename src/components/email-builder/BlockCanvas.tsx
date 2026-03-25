@@ -455,6 +455,7 @@ export default function BlockCanvas({
       {/* Full letter mode — single editable container with overlay buttons */}
       {isFullLetterMode && (
         <div className="relative">
+          <FormattingToolbar />
           <div
             ref={contentRef}
             contentEditable
