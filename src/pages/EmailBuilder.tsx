@@ -88,7 +88,7 @@ export default function EmailBuilder() {
   const generatingLetterRef = useRef(false);
   useEffect(() => { generatingLetterRef.current = generatingLetter; }, [generatingLetter]);
   const generatingPlaceholderRef = useRef(false);
-  useEffect(() => { generatingPlaceholderRef.current = generatingPlaceholderId !== null; }, [generatingPlaceholderId]);
+  useEffect(() => { generatingPlaceholderRef.current = generatingPlaceholderIds.size > 0; }, [generatingPlaceholderIds]);
 
   // Load letter
   const { data: letter, isLoading: letterLoading, isFetched: letterFetched } = useQuery({
