@@ -40,8 +40,21 @@ serve(async (req) => {
     const { prompt_id, instruction } = body;
     if (!prompt_id || !instruction) throw new Error("prompt_id and instruction are required");
 
-    const { data: prompt, error: fetchErr } = await supabase.from("prompts").select("system_prompt, user_prompt_template, name").eq("id", prompt_id).single();
+    const { data: prompt, error: fetchErr } = await supabase.from("prompts").select("system_prompt, user_prompt_template, output_format_hint, model, provider, name").eq("id", prompt_id).single();
     if (fetchErr || !prompt) throw new Error("Prompt not found");
+
+    // Archive current version before AI refine
+    const { data: maxV } = await supabase.from("prompt_versions").select("version_number").eq("prompt_id", prompt_id).order("version_number", { ascending: false }).limit(1).maybeSingle();
+    await supabase.from("prompt_versions").insert({
+      prompt_id: prompt_id,
+      version_number: (maxV?.version_number ?? 0) + 1,
+      system_prompt: prompt.system_prompt,
+      user_prompt_template: prompt.user_prompt_template,
+      output_format_hint: prompt.output_format_hint,
+      model: prompt.model,
+      provider: prompt.provider,
+      change_type: "ai_refine",
+    });
 
     const systemMessage = `Ты — эксперт по промпт-инжинирингу. Тебе дан промпт, состоящий из системного сообщения (system_prompt) и пользовательского шаблона (user_prompt_template). Пользователь просит доработать его.\n\nВерни ТОЛЬКО валидный JSON объект с двумя полями:\n{\n  "system_prompt": "обновлённый системный промпт",\n  "user_prompt_template": "обновлённый пользовательский шаблон"\n}\n\nВажно:\n- Сохраняй все плейсхолдеры вида {{variable_name}} без изменений\n- Не добавляй пояснений до или после JSON\n- Если изменения затрагивают только одну часть, вторую верни без изменений`;
 
