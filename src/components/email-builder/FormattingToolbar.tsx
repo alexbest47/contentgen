@@ -124,7 +124,7 @@ export default function FormattingToolbar() {
             <Highlighter className="h-4 w-4" />
           </button>
           {showColors && (
-            <div className="absolute top-full left-0 mt-1 grid grid-cols-4 gap-1 bg-background border border-border rounded-md p-1.5 shadow-lg z-30 w-[120px]">
+            <div className="absolute top-full left-0 mt-1 grid grid-cols-6 gap-1 bg-background border border-border rounded-md p-1.5 shadow-lg z-30 w-[180px]">
               {HIGHLIGHT_COLORS.map(color => (
                 <button
                   key={color}
