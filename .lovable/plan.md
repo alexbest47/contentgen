@@ -1,44 +1,51 @@
 
+## Убрать тёмный фон справа у пустого banner placeholder
 
-## Исправить восстановление плейсхолдеров для background-image баннеров
+### Что происходит сейчас
+Пунктирная рамка уже растягивается на весь баннер, но тёмный правый фон остаётся, потому что:
 
-### Причина проблемы
+1. В `preprocessHtmlWithPlaceholders()` только первое вхождение `background-image: url({{image_placeholder_1}})` становится `background-image: none; background-color: transparent`.
+2. Второе вхождение того же placeholder сейчас превращается только в `background-image: none`, поэтому исходный `background-color: rgba(0,0,0,0.55)` на правой ячейке остаётся видимым.
+3. Сам overlay для banner placeholder почти прозрачный (`rgba(255,255,255,0.07)`), поэтому даже если контент под ним остаётся, пользователь всё равно видит тёмную правую часть.
 
-Данные в базе уже повреждены. Функция `restorePlaceholderMarkers` не смогла восстановить `{{image_placeholder_1}}` при сохранении, потому что:
+### Что нужно изменить
 
-1. **Строка 81**: regex ищет `background-color: #e5e7eb`, но код теперь пишет `background-color: transparent` — не совпадает.
-2. **Строка 87**: regex `background-image:\s*none([^;])` использует `([^;])` — символ ПОСЛЕ `none` не может быть `;`. Но реальный HTML содержит `background-image: none; background-color: transparent`, где после `none` идёт `;`. Regex не срабатывает.
+**Файл:** `src/components/email-builder/BlockCanvas.tsx`
 
-В результате `onBlur` сохраняет в БД `background-image: none; background-color: transparent` вместо `background-image: url({{image_placeholder_1}})`. При следующей загрузке маркер потерян, `preprocessHtmlWithPlaceholders` не находит `{{image_placeholder_1}}` — нет data-атрибутов, нет оверлея. Серый фон остаётся.
-
-### Решение
-
-**Файл: `src/components/email-builder/BlockCanvas.tsx`**
-
-**1. `restorePlaceholderMarkers`** — исправить оба regex:
-
-- **Строка 81**: добавить альтернативу для `transparent`:
-  ```
-  background-image:\s*none;\s*background-color:\s*(?:#e5e7eb|transparent)
-  ```
-
-- **Строка 86-87**: изменить `([^;])` на `(;|\s|")` или полностью переписать regex для надёжного захвата — учесть, что после `none` может идти `;`:
-  ```
-  background-image:\s*none;\s*background-color:\s*transparent
-  ```
-  Убрать ненадёжный regex со строки 86 и объединить логику со строкой 81.
-
-**2. Также для второго вхождения (строка 152)** — `background-image: none` без `background-color: transparent`. Regex строки 86-87 пытался это ловить, но `([^;])` ломается. Нужен regex, который ловит `background-image: none` в конце стиля (перед `"` или `'`) или перед `;`.
-
-**Итого:** одно надёжное правило в `restorePlaceholderMarkers`:
+#### 1) Нейтрализовать обе ячейки баннера в unfilled-состоянии
+В `preprocessHtmlWithPlaceholders()`:
+- для **первого** unfilled background placeholder оставить marker-атрибуты для overlay,
+- но для **всех unfilled вхождений этого placeholder**, включая второе, подставлять:
+```html
+background-image: none; background-color: transparent
 ```
-background-image:\s*none(?:;\s*background-color:\s*transparent)?
-→ background-image: url({{id}})
-```
-Это покроет оба вхождения (с `transparent` и без).
 
-**3. Исправить данные в текущем письме** — нужна SQL-миграция или ручное обновление `generated_html` для письма `f9e1bfa6-...`, чтобы заменить `background-image: none; background-color: transparent` обратно на `background-image: url({{image_placeholder_1}})`. Альтернативно — можно перегенерировать письмо.
+Это уберёт не только картинку, но и тёмный фон справа.
+
+#### 2) Сделать overlay для banner placeholder визуально “единым пустым блоком”
+В блоке рендера overlay для `isBgPlaceholder`:
+- заменить почти прозрачный фон на почти сплошной светлый фон, чтобы скрыть текст и остатки старого оформления под ним,
+- оставить пунктирную рамку,
+- сохранить подпись `header_banner — 600×200` и кнопки по центру всего баннера.
+
+Итогово баннер без изображения будет выглядеть как один пустой placeholder, а не как две разные ячейки.
+
+#### 3) Не ломать сохранение placeholder-маркеров
+`restorePlaceholderMarkers()` уже умеет обрабатывать:
+```html
+background-image: none; background-color: transparent
+```
+поэтому отдельная правка БД или миграция для этого кейса не нужна.
+
+### Ожидаемый результат
+Когда `image_placeholder_1` пустой:
+- не видно ни серой левой заглушки,
+- не видно тёмной правой плашки,
+- весь баннер выглядит как единый светлый пунктирный placeholder.
+
+Когда изображение выбрано:
+- пунктир исчезает,
+- обе ячейки снова показывают реальный `background-image`.
 
 ### Файлы
-- `src/components/email-builder/BlockCanvas.tsx` — `restorePlaceholderMarkers`, ~3 строки изменений
-
+- `src/components/email-builder/BlockCanvas.tsx`
