@@ -174,6 +174,15 @@ function preprocessHtmlWithPlaceholders(
 const USER_BLOCK_TYPES = ["text", "image", "cta", "divider", "paid_programs_collection", "free_courses_grid"];
 
 export default function BlockCanvas({
+  // Link editing state
+  editingLink: _editingLinkUnused,
+  ...rest
+}: Props & { editingLink?: any }) {
+  // We destructure normally below — this wrapper is just for the unused prop
+}
+
+// Real component
+export default function BlockCanvas2({
   blocks, selectedBlockId, headerHtml, footerHtml, colorSchemeId,
   onSelectBlock, onMoveBlock, onDeleteBlock,
   onGenerateImage, generatingImageBlockId,
