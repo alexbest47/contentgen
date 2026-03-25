@@ -1073,6 +1073,53 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_versions: {
+        Row: {
+          change_type: string
+          created_at: string
+          id: string
+          model: string | null
+          output_format_hint: string | null
+          prompt_id: string
+          provider: string | null
+          system_prompt: string
+          user_prompt_template: string
+          version_number: number
+        }
+        Insert: {
+          change_type?: string
+          created_at?: string
+          id?: string
+          model?: string | null
+          output_format_hint?: string | null
+          prompt_id: string
+          provider?: string | null
+          system_prompt: string
+          user_prompt_template: string
+          version_number?: number
+        }
+        Update: {
+          change_type?: string
+          created_at?: string
+          id?: string
+          model?: string | null
+          output_format_hint?: string | null
+          prompt_id?: string
+          provider?: string | null
+          system_prompt?: string
+          user_prompt_template?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_versions_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prompts: {
         Row: {
           category: Database["public"]["Enums"]["prompt_category"]

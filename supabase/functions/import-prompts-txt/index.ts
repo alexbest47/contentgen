@@ -103,6 +103,34 @@ serve(async (req) => {
         continue;
       }
 
+      // Archive current version before import update
+      const { data: currentPrompt } = await supabase
+        .from("prompts")
+        .select("system_prompt, user_prompt_template, output_format_hint, model, provider")
+        .eq("id", prompt.id)
+        .single();
+
+      if (currentPrompt) {
+        const { data: maxV } = await supabase
+          .from("prompt_versions")
+          .select("version_number")
+          .eq("prompt_id", prompt.id)
+          .order("version_number", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        await supabase.from("prompt_versions").insert({
+          prompt_id: prompt.id,
+          version_number: (maxV?.version_number ?? 0) + 1,
+          system_prompt: currentPrompt.system_prompt,
+          user_prompt_template: currentPrompt.user_prompt_template,
+          output_format_hint: currentPrompt.output_format_hint,
+          model: currentPrompt.model,
+          provider: currentPrompt.provider,
+          change_type: "import",
+        });
+      }
+
       const { error: updateErr } = await supabase
         .from("prompts")
         .update({
