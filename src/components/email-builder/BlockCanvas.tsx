@@ -426,7 +426,7 @@ export default function BlockCanvas({
             const ph = (imagePlaceholders || []).find(p => p.id === rect.id);
             if (!ph) return null;
             const isFilled = !!ph.image_url;
-            const isGenerating = generatingPlaceholderId === ph.id;
+            const isGenerating = generatingPlaceholderIds?.has(ph.id) ?? false;
             return (
               <div
                 key={`ph-buttons-${rect.id}`}
