@@ -81,13 +81,19 @@ function restorePlaceholderMarkers(
       new RegExp(`background-image:\\s*none;\\s*background-color:\\s*#e5e7eb`, 'g'),
       `background-image: url({{${ph.id}}})`
     );
+    // Also handle the new transparent unfilled style (background-image: none without gray bg)
+    // We need to restore these only for elements that have placeholder attributes
+    result = result.replace(
+      new RegExp(`(data-placeholder-id\\s*=\\s*["']${escapedId}["'][^>]*?)background-image:\\s*none([^;])`, 'g'),
+      `$1background-image: url({{${ph.id}}})$2`
+    );
     // Remove injected data-placeholder-* attributes for this placeholder
     result = result.replace(
       new RegExp(`\\s*data-placeholder-id\\s*=\\s*["']${escapedId}["']`, 'g'),
       ''
     );
     result = result.replace(
-      /\s*data-placeholder-(?:filled|unfilled)\s*=\s*["']true["']/g,
+      /\s*data-placeholder-(?:filled|unfilled|bg)\s*=\s*["']true["']/g,
       ''
     );
 
@@ -134,17 +140,15 @@ function preprocessHtmlWithPlaceholders(
       const isFirst = !bgSeenIds.has(id);
       bgSeenIds.add(id);
       if (isFirst) {
-        // First occurrence: full placeholder behaviour with controls
         if (ph.image_url) {
           return `${tagStart} data-placeholder-id="${id}" data-placeholder-filled="true"${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
         }
-        return `${tagStart} data-placeholder-id="${id}" data-placeholder-unfilled="true"${styleBefore}background-image: none; background-color: #e5e7eb${styleAfter}`;
+        // Unfilled first occurrence: mark for overlay but keep transparent (no gray bg)
+        return `${tagStart} data-placeholder-id="${id}" data-placeholder-unfilled="true" data-placeholder-bg="true"${styleBefore}background-image: none${styleAfter}`;
       } else {
-        // Subsequent occurrences: just substitute URL, no controls, keep existing styles
         if (ph.image_url) {
           return `${tagStart}${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
         }
-        // Unfilled: remove background-image but keep element's own background-color
         return `${tagStart}${styleBefore}background-image: none${styleAfter}`;
       }
     }
@@ -218,7 +222,16 @@ export default function BlockCanvas({
     els.forEach(el => {
       const id = el.getAttribute("data-placeholder-id");
       if (!id) return;
-      const elRect = el.getBoundingClientRect();
+      // For background-image placeholders, measure the nearest <table> ancestor (full banner)
+      const isBgPlaceholder = el.hasAttribute("data-placeholder-bg");
+      let measureEl: HTMLElement = el;
+      if (isBgPlaceholder && el.hasAttribute("data-placeholder-unfilled")) {
+        const tableAncestor = el.closest("table");
+        if (tableAncestor && container.contains(tableAncestor)) {
+          measureEl = tableAncestor;
+        }
+      }
+      const elRect = measureEl.getBoundingClientRect();
       rects.push({
         id,
         top: elRect.top - containerRect.top + container.scrollTop,
@@ -342,17 +355,33 @@ export default function BlockCanvas({
             const ph = unfilledPlaceholders.find(p => p.id === rect.id);
             if (!ph) return null;
             const isGenerating = generatingPlaceholderId === ph.id;
+            // Check if this is a background-image placeholder (banner with two cells)
+            const isBgPlaceholder = (() => {
+              if (!contentRef.current) return false;
+              const el = contentRef.current.querySelector(`[data-placeholder-id="${ph.id}"][data-placeholder-bg]`);
+              return !!el;
+            })();
             return (
               <div
                 key={`unfilled-${rect.id}`}
-                className="absolute flex items-center justify-center pointer-events-none"
+                className="absolute flex flex-col items-center justify-center pointer-events-none"
                 style={{
                   top: rect.top,
                   left: rect.left,
                   width: rect.width,
                   height: rect.height,
+                  ...(isBgPlaceholder ? {
+                    border: "2px dashed #ccc",
+                    borderRadius: 8,
+                    background: "rgba(255,255,255,0.07)",
+                  } : {}),
                 }}
               >
+                {isBgPlaceholder && (
+                  <span className="text-muted-foreground text-xs mb-2 pointer-events-none">
+                    {ph.type || "header_banner"} — {ph.size || "600×200"}
+                  </span>
+                )}
                 <div className="flex gap-2 pointer-events-auto">
                   <Button
                     variant="outline"
