@@ -349,17 +349,33 @@ export default function BlockCanvas({
             const ph = unfilledPlaceholders.find(p => p.id === rect.id);
             if (!ph) return null;
             const isGenerating = generatingPlaceholderId === ph.id;
+            // Check if this is a background-image placeholder (banner with two cells)
+            const isBgPlaceholder = (() => {
+              if (!contentRef.current) return false;
+              const el = contentRef.current.querySelector(`[data-placeholder-id="${ph.id}"][data-placeholder-bg]`);
+              return !!el;
+            })();
             return (
               <div
                 key={`unfilled-${rect.id}`}
-                className="absolute flex items-center justify-center pointer-events-none"
+                className="absolute flex flex-col items-center justify-center pointer-events-none"
                 style={{
                   top: rect.top,
                   left: rect.left,
                   width: rect.width,
                   height: rect.height,
+                  ...(isBgPlaceholder ? {
+                    border: "2px dashed #ccc",
+                    borderRadius: 8,
+                    background: "rgba(255,255,255,0.07)",
+                  } : {}),
                 }}
               >
+                {isBgPlaceholder && (
+                  <span className="text-muted-foreground text-xs mb-2 pointer-events-none">
+                    {ph.type || "header_banner"} — {ph.size || "600×200"}
+                  </span>
+                )}
                 <div className="flex gap-2 pointer-events-auto">
                   <Button
                     variant="outline"
