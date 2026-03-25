@@ -156,9 +156,9 @@ function preprocessHtmlWithPlaceholders(
     }
   );
 
-  // Replace standalone {{id}} patterns
+  // Replace standalone {{id}} patterns (any placeholder ID, not just image_placeholder_*)
   result = result.replace(
-    /\{\{(image_placeholder_\w+)\}\}/g,
+    /\{\{([^}]+)\}\}/g,
     (_match, id) => {
       const ph = phMap.get(id);
       if (!ph) return _match;
