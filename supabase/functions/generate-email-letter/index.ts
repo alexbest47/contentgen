@@ -334,6 +334,11 @@ serve(async (req) => {
       }),
     });
 
+    if (!aiResp.ok) {
+      const errBody = await aiResp.text();
+      throw new Error(`Anthropic API error (${aiResp.status}): ${errBody.substring(0, 500)}`);
+    }
+
     const aiData = await aiResp.json();
     const text = aiData.content?.[0]?.text || "";
 
@@ -351,6 +356,10 @@ serve(async (req) => {
       emailPreheader = parsed.email_preheader || "";
     } catch {
       html = text;
+    }
+
+    if (!html) {
+      throw new Error("ИИ вернул пустой ответ. Попробуйте сгенерировать письмо ещё раз.");
     }
 
     const updatePayload: Record<string, any> = {
