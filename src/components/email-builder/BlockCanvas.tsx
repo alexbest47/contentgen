@@ -76,9 +76,19 @@ function restorePlaceholderMarkers(
       );
     }
     // Replace fallback style back to background-image: url({{id}})
+    const escapedId = ph.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     result = result.replace(
       new RegExp(`background-image:\\s*none;\\s*background-color:\\s*#e5e7eb`, 'g'),
       `background-image: url({{${ph.id}}})`
+    );
+    // Remove injected data-placeholder-* attributes for this placeholder
+    result = result.replace(
+      new RegExp(`\\s*data-placeholder-id\\s*=\\s*["']${escapedId}["']`, 'g'),
+      ''
+    );
+    result = result.replace(
+      /\s*data-placeholder-(?:filled|unfilled)\s*=\s*["']true["']/g,
+      ''
     );
 
     // Replace <div data-placeholder-id="id">...</div> back to {{id}} or <img src="{{id}}">
