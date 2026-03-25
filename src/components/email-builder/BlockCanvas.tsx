@@ -144,7 +144,7 @@ function preprocessHtmlWithPlaceholders(
         if (ph.image_url) {
           return `${tagStart}${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
         }
-        return `${tagStart}${styleBefore}background-image: none${styleAfter}`;
+        return `${tagStart}${styleBefore}background-image: none; background-color: transparent${styleAfter}`;
       }
     }
   );
