@@ -1,32 +1,43 @@
 
 
-## Добавить панель форматирования текста в конструкторе писем
+## Перенести панель форматирования в левое меню + добавить гиперссылки
 
 ### Что делаем
-Добавляем плавающую панель инструментов над contentEditable-блоком с кнопками: **жирный**, **курсив**, **подчёркивание**, **увеличить шрифт**, **уменьшить шрифт**, **выделение цветом** (highlight).
-
-### Как это работает
-Используем стандартный `document.execCommand()` — он работает в contentEditable и генерирует inline HTML-теги (`<b>`, `<i>`, `<u>`, `<span style="font-size:...">`, `<span style="background-color:...">`), которые сохраняются при onBlur и корректно экспортируются в email HTML.
+1. Убираем `FormattingToolbar` из `BlockCanvas` (между шапкой и контентом).
+2. Добавляем панель форматирования в левую колонку `EmailBuilder.tsx` — под `BlockLibrary`, видна только в full letter mode.
+3. Расширяем палитру цветов выделения.
+4. Добавляем кнопку «Ссылка» — вставка гиперссылки через `document.execCommand('createLink')` с prompt для ввода URL.
+5. Добавляем возможность редактировать URL кнопок (CTA) прямо в сгенерированном HTML — при клике на `<a>` внутри contentEditable показывать мини-попап для редактирования href.
 
 ### Технические изменения
 
 **Файл: `src/components/email-builder/BlockCanvas.tsx`**
+- Удалить компонент `FormattingToolbar` и его вызов `<FormattingToolbar />` из JSX (строка 458).
+- Удалить `HIGHLIGHT_COLORS` константу.
+- Экспортировать contentRef наружу через callback ref или передать ref как prop, чтобы форматирование работало из левой панели (execCommand действует на текущий selection в document — ref не нужен, достаточно чтобы фокус был в contentEditable).
+- Добавить обработчик клика по `<a>` внутри contentEditable: при клике на ссылку/кнопку показывать всплывающий попап с полем href и кнопкой «Сохранить». Это покроет как текстовые гиперссылки, так и кнопки CTA.
 
-1. **Новый компонент `FormattingToolbar`** (внутри файла или отдельный):
-   - Горизонтальная панель с 6 кнопками-иконками:
-     - **B** (жирный) → `document.execCommand('bold')`
-     - **I** (курсив) → `document.execCommand('italic')`
-     - **U** (подчёркивание) → `document.execCommand('underline')`
-     - **A+** (увеличить шрифт) → `document.execCommand('fontSize', false, '5')` или инкремент через `fontSize`
-     - **A−** (уменьшить шрифт) → `document.execCommand('fontSize', false, '2')`
-     - **🎨** (выделение цветом) → `document.execCommand('hiliteColor', false, color)` с выбором цвета через `<input type="color">`
-   - Панель фиксируется над contentEditable-блоком (sticky/absolute), видна только в full letter mode
-   - `onMouseDown={(e) => e.preventDefault()}` на каждой кнопке, чтобы не терять выделение текста при клике
+**Новый файл: `src/components/email-builder/FormattingToolbar.tsx`**
+- Вынести `FormattingToolbar` в отдельный компонент.
+- Расширить палитру до ~12 цветов: жёлтый, зелёный, голубой, розовый, оранжевый, красный, сиреневый, лавандовый, салатовый, персиковый, серый, белый (убрать).
+- Вертикальная компоновка (для левой колонки): кнопки в сетке или столбцом.
+- Добавить кнопку «Ссылка» (Link icon): при клике — `window.prompt("Введите URL")` → `document.execCommand('createLink', false, url)`. Если выделение пустое — вставить ссылку с текстом URL.
+- `onMouseDown={preventDefault}` на всех кнопках, как раньше.
 
-2. **Размещение** — прямо перед `<div ref={contentRef} contentEditable ...>` внутри `<div className="relative">`, визуально как компактная toolbar с border-bottom.
+**Файл: `src/pages/EmailBuilder.tsx`**
+- В левой колонке (строка 712-714), после `<BlockLibrary ... />`, добавить:
+  ```tsx
+  {generatedHtml && <FormattingToolbar />}
+  ```
+- Импортировать новый компонент.
 
-3. **Размер шрифта** — реализуем через `execCommand('fontSize')` с значениями 1–7 (стандарт HTML), с текущим значением по умолчанию 3. Кнопки A+ и A− будут переключать между уровнями.
+**Файл: `src/components/email-builder/BlockCanvas.tsx` (попап редактирования ссылок)**
+- Добавить state `editingLink: { el: HTMLAnchorElement; href: string } | null`.
+- В contentEditable `onClick` — проверить, кликнули ли по `<a>`. Если да — показать абсолютно позиционированный попап с input для href и кнопками «Сохранить» / «Удалить ссылку».
+- При сохранении — обновить `el.href`. При удалении — `document.execCommand('unlink')`.
 
 ### Файлы
-- `src/components/email-builder/BlockCanvas.tsx` — добавить toolbar-компонент и разместить его в JSX
+- `src/components/email-builder/FormattingToolbar.tsx` — новый
+- `src/components/email-builder/BlockCanvas.tsx` — убрать toolbar, добавить попап ссылок
+- `src/pages/EmailBuilder.tsx` — подключить toolbar в левую панель
 
