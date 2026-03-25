@@ -426,76 +426,15 @@ export default function BlockCanvas({
             </div>
           )}
 
-          {/* Overlay buttons for UNFILLED placeholders (centered) */}
-          {onGeneratePlaceholderImage && placeholderRects.map(rect => {
-            const ph = unfilledPlaceholders.find(p => p.id === rect.id);
-            if (!ph) return null;
-            const isGenerating = generatingPlaceholderId === ph.id;
-            // Check if this is a background-image placeholder (banner with two cells)
-            const isBgPlaceholder = (() => {
-              if (!contentRef.current) return false;
-              const el = contentRef.current.querySelector(`[data-placeholder-id="${ph.id}"][data-placeholder-bg]`);
-              return !!el;
-            })();
-            return (
-              <div
-                key={`unfilled-${rect.id}`}
-                className="absolute flex flex-col items-center justify-center pointer-events-none"
-                style={{
-                  top: rect.top,
-                  left: rect.left,
-                  width: rect.width,
-                  height: rect.height,
-                  ...(isBgPlaceholder ? {
-                    border: "2px dashed #ccc",
-                    borderRadius: 8,
-                    background: "rgba(255,255,255,0.92)",
-                  } : {}),
-                }}
-              >
-                {isBgPlaceholder && (
-                  <span className="text-muted-foreground text-xs mb-2 pointer-events-none">
-                    {ph.type || "header_banner"} — {ph.size || "600×200"}
-                  </span>
-                )}
-                <div className="flex gap-2 pointer-events-auto">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 shadow-md bg-background/90 backdrop-blur-sm"
-                    disabled={isGenerating}
-                    onClick={() => onGeneratePlaceholderImage(ph.id)}
-                  >
-                    {isGenerating ? (
-                      <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Генерация…</>
-                    ) : (
-                      <><ImageIcon className="h-3.5 w-3.5" /> Сгенерировать</>
-                    )}
-                  </Button>
-                  {onPickFromLibrary && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 shadow-md bg-background/90 backdrop-blur-sm"
-                      disabled={isGenerating}
-                      onClick={() => onPickFromLibrary(ph.id)}
-                    >
-                      <FolderOpen className="h-3.5 w-3.5" /> Из библиотеки
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Floating buttons for FILLED placeholders (right side) */}
+          {/* Floating buttons for ALL placeholders (right side) */}
           {placeholderRects.map(rect => {
-            const ph = filledPlaceholders.find(p => p.id === rect.id);
+            const ph = (imagePlaceholders || []).find(p => p.id === rect.id);
             if (!ph) return null;
+            const isFilled = !!(ph as any).url;
             const isGenerating = generatingPlaceholderId === ph.id;
             return (
               <div
-                key={`filled-${rect.id}`}
+                key={`ph-buttons-${rect.id}`}
                 className="absolute flex flex-col gap-1 pointer-events-auto z-10"
                 style={{
                   top: rect.top + 4,
@@ -507,13 +446,15 @@ export default function BlockCanvas({
                   size="icon"
                   className="h-8 w-8 shadow-md bg-background/90 backdrop-blur-sm"
                   disabled={isGenerating}
-                  title="Перегенерировать"
+                  title={isFilled ? "Перегенерировать" : "Сгенерировать"}
                   onClick={() => onGeneratePlaceholderImage?.(ph.id)}
                 >
                   {isGenerating ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
+                  ) : isFilled ? (
                     <RefreshCcw className="h-3.5 w-3.5" />
+                  ) : (
+                    <ImageIcon className="h-3.5 w-3.5" />
                   )}
                 </Button>
                 <Button
@@ -536,7 +477,7 @@ export default function BlockCanvas({
                     <FolderOpen className="h-3.5 w-3.5" />
                   </Button>
                 )}
-                {onSavePlaceholderToLibrary && (
+                {isFilled && onSavePlaceholderToLibrary && (
                   <Button
                     variant="outline"
                     size="icon"
