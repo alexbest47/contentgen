@@ -144,13 +144,30 @@ export default function ManagePrograms() {
         </Dialog>
       </div>
 
+      {allTags && allTags.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {allTags.map((tag) => (
+            <Badge
+              key={tag.id}
+              variant={filterTagIds.includes(tag.id) ? "default" : "outline"}
+              className="cursor-pointer select-none"
+              onClick={() => toggleFilterTag(tag.id)}
+            >
+              {tag.name}
+            </Badge>
+          ))}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
-      ) : programs?.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">Нет программ. Создайте первую!</CardContent></Card>
+      ) : filteredPrograms?.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-muted-foreground">
+          {programs?.length === 0 ? "Нет программ. Создайте первую!" : "Нет программ с выбранными тегами"}
+        </CardContent></Card>
       ) : (
         <div className="border rounded-lg divide-y">
-          {programs?.map((p) => (
+          {filteredPrograms?.map((p) => (
             <div
               key={p.id}
               className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
