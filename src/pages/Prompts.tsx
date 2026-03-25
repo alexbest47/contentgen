@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import PromptFormDialog from "@/components/prompts/PromptFormDialog";
 import PipelineGroup from "@/components/prompts/PipelineGroup";
 import PromptStepCard from "@/components/prompts/PromptStepCard";
-import RefinePromptDialog from "@/components/prompts/RefinePromptDialog";
 import { contentTypeLabels, channelLabels, channelKeys, emptyForm, deriveCategory, type PromptForm } from "@/lib/promptConstants";
 import ExportTxtButton from "@/components/prompts/ExportTxtButton";
 import ImportTxtButton from "@/components/prompts/ImportTxtButton";
@@ -20,7 +19,6 @@ export default function Prompts() {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<PromptForm>(emptyForm);
-  const [refinePrompt, setRefinePrompt] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<string>("lead_magnet");
 
   const { data: prompts, isLoading } = useQuery({
@@ -154,7 +152,7 @@ export default function Prompts() {
           </div>
           <div className="space-y-3">
             {generalLeadMagnetPrompts.map((p: any) => (
-              <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+              <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
             ))}
           </div>
         </div>
@@ -175,7 +173,7 @@ export default function Prompts() {
             onEdit={openEdit}
             onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
             onDuplicate={openDuplicate}
-            onRefine={setRefinePrompt}
+           
           />
         );
       })}
@@ -197,7 +195,7 @@ export default function Prompts() {
             </div>
             <div className="space-y-3">
               {generalRefPrompts.map((p: any) => (
-                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
               ))}
             </div>
           </div>
@@ -217,7 +215,7 @@ export default function Prompts() {
               onEdit={openEdit}
               onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
               onDuplicate={openDuplicate}
-              onRefine={setRefinePrompt}
+             
             />
           );
         })}
@@ -230,7 +228,7 @@ export default function Prompts() {
     return (
       <div className="space-y-3">
         {sorted.length > 0 ? sorted.map((p: any) => (
-          <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+          <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
         )) : (
           <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
         )}
@@ -253,7 +251,7 @@ export default function Prompts() {
             </div>
             <div className="space-y-3">
               {generalExpertPrompts.map((p: any) => (
-                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
               ))}
             </div>
           </div>
@@ -273,7 +271,7 @@ export default function Prompts() {
               onEdit={openEdit}
               onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
               onDuplicate={openDuplicate}
-              onRefine={setRefinePrompt}
+             
             />
           );
         })}
@@ -296,7 +294,7 @@ export default function Prompts() {
             </div>
             <div className="space-y-3">
               {generalPrompts.map((p: any) => (
-                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
               ))}
             </div>
           </div>
@@ -316,7 +314,7 @@ export default function Prompts() {
               onEdit={openEdit}
               onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
               onDuplicate={openDuplicate}
-              onRefine={setRefinePrompt}
+             
             />
           );
         })}
@@ -339,7 +337,7 @@ export default function Prompts() {
             </div>
             <div className="space-y-3">
               {generalPrompts.map((p: any) => (
-                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
               ))}
             </div>
           </div>
@@ -359,7 +357,7 @@ export default function Prompts() {
               onEdit={openEdit}
               onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
               onDuplicate={openDuplicate}
-              onRefine={setRefinePrompt}
+             
             />
           );
         })}
@@ -372,7 +370,7 @@ export default function Prompts() {
     return (
       <div className="space-y-3">
         {sorted.length > 0 ? sorted.map((p: any) => (
-          <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+          <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
         )) : (
           <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
         )}
@@ -395,7 +393,7 @@ export default function Prompts() {
             </div>
             <div className="space-y-3">
               {generalPrompts.map((p: any) => (
-                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
               ))}
             </div>
           </div>
@@ -415,7 +413,7 @@ export default function Prompts() {
               onEdit={openEdit}
               onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
               onDuplicate={openDuplicate}
-              onRefine={setRefinePrompt}
+             
             />
           );
         })}
@@ -438,7 +436,7 @@ export default function Prompts() {
             </div>
             <div className="space-y-3">
               {generalPrompts.map((p: any) => (
-                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
               ))}
             </div>
           </div>
@@ -458,7 +456,7 @@ export default function Prompts() {
               onEdit={openEdit}
               onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
               onDuplicate={openDuplicate}
-              onRefine={setRefinePrompt}
+             
             />
           );
         })}
@@ -481,7 +479,7 @@ export default function Prompts() {
             </div>
             <div className="space-y-3">
               {generalPrompts.map((p: any) => (
-                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
               ))}
             </div>
           </div>
@@ -501,7 +499,7 @@ export default function Prompts() {
               onEdit={openEdit}
               onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
               onDuplicate={openDuplicate}
-              onRefine={setRefinePrompt}
+             
             />
           );
         })}
@@ -582,7 +580,7 @@ export default function Prompts() {
                 return (
                   <div className="space-y-3">
                     {sorted.length > 0 ? sorted.map((p: any) => (
-                      <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                      <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
                     )) : (
                       <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
                     )}
@@ -596,7 +594,7 @@ export default function Prompts() {
                 return (
                   <div className="space-y-3">
                     {sorted.length > 0 ? sorted.map((p: any) => (
-                      <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} onRefine={setRefinePrompt} />
+                      <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
                     )) : (
                       <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
                     )}
@@ -608,12 +606,6 @@ export default function Prompts() {
       ) : (
         <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
       )}
-
-      <RefinePromptDialog
-        prompt={refinePrompt}
-        open={!!refinePrompt}
-        onOpenChange={(o) => { if (!o) setRefinePrompt(null); }}
-      />
     </div>
   );
 }
