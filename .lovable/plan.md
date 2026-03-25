@@ -1,28 +1,42 @@
 
 
-## Генерация письма завершается с пустым HTML
+## Две задачи в одной линии — гонка в `claim_next_task`
 
-### Диагноз
+### Корневая причина
 
-Проверка базы данных показала, что все 3 задачи генерации письма завершились со статусом `completed`, но с **пустым результатом**: `"html": ""`. Генерация занимала 2-3 секунды — слишком быстро для реального вызова Anthropic (обычно 30-60с).
+SQL-функция `claim_next_task` (строка 14):
 
-**Корневая причина** — в Edge-функции `generate-email-letter` отсутствует проверка HTTP-статуса ответа Anthropic API (строки 322-338):
-
-```js
-const aiResp = await fetch("https://api.anthropic.com/v1/messages", {...});
-const aiData = await aiResp.json();
-const text = aiData.content?.[0]?.text || "";  // ← пустая строка при ошибке API
+```sql
+IF EXISTS (
+  SELECT 1 FROM task_queue 
+  WHERE lane = p_lane AND status = 'processing'
+  FOR UPDATE SKIP LOCKED  -- ← проблема
+) THEN RETURN; END IF;
 ```
 
-Если Anthropic возвращает ошибку (401, 429, 500), тело ответа имеет другую структуру (`{"type":"error",...}`), поэтому `aiData.content` = `undefined`, `text` = `""`, и функция сохраняет пустой HTML в БД, помечая задачу как "completed".
+`SKIP LOCKED` означает: «если строка заблокирована другой транзакцией — пропусти её». Когда два `process-queue` вызываются одновременно:
 
-### Изменения
+1. Транзакция A блокирует processing-строку → видит занятость → НО ещё не завершилась
+2. Транзакция B тоже проверяет → `SKIP LOCKED` пропускает заблокированную строку → считает линию свободной → захватывает новую задачу
 
-**`supabase/functions/generate-email-letter/index.ts`** — 2 проверки:
+Результат: две задачи в статусе `processing` в одной линии.
 
-1. **Проверка HTTP-статуса Anthropic** (после строки 335): если `!aiResp.ok`, выбросить ошибку с кодом и текстом ответа. Это вызовет `failTask` вместо `completeTask`.
+### Решение
 
-2. **Валидация непустого HTML** (после парсинга, перед сохранением): если `html` пуст после парсинга, выбросить ошибку «ИИ вернул пустой ответ». Это предотвратит перезапись существующего контента пустой строкой.
+Убрать `FOR UPDATE SKIP LOCKED` из проверки EXISTS. Простой `SELECT` без блокировки достаточен — нам не нужно изменять эту строку, только проверить её существование:
 
-Эти же проверки уже реализованы в других Edge-функциях (например, `generate-content`, `generate-pipeline`), здесь они были пропущены.
+```sql
+IF EXISTS (
+  SELECT 1 FROM task_queue 
+  WHERE lane = p_lane AND status = 'processing'
+) THEN
+  RETURN;
+END IF;
+```
+
+Без `SKIP LOCKED` обе транзакции увидят processing-строку и корректно вернут пустой результат.
+
+### Изменение
+
+Одна SQL-миграция: `CREATE OR REPLACE FUNCTION claim_next_task` с удалённым `FOR UPDATE SKIP LOCKED` из блока EXISTS.
 
