@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2, RefreshCcw, Upload, FolderOpen, BookmarkPlus, Bold, Italic, Underline, AArrowUp, AArrowDown, Highlighter } from "lucide-react";
+import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2, RefreshCcw, Upload, FolderOpen, BookmarkPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { blockTypeLabels, isGeneratedBlock, isTemplateLocked, type EmailBlockType } from "./BlockLibrary";
 import { Lock } from "lucide-react";
 import type { ImagePlaceholder } from "./LetterGenerationPanel";
@@ -173,126 +174,6 @@ function preprocessHtmlWithPlaceholders(
 
 const USER_BLOCK_TYPES = ["text", "image", "cta", "divider", "paid_programs_collection", "free_courses_grid"];
 
-const HIGHLIGHT_COLORS = ["#FFFF00", "#00FF00", "#00FFFF", "#FF69B4", "#FFA500", "#FF0000"];
-
-function FormattingToolbar() {
-  const exec = (cmd: string, value?: string) => {
-    document.execCommand(cmd, false, value);
-  };
-
-  const changeFontSize = (direction: "up" | "down") => {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    // Get current fontSize level (1-7, default 3)
-    const current = document.queryCommandValue("fontSize");
-    const currentLevel = current ? parseInt(current, 10) : 3;
-    const next = direction === "up"
-      ? Math.min(currentLevel + 1, 7)
-      : Math.max(currentLevel - 1, 1);
-    exec("fontSize", String(next));
-  };
-
-  const [showColors, setShowColors] = useState(false);
-
-  const prevent = (e: React.MouseEvent) => e.preventDefault();
-
-  return (
-    <div className="sticky top-0 z-20 flex items-center gap-0.5 bg-background border-b border-border px-2 py-1 rounded-t-md">
-      <button
-        type="button"
-        className="p-1.5 rounded hover:bg-muted transition-colors"
-        title="Жирный"
-        onMouseDown={prevent}
-        onClick={() => exec("bold")}
-      >
-        <Bold className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className="p-1.5 rounded hover:bg-muted transition-colors"
-        title="Курсив"
-        onMouseDown={prevent}
-        onClick={() => exec("italic")}
-      >
-        <Italic className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className="p-1.5 rounded hover:bg-muted transition-colors"
-        title="Подчёркивание"
-        onMouseDown={prevent}
-        onClick={() => exec("underline")}
-      >
-        <Underline className="h-4 w-4" />
-      </button>
-
-      <div className="w-px h-5 bg-border mx-1" />
-
-      <button
-        type="button"
-        className="p-1.5 rounded hover:bg-muted transition-colors"
-        title="Увеличить шрифт"
-        onMouseDown={prevent}
-        onClick={() => changeFontSize("up")}
-      >
-        <AArrowUp className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className="p-1.5 rounded hover:bg-muted transition-colors"
-        title="Уменьшить шрифт"
-        onMouseDown={prevent}
-        onClick={() => changeFontSize("down")}
-      >
-        <AArrowDown className="h-4 w-4" />
-      </button>
-
-      <div className="w-px h-5 bg-border mx-1" />
-
-      <div className="relative">
-        <button
-          type="button"
-          className="p-1.5 rounded hover:bg-muted transition-colors"
-          title="Выделить цветом"
-          onMouseDown={prevent}
-          onClick={() => setShowColors(!showColors)}
-        >
-          <Highlighter className="h-4 w-4" />
-        </button>
-        {showColors && (
-          <div className="absolute top-full left-0 mt-1 flex gap-1 bg-background border border-border rounded-md p-1.5 shadow-lg z-30">
-            {HIGHLIGHT_COLORS.map(color => (
-              <button
-                key={color}
-                type="button"
-                className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
-                style={{ backgroundColor: color }}
-                onMouseDown={prevent}
-                onClick={() => {
-                  exec("hiliteColor", color);
-                  setShowColors(false);
-                }}
-              />
-            ))}
-            <button
-              type="button"
-              className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform flex items-center justify-center text-xs text-muted-foreground"
-              title="Убрать выделение"
-              onMouseDown={prevent}
-              onClick={() => {
-                exec("hiliteColor", "transparent");
-                setShowColors(false);
-              }}
-            >
-              ✕
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function BlockCanvas({
   blocks, selectedBlockId, headerHtml, footerHtml, colorSchemeId,
   onSelectBlock, onMoveBlock, onDeleteBlock,
@@ -304,6 +185,7 @@ export default function BlockCanvas({
 }: Props) {
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
+  const [editingLink, setEditingLink] = useState<{ el: HTMLAnchorElement; href: string; top: number; left: number } | null>(null);
   const { data: accentColor } = useQuery({
     queryKey: ["color_scheme_accent", colorSchemeId],
     queryFn: async () => {
@@ -455,7 +337,6 @@ export default function BlockCanvas({
       {/* Full letter mode — single editable container with overlay buttons */}
       {isFullLetterMode && (
         <div className="relative">
-          <FormattingToolbar />
           <div
             ref={contentRef}
             contentEditable
@@ -463,7 +344,28 @@ export default function BlockCanvas({
             className="outline-none focus:ring-2 focus:ring-primary/20 rounded"
             style={{ maxWidth: "100%", overflow: "hidden", wordBreak: "break-word" }}
             dangerouslySetInnerHTML={{ __html: processedHtml }}
+            onClick={(e) => {
+              // Detect click on <a> elements for link editing
+              const target = e.target as HTMLElement;
+              const anchor = target.closest("a") as HTMLAnchorElement | null;
+              if (anchor && contentRef.current?.contains(anchor)) {
+                e.preventDefault();
+                const rect = anchor.getBoundingClientRect();
+                const containerRect = contentRef.current!.getBoundingClientRect();
+                setEditingLink({
+                  el: anchor,
+                  href: anchor.getAttribute("href") || "",
+                  top: rect.bottom - containerRect.top + contentRef.current!.scrollTop + 4,
+                  left: rect.left - containerRect.left,
+                });
+              } else {
+                setEditingLink(null);
+              }
+            }}
             onBlur={(e) => {
+              // Don't close link popup if clicking inside it
+              const related = e.relatedTarget as HTMLElement | null;
+              if (related?.closest("[data-link-popup]")) return;
               let html = e.currentTarget.innerHTML;
               if (imagePlaceholders?.length) {
                 html = restorePlaceholderMarkers(html, imagePlaceholders);
@@ -471,6 +373,58 @@ export default function BlockCanvas({
               onUpdateGeneratedHtml?.(html);
             }}
           />
+
+          {/* Link editing popup */}
+          {editingLink && (
+            <div
+              data-link-popup
+              className="absolute z-30 bg-background border border-border rounded-md shadow-lg p-2 flex items-center gap-1.5"
+              style={{ top: editingLink.top, left: editingLink.left, maxWidth: 360 }}
+            >
+              <Input
+                className="h-7 text-xs flex-1"
+                value={editingLink.href}
+                placeholder="https://..."
+                onChange={(e) => setEditingLink({ ...editingLink, href: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    editingLink.el.href = editingLink.href;
+                    setEditingLink(null);
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                className="h-7 text-xs px-2"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  editingLink.el.href = editingLink.href;
+                  setEditingLink(null);
+                }}
+              >
+                OK
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs px-2 text-destructive"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  // Remove the link, keep text
+                  const parent = editingLink.el.parentNode;
+                  if (parent) {
+                    while (editingLink.el.firstChild) {
+                      parent.insertBefore(editingLink.el.firstChild, editingLink.el);
+                    }
+                    parent.removeChild(editingLink.el);
+                  }
+                  setEditingLink(null);
+                }}
+              >
+                ✕
+              </Button>
+            </div>
+          )}
 
           {/* Overlay buttons for UNFILLED placeholders (centered) */}
           {onGeneratePlaceholderImage && placeholderRects.map(rect => {
