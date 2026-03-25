@@ -32,13 +32,53 @@ export default function FormattingToolbar() {
 
   const prevent = (e: React.MouseEvent) => e.preventDefault();
 
+  const findCtaTd = (node: Node | null): HTMLTableCellElement | null => {
+    let el = node instanceof HTMLElement ? node : node?.parentElement;
+    while (el) {
+      if (el.tagName === "TD") {
+        const bg = el.style.backgroundColor;
+        if (bg && bg !== "transparent") {
+          const rect = el.getBoundingClientRect();
+          const centered = el.style.textAlign === "center";
+          if (rect.width < 400 || centered) return el as HTMLTableCellElement;
+        }
+      }
+      el = el.parentElement;
+    }
+    return null;
+  };
+
   const insertLink = () => {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const url = window.prompt("Введите URL ссылки:", "https://");
     if (!url) return;
+
+    // Check if inside a CTA button
+    const ctaTd = findCtaTd(sel.anchorNode);
+    if (ctaTd) {
+      // Find existing <a> or create one wrapping all content
+      let anchor = ctaTd.querySelector("a");
+      if (!anchor) {
+        anchor = document.createElement("a");
+        while (ctaTd.firstChild) anchor.appendChild(ctaTd.firstChild);
+        ctaTd.appendChild(anchor);
+      }
+      anchor.setAttribute("href", url);
+      // Transfer padding from td to anchor for full-area click
+      const tdPadding = ctaTd.style.padding;
+      if (tdPadding) {
+        anchor.style.padding = tdPadding;
+        ctaTd.style.padding = "0";
+      }
+      anchor.style.display = "block";
+      anchor.style.textDecoration = "none";
+      anchor.style.color = "inherit";
+      return;
+    }
+
+    // Default behavior for regular text
     if (sel.toString().length === 0) {
-      // No selection — insert link with URL as text
       const a = document.createElement("a");
       a.href = url;
       a.textContent = url;
