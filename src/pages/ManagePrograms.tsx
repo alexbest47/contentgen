@@ -49,6 +49,18 @@ export default function ManagePrograms() {
     );
   };
 
+  const toggleFilterTag = (tagId: string) => {
+    setFilterTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const filteredPrograms = programs?.filter((p) => {
+    if (filterTagIds.length === 0) return true;
+    const programTagIds = ((p as any).program_tags || []).map((pt: any) => pt.tags?.id).filter(Boolean);
+    return filterTagIds.some((id) => programTagIds.includes(id));
+  });
+
   const createMutation = useMutation({
     mutationFn: async () => {
       const { data: newProgram, error } = await supabase.from("paid_programs").insert({ title, description, audience_doc_url: audienceDocUrl || null, program_doc_url: programDocUrl || null, created_by: user!.id } as any).select().single();
