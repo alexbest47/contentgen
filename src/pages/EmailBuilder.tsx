@@ -596,6 +596,16 @@ export default function EmailBuilder() {
           }
           return html;
         }
+        if (b.block_type === "card") {
+          const bgColor = accentColor || "#F0EDF7";
+          const childrenHtml = (b.config.children || []).map((child: any) => {
+            if (child.type === "text" && child.html) return `<div style="text-align:${child.align || 'left'};">${child.html}</div>`;
+            if (child.type === "image" && child.url) return `<div style="text-align:center;padding:8px 0;"><img src="${child.url}" alt="${child.alt || ''}" style="max-width:100%;border-radius:6px;" /></div>`;
+            if (child.type === "cta" && child.text) return `<div style="text-align:center;padding:12px 0;"><a href="${child.url || '#'}" style="display:inline-block;padding:12px 32px;background-color:${child.color || accentColor || '#6366f1'};color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;">${child.text}</a></div>`;
+            return "";
+          }).filter(Boolean).join("\n");
+          return `<table width="100%" cellpadding="0" cellspacing="0" style="background-color:${bgColor};"><tr><td style="padding:16px 0;"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#FFFFFF;border-radius:12px;"><tr><td style="padding:24px 32px;">${childrenHtml}</td></tr></table></td></tr></table>`;
+        }
         if (b.block_type === "divider") return `<hr style="border:none;border-top:1px solid ${accentColor || '#E0E0E0'};margin:24px 0;" />`;
         if (b.block_type === "text" && b.config.html) return b.config.html;
         if (b.block_type === "cta" && b.config.text) {
