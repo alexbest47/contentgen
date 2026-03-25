@@ -560,11 +560,10 @@ export default function EmailBuilder() {
     toast.success("Баннер подставлен");
   };
 
-  const handleExport = () => {
+  const buildFullHtml = useCallback(() => {
     const header = emailSettings?.email_header_html || "";
     const footer = emailSettings?.email_footer_html || "";
 
-    // Build generated letter body
     let letterBody = "";
     if (generatedHtml) {
       letterBody = generatedHtml;
@@ -586,7 +585,6 @@ export default function EmailBuilder() {
       }
     }
 
-    // Build user blocks body
     const blocksBody = blocks
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((b) => {
@@ -611,8 +609,28 @@ export default function EmailBuilder() {
       .join("\n\n");
 
     const body = [letterBody, blocksBody].filter(Boolean).join("\n\n");
-    setExportHtml(`${header}\n\n${body}\n\n${footer}`);
+    return `${header}\n\n${body}\n\n${footer}`;
+  }, [emailSettings, generatedHtml, imagePlaceholders, blocks, accentColor]);
+
+  const handleExport = () => {
+    setExportHtml(buildFullHtml());
     setExportOpen(true);
+  };
+
+  const handleTestEmail = async (email: string) => {
+    setTestingEmail(true);
+    try {
+      const html = buildFullHtml();
+      const { error } = await supabase.functions.invoke("send-test-email", {
+        body: { html, subject, to: email, preheader },
+      });
+      if (error) throw error;
+      toast.success("Тестовое письмо отправлено на " + email);
+    } catch (e: any) {
+      toast.error(e.message || "Ошибка отправки тестового письма");
+    } finally {
+      setTestingEmail(false);
+    }
   };
 
   const handleThemeChanged = async (newTitle: string, newDescription: string) => {
