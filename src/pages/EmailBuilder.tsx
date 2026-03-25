@@ -703,6 +703,8 @@ export default function EmailBuilder() {
               ? (!!caseId && selectedObjectionIds.length > 0)
               : !!caseId
         }
+        onTestEmail={handleTestEmail}
+        testingEmail={testingEmail}
       />
 
       <div className="flex flex-1 overflow-hidden">
