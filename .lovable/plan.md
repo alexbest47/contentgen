@@ -1,54 +1,28 @@
 
 
-## Баннер подставляется не тот + пропадают кнопки
+## Генерация письма завершается с пустым HTML
 
-### Корневая причина
+### Диагноз
 
-Найден баг в функции `restorePlaceholderMarkers` (BlockCanvas.tsx, строки 88-91):
+Проверка базы данных показала, что все 3 задачи генерации письма завершились со статусом `completed`, но с **пустым результатом**: `"html": ""`. Генерация занимала 2-3 секунды — слишком быстро для реального вызова Anthropic (обычно 30-60с).
 
-```js
-// Second pass: untagged elements (second occurrence without data-placeholder-id)
-result = result.replace(
-  /background-image:\s*none;\s*background-color:\s*transparent/g,
-  `background-image: url({{${ph.id}}})`
-);
-```
-
-Этот код перебирает плейсхолдеры в цикле и **заменяет ВСЕ оставшиеся `background-image: none`** на ID текущего плейсхолдера. Когда первый плейсхолдер (`image_placeholder_1`) обрабатывается первым, он «забирает себе» все незаполненные `none`-записи, включая ту, которая принадлежит `image_placeholder_2`.
-
-**Последовательность бага:**
-1. Пользователь генерирует изображение для placeholder_1 (шапка) — URL подставляется
-2. Placeholder_2 (баннер программы) ещё без изображения → в HTML: `background-image: none`
-3. Пользователь редактирует текст → срабатывает `restorePlaceholderMarkers`
-4. Цикл по placeholder_1: строка 88 заменяет ВСЕ `background-image: none` на `{{image_placeholder_1}}` — включая позицию placeholder_2
-5. `generatedHtml` теперь содержит `{{image_placeholder_1}}` вместо `{{image_placeholder_2}}` в позиции программного баннера
-6. Когда placeholder_2 получает своё изображение, маркер `{{image_placeholder_2}}` уже отсутствует в HTML → подставляется URL placeholder_1
-
-Это же объясняет пропажу кнопок: маркер `{{image_placeholder_2}}` больше не существует в HTML, поэтому `bgRegex` в `preprocessHtmlWithPlaceholders` не находит его и не добавляет `data-placeholder-id` для позиционирования кнопок.
-
-### Решение
-
-**`src/components/email-builder/BlockCanvas.tsx`** — два изменения:
-
-1. **Preprocessor (строка 154)**: для повторных (non-first) незаполненных вхождений — не заменять маркер. Оставить оригинальный `{{id}}` в CSS. Браузер покажет пустой фон (невалидный URL), что визуально идентично `none`.
+**Корневая причина** — в Edge-функции `generate-email-letter` отсутствует проверка HTTP-статуса ответа Anthropic API (строки 322-338):
 
 ```js
-// Было (строка 154):
-return `${tagStart}${styleBefore}background-image: none; background-color: transparent${styleAfter}`;
-
-// Стало:
-return _match; // оставляем {{id}} — браузер покажет пустой фон
+const aiResp = await fetch("https://api.anthropic.com/v1/messages", {...});
+const aiData = await aiResp.json();
+const text = aiData.content?.[0]?.text || "";  // ← пустая строка при ошибке API
 ```
 
-2. **restorePlaceholderMarkers (строки 88-91)**: удалить «второй проход» полностью. Он больше не нужен, поскольку повторные незаполненные вхождения сохраняют свои оригинальные маркеры.
+Если Anthropic возвращает ошибку (401, 429, 500), тело ответа имеет другую структуру (`{"type":"error",...}`), поэтому `aiData.content` = `undefined`, `text` = `""`, и функция сохраняет пустой HTML в БД, помечая задачу как "completed".
 
-```js
-// Удалить строки 88-91:
-result = result.replace(
-  /background-image:\s*none;\s*background-color:\s*transparent/g,
-  `background-image: url({{${ph.id}}})`
-);
-```
+### Изменения
 
-Один файл, два точечных изменения. Корректность для заполненных плейсхолдеров не затрагивается — их URL-подстановка работает через строки 72-77.
+**`supabase/functions/generate-email-letter/index.ts`** — 2 проверки:
+
+1. **Проверка HTTP-статуса Anthropic** (после строки 335): если `!aiResp.ok`, выбросить ошибку с кодом и текстом ответа. Это вызовет `failTask` вместо `completeTask`.
+
+2. **Валидация непустого HTML** (после парсинга, перед сохранением): если `html` пуст после парсинга, выбросить ошибку «ИИ вернул пустой ответ». Это предотвратит перезапись существующего контента пустой строкой.
+
+Эти же проверки уже реализованы в других Edge-функциях (например, `generate-content`, `generate-pipeline`), здесь они были пропущены.
 
