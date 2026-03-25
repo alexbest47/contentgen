@@ -174,7 +174,7 @@ export default function BlockCanvas({
   onSelectBlock, onMoveBlock, onDeleteBlock,
   onGenerateImage, generatingImageBlockId,
   generatedHtml, imagePlaceholders,
-  onGeneratePlaceholderImage, generatingPlaceholderId,
+  onGeneratePlaceholderImage, generatingPlaceholderIds,
   onUpdateGeneratedHtml, onUploadPlaceholderImage,
   onPickFromLibrary, onSavePlaceholderToLibrary,
 }: Props) {
