@@ -420,6 +420,18 @@ export default function EmailBuilder() {
         selected_objection_ids: selectedObjectionIds,
       } as any).eq("id", letterId);
 
+      // Clear previous generation data
+      await supabase.from("email_letter_blocks").delete().eq("letter_id", letterId);
+      await supabase.from("email_letters").update({
+        generated_html: "",
+        image_placeholders: [],
+        status: "draft",
+      } as any).eq("id", letterId);
+
+      setBlocks([]);
+      setGeneratedHtml("");
+      setImagePlaceholders([]);
+
       const taskId = await enqueue({
         functionName: "generate-email-letter",
         payload: { letter_id: letterId },
