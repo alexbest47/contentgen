@@ -319,22 +319,38 @@ serve(async (req) => {
       userPrompt = userPrompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
     }
 
-    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: prompt.model || "claude-sonnet-4-20250514",
-        max_tokens: 64000,
-        system: prompt.system_prompt || "Ты генератор email-писем. Возвращай JSON с полями letter_html и images.",
-        messages: [{ role: "user", content: userPrompt }],
-      }),
+    const anthropicBody = JSON.stringify({
+      model: prompt.model || "claude-sonnet-4-20250514",
+      max_tokens: 64000,
+      system: prompt.system_prompt || "Ты генератор email-писем. Возвращай JSON с полями letter_html и images.",
+      messages: [{ role: "user", content: userPrompt }],
     });
+    const anthropicHeaders = {
+      "x-api-key": anthropicKey,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    };
 
-    if (!aiResp.ok) {
+    let aiResp: Response | null = null;
+    const maxRetries = 3;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      aiResp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: anthropicHeaders,
+        body: anthropicBody,
+      });
+
+      if (aiResp.ok) break;
+
+      // Retry on overloaded (529) or server errors (5xx)
+      if ((aiResp.status === 529 || aiResp.status >= 500) && attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 2000; // 2s, 4s, 8s
+        console.warn(`Anthropic API returned ${aiResp.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await aiResp.text(); // consume body
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+
       const errBody = await aiResp.text();
       throw new Error(`Anthropic API error (${aiResp.status}): ${errBody.substring(0, 500)}`);
     }
