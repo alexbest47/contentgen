@@ -184,6 +184,7 @@ export default function BlockCanvas({
 }: Props) {
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
+  const [editingLink, setEditingLink] = useState<{ el: HTMLAnchorElement; href: string; top: number; left: number } | null>(null);
   const { data: accentColor } = useQuery({
     queryKey: ["color_scheme_accent", colorSchemeId],
     queryFn: async () => {
