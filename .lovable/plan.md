@@ -1,24 +1,25 @@
 
 
-## Унифицировать кнопки управления изображениями — всегда справа
+## Расширить палитру цветов выделения до 24
 
-### Проблема
-Для **unfilled** (пустых) заглушек кнопки рендерятся по центру поверх баннера (большие, с текстом). Для **filled** (заполненных) — маленькие иконки справа. Нужно сделать одинаково: всегда справа, маленькие иконки.
+### Изменение
 
-### Технические изменения
+**Файл: `src/components/email-builder/FormattingToolbar.tsx`**
 
-**Файл: `src/components/email-builder/BlockCanvas.tsx`**
+Заменить текущий массив `HIGHLIGHT_COLORS` (12 цветов) на 24 цвета, добавив промежуточные оттенки:
 
-1. **Удалить блок «Overlay buttons for UNFILLED placeholders (centered)»** (строки 429–489) — большие кнопки по центру с фоном и dashed border.
+```ts
+const HIGHLIGHT_COLORS = [
+  // Жёлтые / оранжевые
+  "#FFFF00", "#FFEE58", "#FFD700", "#FFAB40", "#FFA500", "#FF8A65",
+  // Красные / розовые
+  "#FF6347", "#EF5350", "#FF69B4", "#F06292", "#E91E63", "#AD1457",
+  // Фиолетовые / синие
+  "#DA70D6", "#BA55D3", "#7B68EE", "#7C4DFF", "#536DFE", "#448AFF",
+  // Голубые / зелёные
+  "#00BFFF", "#00CED1", "#26C6DA", "#00FA9A", "#69F0AE", "#98FB98",
+];
+```
 
-2. **Расширить блок «Floating buttons for FILLED placeholders (right side)»** (строки 491–552) — сделать его универсальным для ВСЕХ placeholder'ов (и filled, и unfilled):
-   - Итерировать по `placeholderRects`, находить placeholder в общем списке `imagePlaceholders` (не только в `filledPlaceholders`).
-   - Для unfilled: показывать кнопки «Сгенерировать» (ImageIcon), «Из библиотеки» (FolderOpen), «Загрузить» (Upload).
-   - Для filled: показывать «Перегенерировать» (RefreshCcw), «Загрузить» (Upload), «Из библиотеки» (FolderOpen), «Сохранить в библиотеку» (BookmarkPlus).
-   - Все кнопки — `size="icon"`, `h-8 w-8`, позиционирование `top: rect.top + 4, left: rect.left + rect.width + 8`.
-
-3. **Оставить минимальную визуальную метку** для unfilled-заглушок — пунктирный border и текст с типом/размером остаются через CSS в `preprocessHtmlWithPlaceholders`, но без overlay-кнопок по центру.
-
-### Файлы
-- `src/components/email-builder/BlockCanvas.tsx`
+Также увеличить grid с `grid-cols-4` до `grid-cols-6` и ширину попапа с `w-[120px]` до `w-[180px]`, чтобы вместить 6 столбцов.
 
