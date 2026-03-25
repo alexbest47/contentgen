@@ -430,7 +430,7 @@ export default function BlockCanvas({
           {placeholderRects.map(rect => {
             const ph = (imagePlaceholders || []).find(p => p.id === rect.id);
             if (!ph) return null;
-            const isFilled = !!(ph as any).url;
+            const isFilled = !!ph.image_url;
             const isGenerating = generatingPlaceholderId === ph.id;
             return (
               <div
