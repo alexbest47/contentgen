@@ -1,51 +1,32 @@
 
-## Убрать тёмный фон справа у пустого banner placeholder
 
-### Что происходит сейчас
-Пунктирная рамка уже растягивается на весь баннер, но тёмный правый фон остаётся, потому что:
+## Добавить панель форматирования текста в конструкторе писем
 
-1. В `preprocessHtmlWithPlaceholders()` только первое вхождение `background-image: url({{image_placeholder_1}})` становится `background-image: none; background-color: transparent`.
-2. Второе вхождение того же placeholder сейчас превращается только в `background-image: none`, поэтому исходный `background-color: rgba(0,0,0,0.55)` на правой ячейке остаётся видимым.
-3. Сам overlay для banner placeholder почти прозрачный (`rgba(255,255,255,0.07)`), поэтому даже если контент под ним остаётся, пользователь всё равно видит тёмную правую часть.
+### Что делаем
+Добавляем плавающую панель инструментов над contentEditable-блоком с кнопками: **жирный**, **курсив**, **подчёркивание**, **увеличить шрифт**, **уменьшить шрифт**, **выделение цветом** (highlight).
 
-### Что нужно изменить
+### Как это работает
+Используем стандартный `document.execCommand()` — он работает в contentEditable и генерирует inline HTML-теги (`<b>`, `<i>`, `<u>`, `<span style="font-size:...">`, `<span style="background-color:...">`), которые сохраняются при onBlur и корректно экспортируются в email HTML.
 
-**Файл:** `src/components/email-builder/BlockCanvas.tsx`
+### Технические изменения
 
-#### 1) Нейтрализовать обе ячейки баннера в unfilled-состоянии
-В `preprocessHtmlWithPlaceholders()`:
-- для **первого** unfilled background placeholder оставить marker-атрибуты для overlay,
-- но для **всех unfilled вхождений этого placeholder**, включая второе, подставлять:
-```html
-background-image: none; background-color: transparent
-```
+**Файл: `src/components/email-builder/BlockCanvas.tsx`**
 
-Это уберёт не только картинку, но и тёмный фон справа.
+1. **Новый компонент `FormattingToolbar`** (внутри файла или отдельный):
+   - Горизонтальная панель с 6 кнопками-иконками:
+     - **B** (жирный) → `document.execCommand('bold')`
+     - **I** (курсив) → `document.execCommand('italic')`
+     - **U** (подчёркивание) → `document.execCommand('underline')`
+     - **A+** (увеличить шрифт) → `document.execCommand('fontSize', false, '5')` или инкремент через `fontSize`
+     - **A−** (уменьшить шрифт) → `document.execCommand('fontSize', false, '2')`
+     - **🎨** (выделение цветом) → `document.execCommand('hiliteColor', false, color)` с выбором цвета через `<input type="color">`
+   - Панель фиксируется над contentEditable-блоком (sticky/absolute), видна только в full letter mode
+   - `onMouseDown={(e) => e.preventDefault()}` на каждой кнопке, чтобы не терять выделение текста при клике
 
-#### 2) Сделать overlay для banner placeholder визуально “единым пустым блоком”
-В блоке рендера overlay для `isBgPlaceholder`:
-- заменить почти прозрачный фон на почти сплошной светлый фон, чтобы скрыть текст и остатки старого оформления под ним,
-- оставить пунктирную рамку,
-- сохранить подпись `header_banner — 600×200` и кнопки по центру всего баннера.
+2. **Размещение** — прямо перед `<div ref={contentRef} contentEditable ...>` внутри `<div className="relative">`, визуально как компактная toolbar с border-bottom.
 
-Итогово баннер без изображения будет выглядеть как один пустой placeholder, а не как две разные ячейки.
-
-#### 3) Не ломать сохранение placeholder-маркеров
-`restorePlaceholderMarkers()` уже умеет обрабатывать:
-```html
-background-image: none; background-color: transparent
-```
-поэтому отдельная правка БД или миграция для этого кейса не нужна.
-
-### Ожидаемый результат
-Когда `image_placeholder_1` пустой:
-- не видно ни серой левой заглушки,
-- не видно тёмной правой плашки,
-- весь баннер выглядит как единый светлый пунктирный placeholder.
-
-Когда изображение выбрано:
-- пунктир исчезает,
-- обе ячейки снова показывают реальный `background-image`.
+3. **Размер шрифта** — реализуем через `execCommand('fontSize')` с значениями 1–7 (стандарт HTML), с текущим значением по умолчанию 3. Кнопки A+ и A− будут переключать между уровнями.
 
 ### Файлы
-- `src/components/email-builder/BlockCanvas.tsx`
+- `src/components/email-builder/BlockCanvas.tsx` — добавить toolbar-компонент и разместить его в JSX
+
