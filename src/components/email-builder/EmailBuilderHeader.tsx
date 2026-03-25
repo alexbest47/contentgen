@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Download, Loader2, Tag } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sparkles, Download, Loader2, Tag, Send } from "lucide-react";
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,17 +26,21 @@ interface Props {
   onSave: () => void;
   onChangeTheme: () => void;
   onGenerateLetter: () => void;
+  onTestEmail: (email: string) => void;
   
   generatingLetter: boolean;
   canGenerate: boolean;
+  testingEmail: boolean;
 }
 
 export default function EmailBuilderHeader({
   title, subject, preheader, colorSchemeId, letterThemeTitle, saveStatus,
   onChangeTitle, onChangeSubject, onChangePreheader, onChangeColorScheme,
-  onExportHtml, onSave, onChangeTheme, onGenerateLetter,
-  generatingLetter, canGenerate,
+  onExportHtml, onSave, onChangeTheme, onGenerateLetter, onTestEmail,
+  generatingLetter, canGenerate, testingEmail,
 }: Props) {
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
@@ -69,6 +75,10 @@ export default function EmailBuilderHeader({
           </Button>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setTestDialogOpen(true)} className="gap-1.5">
+            {testingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            Проверить письмо
+          </Button>
           <Button variant="outline" size="sm" onClick={onExportHtml} className="gap-1.5">
             <Download className="h-3.5 w-3.5" />
             Экспортировать HTML
@@ -112,6 +122,38 @@ export default function EmailBuilderHeader({
           </Select>
         </div>
       </div>
+
+      <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Отправить тестовое письмо</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Email получателя</Label>
+            <Input
+              type="email"
+              placeholder="test@example.com"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                if (testEmail) {
+                  onTestEmail(testEmail);
+                  setTestDialogOpen(false);
+                }
+              }}
+              disabled={!testEmail || testingEmail}
+              className="gap-1.5"
+            >
+              {testingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Отправить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
