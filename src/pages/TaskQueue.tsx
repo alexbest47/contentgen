@@ -12,6 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import {
+  Pagination, PaginationContent, PaginationItem,
+  PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis,
+} from "@/components/ui/pagination";
 import { ru } from "date-fns/locale";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -54,6 +58,11 @@ export default function TaskQueue() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
+
+  const totalPages = Math.max(1, Math.ceil(tasks.length / PAGE_SIZE));
+  const paginatedTasks = tasks.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -63,6 +72,7 @@ export default function TaskQueue() {
       .order("created_at", { ascending: false })
       .limit(100);
 
+    setPage(1);
     if (filter !== "all") {
       query = query.eq("status", filter);
     }
@@ -172,7 +182,7 @@ export default function TaskQueue() {
                 </TableCell>
               </TableRow>
             ) : (
-              tasks.map((task) => (
+              paginatedTasks.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell>
                     <div className="font-medium">
@@ -236,6 +246,49 @@ export default function TaskQueue() {
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+              .reduce<(number | "ellipsis")[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((item, idx) =>
+                item === "ellipsis" ? (
+                  <PaginationItem key={`e-${idx}`}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                ) : (
+                  <PaginationItem key={item}>
+                    <PaginationLink
+                      isActive={item === page}
+                      onClick={() => setPage(item as number)}
+                      className="cursor-pointer"
+                    >
+                      {item}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              )}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
     </div>
   );
 }
