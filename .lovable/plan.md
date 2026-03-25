@@ -1,25 +1,22 @@
 
 
-## Расширить палитру цветов выделения до 24
+## Обернуть CTA-кнопку ссылкой целиком
 
-### Изменение
+### Проблема
+`document.execCommand("createLink")` оборачивает только выделенный текст в `<a>`, а не весь контейнер кнопки (обычно `<td>` с background-color).
 
-**Файл: `src/components/email-builder/FormattingToolbar.tsx`**
+### Решение
 
-Заменить текущий массив `HIGHLIGHT_COLORS` (12 цветов) на 24 цвета, добавив промежуточные оттенки:
+**Файл: `src/components/email-builder/FormattingToolbar.tsx`** — изменить функцию `insertLink`:
 
-```ts
-const HIGHLIGHT_COLORS = [
-  // Жёлтые / оранжевые
-  "#FFFF00", "#FFEE58", "#FFD700", "#FFAB40", "#FFA500", "#FF8A65",
-  // Красные / розовые
-  "#FF6347", "#EF5350", "#FF69B4", "#F06292", "#E91E63", "#AD1457",
-  // Фиолетовые / синие
-  "#DA70D6", "#BA55D3", "#7B68EE", "#7C4DFF", "#536DFE", "#448AFF",
-  // Голубые / зелёные
-  "#00BFFF", "#00CED1", "#26C6DA", "#00FA9A", "#69F0AE", "#98FB98",
-];
-```
+После получения URL, перед вызовом `createLink`, проверить, находится ли курсор/выделение внутри CTA-кнопки. Логика:
 
-Также увеличить grid с `grid-cols-4` до `grid-cols-6` и ширину попапа с `w-[120px]` до `w-[180px]`, чтобы вместить 6 столбцов.
+1. От `sel.anchorNode` подняться вверх по DOM, ища ближайший `<td>` или `<a>` с `background-color` (типичная структура email CTA: `<td style="background-color:..."><a>текст</a></td>`).
+2. Если найден такой `<td>` — найти или создать внутри него `<a>`, установить `href=url`, сделать ссылку блочной (`display:block`, `text-decoration:none`, `color:inherit`, `padding` перенести с `<td>` на `<a>`), чтобы вся область кнопки была кликабельной.
+3. Если CTA-контейнер не найден — использовать текущую логику (`createLink` для выделенного текста или вставка `<a>` без выделения).
+
+Определение CTA-кнопки: `<td>` у которого есть inline `background-color` и он не является частью layout-таблицы (ширина < 400px или есть `text-align: center`).
+
+### Файлы
+- `src/components/email-builder/FormattingToolbar.tsx`
 
