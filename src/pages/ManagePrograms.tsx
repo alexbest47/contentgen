@@ -23,6 +23,7 @@ export default function ManagePrograms() {
   const [audienceDocUrl, setAudienceDocUrl] = useState("");
   const [programDocUrl, setProgramDocUrl] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [filterTagIds, setFilterTagIds] = useState<string[]>([]);
 
   const { data: allTags } = useQuery({
     queryKey: ["tags"],
@@ -47,6 +48,18 @@ export default function ManagePrograms() {
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
     );
   };
+
+  const toggleFilterTag = (tagId: string) => {
+    setFilterTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const filteredPrograms = programs?.filter((p) => {
+    if (filterTagIds.length === 0) return true;
+    const programTagIds = ((p as any).program_tags || []).map((pt: any) => pt.tags?.id).filter(Boolean);
+    return filterTagIds.some((id) => programTagIds.includes(id));
+  });
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -131,13 +144,30 @@ export default function ManagePrograms() {
         </Dialog>
       </div>
 
+      {allTags && allTags.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {allTags.map((tag) => (
+            <Badge
+              key={tag.id}
+              variant={filterTagIds.includes(tag.id) ? "default" : "outline"}
+              className="cursor-pointer select-none"
+              onClick={() => toggleFilterTag(tag.id)}
+            >
+              {tag.name}
+            </Badge>
+          ))}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
-      ) : programs?.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">Нет программ. Создайте первую!</CardContent></Card>
+      ) : filteredPrograms?.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-muted-foreground">
+          {programs?.length === 0 ? "Нет программ. Создайте первую!" : "Нет программ с выбранными тегами"}
+        </CardContent></Card>
       ) : (
         <div className="border rounded-lg divide-y">
-          {programs?.map((p) => (
+          {filteredPrograms?.map((p) => (
             <div
               key={p.id}
               className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
