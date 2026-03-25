@@ -87,6 +87,8 @@ export default function EmailBuilder() {
   useEffect(() => { generatedHtmlRef.current = generatedHtml; }, [generatedHtml]);
   const generatingLetterRef = useRef(false);
   useEffect(() => { generatingLetterRef.current = generatingLetter; }, [generatingLetter]);
+  const generatingPlaceholderRef = useRef(false);
+  useEffect(() => { generatingPlaceholderRef.current = generatingPlaceholderId !== null; }, [generatingPlaceholderId]);
 
   // Load letter
   const { data: letter, isLoading: letterLoading, isFetched: letterFetched } = useQuery({
