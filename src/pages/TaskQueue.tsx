@@ -58,6 +58,11 @@ export default function TaskQueue() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
+
+  const totalPages = Math.max(1, Math.ceil(tasks.length / PAGE_SIZE));
+  const paginatedTasks = tasks.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const fetchTasks = async () => {
     setLoading(true);
