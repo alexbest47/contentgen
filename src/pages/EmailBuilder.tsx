@@ -87,6 +87,8 @@ export default function EmailBuilder() {
   useEffect(() => { generatedHtmlRef.current = generatedHtml; }, [generatedHtml]);
   const generatingLetterRef = useRef(false);
   useEffect(() => { generatingLetterRef.current = generatingLetter; }, [generatingLetter]);
+  const generatingPlaceholderRef = useRef(false);
+  useEffect(() => { generatingPlaceholderRef.current = generatingPlaceholderId !== null; }, [generatingPlaceholderId]);
 
   // Load letter
   const { data: letter, isLoading: letterLoading, isFetched: letterFetched } = useQuery({
@@ -253,7 +255,11 @@ export default function EmailBuilder() {
       if (!generatingLetterRef.current) {
         if (generatedHtmlRef.current || letter?.status !== "ready") {
           updatePayload.generated_html = generatedHtmlRef.current;
-          updatePayload.image_placeholders = imagePlaceholdersRef.current;
+        }
+        if (!generatingPlaceholderRef.current) {
+          if (generatedHtmlRef.current || letter?.status !== "ready") {
+            updatePayload.image_placeholders = imagePlaceholdersRef.current;
+          }
         }
       }
       await supabase.from("email_letters").update(updatePayload).eq("id", letterId);

@@ -156,9 +156,9 @@ function preprocessHtmlWithPlaceholders(
     }
   );
 
-  // Replace standalone {{id}} patterns
+  // Replace standalone {{id}} patterns (any placeholder ID, not just image_placeholder_*)
   result = result.replace(
-    /\{\{(image_placeholder_\w+)\}\}/g,
+    /\{\{([^}]+)\}\}/g,
     (_match, id) => {
       const ph = phMap.get(id);
       if (!ph) return _match;
@@ -430,7 +430,7 @@ export default function BlockCanvas({
           {placeholderRects.map(rect => {
             const ph = (imagePlaceholders || []).find(p => p.id === rect.id);
             if (!ph) return null;
-            const isFilled = !!(ph as any).url;
+            const isFilled = !!ph.image_url;
             const isGenerating = generatingPlaceholderId === ph.id;
             return (
               <div
