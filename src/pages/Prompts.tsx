@@ -42,6 +42,31 @@ export default function Prompts() {
         sub_type: null,
       };
       if (editId) {
+        // Archive current version before updating
+        const { data: current } = await supabase
+          .from("prompts")
+          .select("system_prompt, user_prompt_template, output_format_hint, model, provider")
+          .eq("id", editId)
+          .single();
+        if (current) {
+          const { data: maxV } = await supabase
+            .from("prompt_versions")
+            .select("version_number")
+            .eq("prompt_id", editId)
+            .order("version_number", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          await supabase.from("prompt_versions").insert({
+            prompt_id: editId,
+            version_number: (maxV?.version_number ?? 0) + 1,
+            system_prompt: current.system_prompt,
+            user_prompt_template: current.user_prompt_template,
+            output_format_hint: current.output_format_hint,
+            model: current.model,
+            provider: current.provider,
+            change_type: "manual",
+          });
+        }
         const { error } = await supabase.from("prompts").update(payload).eq("id", editId);
         if (error) throw error;
       } else {

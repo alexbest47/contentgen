@@ -2,7 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Copy, Pencil, Sparkles } from "lucide-react";
+import { Copy, Pencil, Sparkles, History } from "lucide-react";
+import { useState } from "react";
+import PromptVersionsDialog from "./PromptVersionsDialog";
 import { categoryLabels, type PromptCategory } from "@/lib/promptConstants";
 
 interface PromptStepCardProps {
