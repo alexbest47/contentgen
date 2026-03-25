@@ -84,11 +84,6 @@ function restorePlaceholderMarkers(
       new RegExp(`(data-placeholder-id\\s*=\\s*["']${escapedId}["'][^>]*?)background-image:\\s*none(?:;\\s*background-color:\\s*(?:#e5e7eb|transparent))?`, 'g'),
       `$1background-image: url({{${ph.id}}})`
     );
-    // Second pass: untagged elements (second occurrence without data-placeholder-id)
-    result = result.replace(
-      /background-image:\s*none;\s*background-color:\s*transparent/g,
-      `background-image: url({{${ph.id}}})`
-    );
     // Remove injected data-placeholder-* attributes for this placeholder
     result = result.replace(
       new RegExp(`\\s*data-placeholder-id\\s*=\\s*["']${escapedId}["']`, 'g'),
@@ -151,7 +146,7 @@ function preprocessHtmlWithPlaceholders(
         if (ph.image_url) {
           return `${tagStart}${styleBefore}background-image: url(${ph.image_url})${styleAfter}`;
         }
-        return `${tagStart}${styleBefore}background-image: none; background-color: transparent${styleAfter}`;
+        return _match; // keep original {{id}} marker — browser shows empty bg for invalid URL
       }
     }
   );
