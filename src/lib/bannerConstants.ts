@@ -2,6 +2,7 @@ export const BANNER_TYPES = [
   { key: "header_banner", label: "Шапка письма", width: 600, height: 200 },
   { key: "case_card", label: "Карточка кейса", width: 600, height: 240 },
   { key: "program_banner", label: "Баннер программы", width: 600, height: 220 },
+  { key: "custom", label: "Произвольный", width: 0, height: 0 },
 ] as const;
 
 export type BannerTypeKey = typeof BANNER_TYPES[number]["key"];
@@ -69,6 +70,8 @@ Dark gradient flows from right edge toward center.
 [LAYOUT]
 600×220px. Scene on the left 50%. Right 50% dark and clean for text overlay.
 No text rendered in the image itself.`,
+
+  custom: "",
 };
 
 export function buildFullPrompt(bannerType: string, scenePrompt: string, imageStyle: string): string {

@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
-import { Loader2, RotateCcw, Upload } from "lucide-react";
+import { Loader2, RotateCcw, Upload, ImagePlus, X } from "lucide-react";
 import { BANNER_TYPES, BANNER_PROMPT_TEMPLATES, getBannerDimensions, getBannerTypeLabel } from "@/lib/bannerConstants";
 import { OFFER_TYPES } from "@/lib/offerTypes";
 
@@ -47,7 +47,14 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
 
+  // Reference image state
+  const [refImage, setRefImage] = useState<File | null>(null);
+  const [refImagePreview, setRefImagePreview] = useState<string | null>(null);
+  const refImageInputRef = useRef<HTMLInputElement>(null);
+
   const [saving, setSaving] = useState(false);
+
+  const isCustom = bannerType === "custom";
 
   const { data: programs = [] } = useQuery({
     queryKey: ["paid_programs_list"],
@@ -78,6 +85,7 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
     setNote(""); setPrompt(""); setFile(null); setPreviewUrl(null);
     setSizeError(null); setGenerating(false); setGeneratedUrl(null);
     setGenError(null); setSaving(false); setMode("upload");
+    setRefImage(null); setRefImagePreview(null);
   };
 
   const handleFileSelect = (f: File) => {
@@ -90,8 +98,8 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
     setFile(f);
     setSizeError(null);
 
-    // Validate dimensions
-    if (bannerType) {
+    // Validate dimensions (skip for custom)
+    if (bannerType && !isCustom) {
       const img = new Image();
       img.onload = () => {
         const dims = getBannerDimensions(bannerType);
@@ -101,6 +109,25 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
       };
       img.src = url;
     }
+  };
+
+  const handleRefImageSelect = (f: File) => {
+    if (f.size > 5 * 1024 * 1024) {
+      toast.error("Reference-изображение слишком большое (макс. 5MB)");
+      return;
+    }
+    setRefImage(f);
+    const url = URL.createObjectURL(f);
+    setRefImagePreview(url);
+  };
+
+  const fileToBase64 = (f: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(f);
+    });
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -123,10 +150,10 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
       const { error } = await supabase.from("banners").insert({
         title,
         banner_type: bannerType,
-        category,
-        program_id: category === "paid_program" && programId ? programId : null,
-        offer_type: category === "offer" ? offerType : null,
-        color_scheme_id: colorSchemeId || null,
+        category: isCustom ? "paid_program" : category,
+        program_id: !isCustom && category === "paid_program" && programId ? programId : null,
+        offer_type: !isCustom && category === "offer" ? offerType : null,
+        color_scheme_id: !isCustom && colorSchemeId ? colorSchemeId : null,
         image_url: pub.publicUrl,
         source: "uploaded",
         note,
@@ -151,19 +178,26 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
     setGenError(null);
     setGeneratedUrl(null);
     try {
+      // Convert reference image to base64 if present
+      let referenceImageBase64: string | null = null;
+      if (refImage) {
+        referenceImageBase64 = await fileToBase64(refImage);
+      }
+
       const taskId = await enqueue({
         functionName: "generate-banner-image",
         payload: {
           prompt,
           banner_type: bannerType,
-          color_scheme_id: colorSchemeId || null,
+          color_scheme_id: isCustom ? null : (colorSchemeId || null),
           title: title || getBannerTypeLabel(bannerType),
-          category,
-          program_id: category === "paid_program" && programId ? programId : null,
-          offer_type: category === "offer" ? offerType : null,
+          category: isCustom ? "paid_program" : category,
+          program_id: !isCustom && category === "paid_program" && programId ? programId : null,
+          offer_type: !isCustom && category === "offer" ? offerType : null,
           note,
           created_by: user?.id,
           generation_prompt: prompt,
+          reference_image: referenceImageBase64,
         },
         displayTitle: `Генерация баннера: ${title || getBannerTypeLabel(bannerType)}`,
         lane: "openrouter",
@@ -183,7 +217,6 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
             setGenerating(false);
             const result = task.result as any;
             setGeneratedUrl(result?.image_url || null);
-            // Banner is auto-saved by edge function, refresh library
             queryClient.invalidateQueries({ queryKey: ["banners"] });
             toast.success("Баннер сгенерирован и сохранён в библиотеку");
             onOpenChange(false);
@@ -209,10 +242,10 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
       const { error } = await supabase.from("banners").insert({
         title,
         banner_type: bannerType,
-        category,
-        program_id: category === "paid_program" && programId ? programId : null,
-        offer_type: category === "offer" ? offerType : null,
-        color_scheme_id: colorSchemeId || null,
+        category: isCustom ? "paid_program" : category,
+        program_id: !isCustom && category === "paid_program" && programId ? programId : null,
+        offer_type: !isCustom && category === "offer" ? offerType : null,
+        color_scheme_id: !isCustom && colorSchemeId ? colorSchemeId : null,
         image_url: generatedUrl,
         source: "generated",
         generation_prompt: prompt,
@@ -231,7 +264,10 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
     }
   };
 
-  const dims = bannerType ? getBannerDimensions(bannerType) : null;
+  const dims = bannerType && !isCustom ? getBannerDimensions(bannerType) : null;
+
+  // Generate button disabled logic
+  const generateDisabled = !bannerType || !prompt || (!isCustom && !colorSchemeId);
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) resetForm(); onOpenChange(o); }}>
@@ -259,72 +295,78 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
                 <SelectContent>
                   {BANNER_TYPES.map((bt) => (
                     <SelectItem key={bt.key} value={bt.key}>
-                      {bt.label} ({bt.width}×{bt.height}px)
+                      {bt.label}{bt.width > 0 ? ` (${bt.width}×${bt.height}px)` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {dims && <p className="text-xs text-muted-foreground mt-1">Размер: {dims.width}×{dims.height}px</p>}
             </div>
-            <div>
-              <Label>Категория *</Label>
-              <RadioGroup value={category} onValueChange={(v) => setCategory(v as any)} className="flex gap-4 mt-1">
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="paid_program" id="cat-program" />
-                  <Label htmlFor="cat-program">Платная программа</Label>
+
+            {/* Hide category, program/offer, color scheme for custom */}
+            {!isCustom && (
+              <>
+                <div>
+                  <Label>Категория *</Label>
+                  <RadioGroup value={category} onValueChange={(v) => setCategory(v as any)} className="flex gap-4 mt-1">
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="paid_program" id="cat-program" />
+                      <Label htmlFor="cat-program">Платная программа</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="offer" id="cat-offer" />
+                      <Label htmlFor="cat-offer">Оффер</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="offer" id="cat-offer" />
-                  <Label htmlFor="cat-offer">Оффер</Label>
+                {category === "paid_program" && (
+                  <div>
+                    <Label>Программа</Label>
+                    <Select value={programId} onValueChange={setProgramId}>
+                      <SelectTrigger><SelectValue placeholder="Выберите программу" /></SelectTrigger>
+                      <SelectContent>
+                        {programs.map((p: any) => (
+                          <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {category === "offer" && (
+                  <div>
+                    <Label>Тип оффера</Label>
+                    <Select value={offerType} onValueChange={setOfferType}>
+                      <SelectTrigger><SelectValue placeholder="Выберите тип оффера" /></SelectTrigger>
+                      <SelectContent>
+                        {OFFER_TYPES.map((o) => (
+                          <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div>
+                  <Label>Цветовая гамма{mode === "generate" ? " *" : ""}</Label>
+                  <Select value={colorSchemeId} onValueChange={setColorSchemeId}>
+                    <SelectTrigger><SelectValue placeholder="Выберите гамму" /></SelectTrigger>
+                    <SelectContent>
+                      {colorSchemes.map((cs: any) => (
+                        <SelectItem key={cs.id} value={cs.id}>
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-0.5">
+                              {(cs.preview_colors || []).slice(0, 4).map((c: string, i: number) => (
+                                <div key={i} className="w-3 h-3 rounded-full border" style={{ backgroundColor: c }} />
+                              ))}
+                            </div>
+                            {cs.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </RadioGroup>
-            </div>
-            {category === "paid_program" && (
-              <div>
-                <Label>Программа</Label>
-                <Select value={programId} onValueChange={setProgramId}>
-                  <SelectTrigger><SelectValue placeholder="Выберите программу" /></SelectTrigger>
-                  <SelectContent>
-                    {programs.map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              </>
             )}
-            {category === "offer" && (
-              <div>
-                <Label>Тип оффера</Label>
-                <Select value={offerType} onValueChange={setOfferType}>
-                  <SelectTrigger><SelectValue placeholder="Выберите тип оффера" /></SelectTrigger>
-                  <SelectContent>
-                    {OFFER_TYPES.map((o) => (
-                      <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div>
-              <Label>Цветовая гамма{mode === "generate" ? " *" : ""}</Label>
-              <Select value={colorSchemeId} onValueChange={setColorSchemeId}>
-                <SelectTrigger><SelectValue placeholder="Выберите гамму" /></SelectTrigger>
-                <SelectContent>
-                  {colorSchemes.map((cs: any) => (
-                    <SelectItem key={cs.id} value={cs.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-0.5">
-                          {(cs.preview_colors || []).slice(0, 4).map((c: string, i: number) => (
-                            <div key={i} className="w-3 h-3 rounded-full border" style={{ backgroundColor: c }} />
-                          ))}
-                        </div>
-                        {cs.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           <TabsContent value="upload" className="space-y-4 mt-4">
@@ -372,23 +414,62 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
           </TabsContent>
 
           <TabsContent value="generate" className="space-y-4 mt-4">
+            {/* Reference image */}
+            <div>
+              <Label>Reference-изображение (опционально)</Label>
+              <p className="text-xs text-muted-foreground mb-1">Прикрепите изображение, которое будет передано модели вместе с промптом</p>
+              {refImagePreview ? (
+                <div className="relative inline-block">
+                  <img src={refImagePreview} alt="Reference" className="max-h-32 rounded border" />
+                  <button
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                    onClick={() => { setRefImage(null); setRefImagePreview(null); }}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="mt-1 border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => refImageInputRef.current?.click()}
+                >
+                  <div className="text-muted-foreground">
+                    <ImagePlus className="h-6 w-6 mx-auto mb-1" />
+                    <p className="text-xs">Кликните для выбора · макс. 5 MB</p>
+                  </div>
+                </div>
+              )}
+              <input
+                ref={refImageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleRefImageSelect(f);
+                }}
+              />
+            </div>
+
             <div>
               <div className="flex items-center justify-between">
                 <Label>Промпт</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => setPrompt(BANNER_PROMPT_TEMPLATES[bannerType] || "")}
-                  disabled={!bannerType}
-                >
-                  <RotateCcw className="h-3 w-3 mr-1" /> Сбросить к шаблону
-                </Button>
+                {!isCustom && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setPrompt(BANNER_PROMPT_TEMPLATES[bannerType] || "")}
+                    disabled={!bannerType}
+                  >
+                    <RotateCcw className="h-3 w-3 mr-1" /> Сбросить к шаблону
+                  </Button>
+                )}
               </div>
               <Textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder={bannerType ? "Промпт для генерации" : "Сначала выберите тип баннера"}
+                placeholder={isCustom ? "Опишите изображение, которое хотите сгенерировать" : (bannerType ? "Промпт для генерации" : "Сначала выберите тип баннера")}
                 rows={8}
                 disabled={!bannerType}
               />
@@ -428,7 +509,7 @@ export default function AddBannerDialog({ open, onOpenChange }: Props) {
             {!generating && !generatedUrl && !genError && (
               <Button
                 onClick={handleGenerate}
-                disabled={!bannerType || !prompt || (mode === "generate" && !colorSchemeId)}
+                disabled={generateDisabled}
                 className="w-full"
               >
                 Сгенерировать
