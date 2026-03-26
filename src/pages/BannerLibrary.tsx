@@ -202,10 +202,10 @@ export default function BannerLibrary() {
             </div>
 
             <TabsContent value="paid_program" className="mt-4">
-              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} onRegenerate={handleRegenerate} regeneratingId={regeneratingId} />
+              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} onRegenerate={handleRegenerate} onDownload={handleDownload} regeneratingId={regeneratingId} />
             </TabsContent>
             <TabsContent value="offer" className="mt-4">
-              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} onRegenerate={handleRegenerate} regeneratingId={regeneratingId} />
+              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} onRegenerate={handleRegenerate} onDownload={handleDownload} regeneratingId={regeneratingId} />
             </TabsContent>
           </Tabs>
 
