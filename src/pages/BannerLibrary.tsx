@@ -7,11 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, MoreHorizontal, Pencil, Trash2, ImageIcon } from "lucide-react";
+import { Plus, MoreHorizontal, Pencil, Trash2, ImageIcon, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { BANNER_TYPES, getBannerTypeLabel, getBannerAspectRatio } from "@/lib/bannerConstants";
 import { OFFER_TYPES, getOfferTypeLabel } from "@/lib/offerTypes";
 import AddBannerDialog from "@/components/banners/AddBannerDialog";
+import { useTaskQueue } from "@/hooks/useTaskQueue";
 import EditBannerDialog from "@/components/banners/EditBannerDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -25,11 +26,13 @@ import {
 export default function BannerLibrary() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { enqueue } = useTaskQueue();
   const [tab, setTab] = useState("paid_program");
   const [addOpen, setAddOpen] = useState(false);
   const [editBanner, setEditBanner] = useState<any>(null);
   const [deleteBanner, setDeleteBanner] = useState<any>(null);
   const [previewBanner, setPreviewBanner] = useState<any>(null);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   // Filters
   const [filterProgram, setFilterProgram] = useState<string>("all");
@@ -90,6 +93,29 @@ export default function BannerLibrary() {
       queryClient.invalidateQueries({ queryKey: ["banners"] });
     }
     setDeleteBanner(null);
+  };
+
+  const handleRegenerate = async (banner: any) => {
+    setRegeneratingId(banner.id);
+    await enqueue({
+      functionName: "generate-banner-image",
+      payload: {
+        prompt: banner.generation_prompt,
+        banner_type: banner.banner_type,
+        color_scheme_id: banner.color_scheme_id || null,
+        title: banner.title,
+        category: banner.category,
+        program_id: banner.program_id || null,
+        offer_type: banner.offer_type || null,
+        note: banner.note || "",
+        created_by: banner.created_by,
+        existing_banner_id: banner.id,
+      },
+      displayTitle: `Перегенерация: ${banner.title}`,
+      lane: "openrouter",
+      targetUrl: "/banner-library",
+    });
+    setRegeneratingId(null);
   };
 
   const isEmpty = banners.length === 0;
@@ -176,10 +202,10 @@ export default function BannerLibrary() {
             </div>
 
             <TabsContent value="paid_program" className="mt-4">
-              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} />
+              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} onRegenerate={handleRegenerate} regeneratingId={regeneratingId} />
             </TabsContent>
             <TabsContent value="offer" className="mt-4">
-              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} />
+              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} onRegenerate={handleRegenerate} regeneratingId={regeneratingId} />
             </TabsContent>
           </Tabs>
 
@@ -232,18 +258,23 @@ export default function BannerLibrary() {
   );
 }
 
-function BannerGrid({ banners, onEdit, onDelete, onPreview }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void; onPreview: (b: any) => void }) {
+function BannerGrid({ banners, onEdit, onDelete, onPreview, onRegenerate, regeneratingId }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void; onPreview: (b: any) => void; onRegenerate: (b: any) => void; regeneratingId: string | null }) {
   if (banners.length === 0) return null;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {banners.map((b: any) => (
         <Card key={b.id} className="overflow-hidden">
           <div
-            className="w-full bg-muted cursor-pointer"
+            className="w-full bg-muted cursor-pointer relative"
             style={{ aspectRatio: `${600} / ${getBannerDims(b.banner_type).h}` }}
             onClick={() => onPreview(b)}
           >
             <img src={b.image_url} alt={b.title} className="w-full h-full object-cover" />
+            {regeneratingId === b.id && (
+              <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )}
           </div>
           <div className="p-3 space-y-1">
             <div className="flex items-start justify-between">
@@ -264,6 +295,11 @@ function BannerGrid({ banners, onEdit, onDelete, onPreview }: { banners: any[]; 
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {b.source === "generated" && b.generation_prompt && (
+                    <DropdownMenuItem onClick={() => onRegenerate(b)}>
+                      <RefreshCw className="h-4 w-4 mr-2" /> Перегенерировать
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => onEdit(b)}>
                     <Pencil className="h-4 w-4 mr-2" /> Редактировать метаданные
                   </DropdownMenuItem>
