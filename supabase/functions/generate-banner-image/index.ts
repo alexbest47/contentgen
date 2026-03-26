@@ -108,8 +108,20 @@ serve(async (req) => {
     const { data: urlData } = supabase.storage.from("generated-images").getPublicUrl(filePath);
     const publicUrl = urlData.publicUrl;
 
-    // Auto-save banner to banners table if metadata provided
-    if (created_by && title) {
+    // Auto-save or update banner in banners table
+    if (existing_banner_id) {
+      // Regenerate: update existing record
+      const freshSb = createClient(supabaseUrl, supabaseServiceKey);
+      const { error: updateError } = await freshSb.from("banners").update({
+        image_url: publicUrl,
+        generation_prompt: generation_prompt || prompt,
+      }).eq("id", existing_banner_id);
+      if (updateError) {
+        console.error("Failed to update banner row:", updateError.message);
+      } else {
+        console.log("Banner row updated successfully (regenerate)");
+      }
+    } else if (created_by && title) {
       const freshSb = createClient(supabaseUrl, supabaseServiceKey);
       const { error: insertError } = await freshSb.from("banners").insert({
         title,
