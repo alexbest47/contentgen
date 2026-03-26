@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, MoreHorizontal, Pencil, Trash2, ImageIcon, RefreshCw } from "lucide-react";
+import { Plus, MoreHorizontal, Pencil, Trash2, ImageIcon, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
 import { BANNER_TYPES, getBannerTypeLabel, getBannerAspectRatio } from "@/lib/bannerConstants";
 import { OFFER_TYPES, getOfferTypeLabel } from "@/lib/offerTypes";
@@ -202,10 +202,10 @@ export default function BannerLibrary() {
             </div>
 
             <TabsContent value="paid_program" className="mt-4">
-              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} onRegenerate={handleRegenerate} regeneratingId={regeneratingId} />
+              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} onRegenerate={handleRegenerate} onDownload={handleDownload} regeneratingId={regeneratingId} />
             </TabsContent>
             <TabsContent value="offer" className="mt-4">
-              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} onRegenerate={handleRegenerate} regeneratingId={regeneratingId} />
+              <BannerGrid banners={filtered} onEdit={setEditBanner} onDelete={setDeleteBanner} onPreview={setPreviewBanner} onRegenerate={handleRegenerate} onDownload={handleDownload} regeneratingId={regeneratingId} />
             </TabsContent>
           </Tabs>
 
@@ -258,7 +258,25 @@ export default function BannerLibrary() {
   );
 }
 
-function BannerGrid({ banners, onEdit, onDelete, onPreview, onRegenerate, regeneratingId }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void; onPreview: (b: any) => void; onRegenerate: (b: any) => void; regeneratingId: string | null }) {
+const handleDownload = async (banner: any) => {
+  try {
+    const res = await fetch(banner.image_url);
+    const blob = await res.blob();
+    const ext = banner.image_url.split('.').pop()?.split('?')[0] || 'png';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${banner.title}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch {
+    toast.error("Ошибка скачивания");
+  }
+};
+
+function BannerGrid({ banners, onEdit, onDelete, onPreview, onRegenerate, onDownload, regeneratingId }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void; onPreview: (b: any) => void; onRegenerate: (b: any) => void; onDownload: (b: any) => void; regeneratingId: string | null }) {
   if (banners.length === 0) return null;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -300,6 +318,9 @@ function BannerGrid({ banners, onEdit, onDelete, onPreview, onRegenerate, regene
                       <RefreshCw className="h-4 w-4 mr-2" /> Перегенерировать
                     </DropdownMenuItem>
                   )}
+                  <DropdownMenuItem onClick={() => onDownload(b)}>
+                    <Download className="h-4 w-4 mr-2" /> Скачать
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onEdit(b)}>
                     <Pencil className="h-4 w-4 mr-2" /> Редактировать метаданные
                   </DropdownMenuItem>
