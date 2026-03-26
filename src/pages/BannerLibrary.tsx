@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, MoreHorizontal, Pencil, Trash2, ImageIcon, RefreshCw } from "lucide-react";
+import { Plus, MoreHorizontal, Pencil, Trash2, ImageIcon, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
 import { BANNER_TYPES, getBannerTypeLabel, getBannerAspectRatio } from "@/lib/bannerConstants";
 import { OFFER_TYPES, getOfferTypeLabel } from "@/lib/offerTypes";
