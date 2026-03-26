@@ -11,6 +11,7 @@ const BANNER_SIZES: Record<string, { width: number; height: number }> = {
   header_banner: { width: 600, height: 200 },
   case_card: { width: 600, height: 240 },
   program_banner: { width: 600, height: 220 },
+  custom: { width: 1024, height: 1024 },
 };
 
 const PREAMBLE = `STRICTLY FORBIDDEN in the image:
@@ -45,45 +46,53 @@ serve(async (req) => {
   try {
     const body = await req.json();
     taskId = body._task_id || null;
-    const { prompt, banner_type, color_scheme_id, title, category, program_id, offer_type, note, created_by, generation_prompt } = body;
+    const { prompt, banner_type, color_scheme_id, title, category, program_id, offer_type, note, created_by, generation_prompt, reference_image } = body;
     if (!prompt || !banner_type) throw new Error("prompt and banner_type are required");
+
+    const isCustom = banner_type === "custom";
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Load image_style variable
-    const { data: globalVars } = await supabase.from("prompt_global_variables").select("key, value").eq("key", "image_style");
-    let imageStyle = "";
-    if (globalVars?.[0]?.value) imageStyle = globalVars[0].value;
+    let fullPrompt: string;
 
-    // If color_scheme_id provided, inject accent color into image_style
-    if (color_scheme_id) {
-      const { data: scheme } = await supabase.from("color_schemes").select("description, preview_colors").eq("id", color_scheme_id).single();
-      if (scheme?.description) {
-        imageStyle = imageStyle.replace(
-          /\[COLOR PALETTE\]:.*$/ms,
-          `[COLOR PALETTE]: ${scheme.description}. Key accent colors: ${(scheme.preview_colors || []).join(", ")}.`
-        );
+    if (isCustom) {
+      // Custom: pass prompt as-is, no preamble or style
+      fullPrompt = prompt;
+    } else {
+      // Standard: load image_style and optionally inject color scheme
+      const { data: globalVars } = await supabase.from("prompt_global_variables").select("key, value").eq("key", "image_style");
+      let imageStyle = "";
+      if (globalVars?.[0]?.value) imageStyle = globalVars[0].value;
+
+      if (color_scheme_id) {
+        const { data: scheme } = await supabase.from("color_schemes").select("description, preview_colors").eq("id", color_scheme_id).single();
+        if (scheme?.description) {
+          imageStyle = imageStyle.replace(
+            /\[COLOR PALETTE\]:.*$/ms,
+            `[COLOR PALETTE]: ${scheme.description}. Key accent colors: ${(scheme.preview_colors || []).join(", ")}.`
+          );
+        }
       }
+
+      fullPrompt = `${PREAMBLE}\n\n${imageStyle}\n\n${prompt}`;
     }
 
-    // Build final prompt
-    const fullPrompt = `${PREAMBLE}\n\n${imageStyle}\n\n${prompt}`;
-    const size = BANNER_SIZES[banner_type] || { width: 600, height: 200 };
+    const size = BANNER_SIZES[banner_type] || { width: 1024, height: 1024 };
     console.log(`Generating banner (${banner_type}, ${size.width}x${size.height}):`, fullPrompt.substring(0, 300));
 
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
 
     // Try generating with primary prompt
-    let imageUrl = await tryGenerate(OPENROUTER_API_KEY, fullPrompt);
+    let imageUrl = await tryGenerate(OPENROUTER_API_KEY, fullPrompt, reference_image || null);
 
-    // Retry with simplified prompt if failed
-    if (!imageUrl) {
+    // Retry with simplified prompt if failed (only for non-custom)
+    if (!imageUrl && !isCustom) {
       console.log("Primary generation failed, retrying with simplified prompt");
       const fallbackPrompt = `${PREAMBLE}\n\nAbstract decorative banner, ${size.width}x${size.height}px proportions. Soft warm colors, geometric patterns, minimal design. No text, no people.`;
-      imageUrl = await tryGenerate(OPENROUTER_API_KEY, fallbackPrompt);
+      imageUrl = await tryGenerate(OPENROUTER_API_KEY, fallbackPrompt, null);
     }
 
     if (!imageUrl) throw new Error("Image generation failed after retry");
@@ -108,7 +117,7 @@ serve(async (req) => {
         category: category || "paid_program",
         program_id: program_id || null,
         offer_type: offer_type || null,
-        color_scheme_id: color_scheme_id || null,
+        color_scheme_id: isCustom ? null : (color_scheme_id || null),
         image_url: publicUrl,
         source: "generated",
         generation_prompt: generation_prompt || prompt,
@@ -137,14 +146,28 @@ serve(async (req) => {
   }
 });
 
-async function tryGenerate(apiKey: string, prompt: string): Promise<string | null> {
+async function tryGenerate(apiKey: string, prompt: string, referenceImage: string | null): Promise<string | null> {
   try {
+    // Build messages: multimodal if reference image provided
+    let messages: any[];
+    if (referenceImage) {
+      messages = [{
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: referenceImage } },
+          { type: "text", text: prompt },
+        ],
+      }];
+    } else {
+      messages = [{ role: "user", content: prompt }];
+    }
+
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: "google/gemini-3-pro-image-preview",
-        messages: [{ role: "user", content: prompt }],
+        messages,
         modalities: ["image", "text"],
       }),
     });
