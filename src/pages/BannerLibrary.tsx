@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { BANNER_TYPES, getBannerTypeLabel, getBannerAspectRatio } from "@/lib/bannerConstants";
 import { OFFER_TYPES, getOfferTypeLabel } from "@/lib/offerTypes";
 import AddBannerDialog from "@/components/banners/AddBannerDialog";
+import { useTaskQueue } from "@/hooks/useTaskQueue";
 import EditBannerDialog from "@/components/banners/EditBannerDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
