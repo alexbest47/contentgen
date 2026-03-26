@@ -26,11 +26,13 @@ import {
 export default function BannerLibrary() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { enqueue } = useTaskQueue();
   const [tab, setTab] = useState("paid_program");
   const [addOpen, setAddOpen] = useState(false);
   const [editBanner, setEditBanner] = useState<any>(null);
   const [deleteBanner, setDeleteBanner] = useState<any>(null);
   const [previewBanner, setPreviewBanner] = useState<any>(null);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   // Filters
   const [filterProgram, setFilterProgram] = useState<string>("all");
