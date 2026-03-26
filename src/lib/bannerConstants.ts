@@ -70,6 +70,8 @@ Dark gradient flows from right edge toward center.
 [LAYOUT]
 600×220px. Scene on the left 50%. Right 50% dark and clean for text overlay.
 No text rendered in the image itself.`,
+
+  custom: "",
 };
 
 export function buildFullPrompt(bannerType: string, scenePrompt: string, imageStyle: string): string {
