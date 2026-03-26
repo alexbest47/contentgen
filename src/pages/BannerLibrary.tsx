@@ -258,18 +258,23 @@ export default function BannerLibrary() {
   );
 }
 
-function BannerGrid({ banners, onEdit, onDelete, onPreview }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void; onPreview: (b: any) => void }) {
+function BannerGrid({ banners, onEdit, onDelete, onPreview, onRegenerate, regeneratingId }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void; onPreview: (b: any) => void; onRegenerate: (b: any) => void; regeneratingId: string | null }) {
   if (banners.length === 0) return null;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {banners.map((b: any) => (
         <Card key={b.id} className="overflow-hidden">
           <div
-            className="w-full bg-muted cursor-pointer"
+            className="w-full bg-muted cursor-pointer relative"
             style={{ aspectRatio: `${600} / ${getBannerDims(b.banner_type).h}` }}
             onClick={() => onPreview(b)}
           >
             <img src={b.image_url} alt={b.title} className="w-full h-full object-cover" />
+            {regeneratingId === b.id && (
+              <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )}
           </div>
           <div className="p-3 space-y-1">
             <div className="flex items-start justify-between">
@@ -290,6 +295,11 @@ function BannerGrid({ banners, onEdit, onDelete, onPreview }: { banners: any[]; 
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {b.source === "generated" && b.generation_prompt && (
+                    <DropdownMenuItem onClick={() => onRegenerate(b)}>
+                      <RefreshCw className="h-4 w-4 mr-2" /> Перегенерировать
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => onEdit(b)}>
                     <Pencil className="h-4 w-4 mr-2" /> Редактировать метаданные
                   </DropdownMenuItem>
