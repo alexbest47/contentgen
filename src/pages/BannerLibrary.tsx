@@ -321,6 +321,7 @@ function BannerGrid({ banners, onEdit, onDelete, onPreview, onRegenerate, onDown
                   <DropdownMenuItem onClick={() => onDownload(b)}>
                     <Download className="h-4 w-4 mr-2" /> Скачать
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onEdit(b)}>
                     <Pencil className="h-4 w-4 mr-2" /> Редактировать метаданные
                   </DropdownMenuItem>
                   <DropdownMenuItem className="text-destructive" onClick={() => onDelete(b)}>
