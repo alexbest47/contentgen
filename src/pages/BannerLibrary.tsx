@@ -95,6 +95,29 @@ export default function BannerLibrary() {
     setDeleteBanner(null);
   };
 
+  const handleRegenerate = async (banner: any) => {
+    setRegeneratingId(banner.id);
+    await enqueue({
+      functionName: "generate-banner-image",
+      payload: {
+        prompt: banner.generation_prompt,
+        banner_type: banner.banner_type,
+        color_scheme_id: banner.color_scheme_id || null,
+        title: banner.title,
+        category: banner.category,
+        program_id: banner.program_id || null,
+        offer_type: banner.offer_type || null,
+        note: banner.note || "",
+        created_by: banner.created_by,
+        existing_banner_id: banner.id,
+      },
+      displayTitle: `Перегенерация: ${banner.title}`,
+      lane: "openrouter",
+      targetUrl: "/banner-library",
+    });
+    setRegeneratingId(null);
+  };
+
   const isEmpty = banners.length === 0;
   const noResults = !isEmpty && filtered.length === 0;
 
