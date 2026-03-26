@@ -258,7 +258,25 @@ export default function BannerLibrary() {
   );
 }
 
-function BannerGrid({ banners, onEdit, onDelete, onPreview, onRegenerate, regeneratingId }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void; onPreview: (b: any) => void; onRegenerate: (b: any) => void; regeneratingId: string | null }) {
+const handleDownload = async (banner: any) => {
+  try {
+    const res = await fetch(banner.image_url);
+    const blob = await res.blob();
+    const ext = banner.image_url.split('.').pop()?.split('?')[0] || 'png';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${banner.title}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch {
+    toast.error("Ошибка скачивания");
+  }
+};
+
+function BannerGrid({ banners, onEdit, onDelete, onPreview, onRegenerate, onDownload, regeneratingId }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void; onPreview: (b: any) => void; onRegenerate: (b: any) => void; onDownload: (b: any) => void; regeneratingId: string | null }) {
   if (banners.length === 0) return null;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
