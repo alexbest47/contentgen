@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Copy } from "lucide-react";
+import { ArrowLeft, Copy, Download } from "lucide-react";
 import BlockLibrary, { type EmailBlockType, isTemplateLocked } from "@/components/email-builder/BlockLibrary";
 import FormattingToolbar from "@/components/email-builder/FormattingToolbar";
 import BlockCanvas, { type EmailBlock } from "@/components/email-builder/BlockCanvas";
