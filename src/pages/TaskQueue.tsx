@@ -52,7 +52,7 @@ const statusColors: Record<string, string> = {
 
 export default function TaskQueue() {
   const { isAdmin } = useAuth();
-  const { enqueue } = useTaskQueue();
+  
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
