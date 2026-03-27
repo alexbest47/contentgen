@@ -1,50 +1,36 @@
 
 
-## Убрать дублирование переменных между system_prompt и user_prompt
+## Исправить зависание очереди при таймауте Edge Function
 
 ### Проблема
-Одни и те же крупные тексты подставляются дважды — и в `system_prompt`, и в `user_prompt_template`. Это удваивает расход токенов и вызывает ошибку context overflow (210K при лимите 200K).
+Edge Function `generate-email-letter` (режим генерации изображений через OpenRouter) упала по таймауту (~150с). Функция не успела вызвать `failTask()`, и задача осталась в статусе `processing` навсегда (до 10-минутного watchdog). Все pending-задачи в линии `openrouter` заблокированы.
 
-Дублирующиеся «тяжёлые» переменные по шаблонам:
+### Решение — 2 изменения
 
-| Шаблон | Дублируются |
-|--------|-------------|
-| direct-offer | `audience_description`, `program_doc_description`, `case_data`, `objection_data_massive`, `offer_rules`, `offer_type`, `offer_title`, `brand_style` |
-| full-letter | `audience_description`, `program_doc_description`, `case_data`, `objection_data_massive`, `offer_rules`, `brand_style` |
-| free-form | `content_theme`, `audience_description`, `audience_segment`, `brand_style`, `image_style` |
-| webinar 1/2 | только `audience_segment` (маленький, не критично) |
+**1. Уменьшить watchdog-таймаут с 10 до 3 минут**
 
-### Решение
-Оставить крупные данные **только в `user_prompt_template`**, убрать их из `system_prompt`.
+В `process-queue/index.ts`: изменить `10 * 60 * 1000` → `3 * 60 * 1000`. Edge Functions имеют таймаут ~150с, поэтому если задача в processing > 3 минут — она точно зависла.
 
-Логика: `system_prompt` содержит инструкции и правила для модели. `user_prompt_template` передаёт конкретные данные. Это стандартная практика — system для роли и формата, user для контекста.
+**2. Добавить AbortController с таймаутом в generate-email-letter (режим изображений)**
 
-### Что сделать
+При генерации изображения через OpenRouter — ограничить fetch до 120с. Если таймаут — вызвать `failTask()` и вернуть ошибку. Это гарантирует, что задача будет помечена как `error` до того, как Edge Function убьётся платформой.
 
-**Миграция SQL** — обновить 3 промпта в таблице `prompts`:
-
-1. **`email-builder-direct-offer`** (`system_prompt`): убрать блоки с `{{audience_description}}`, `{{program_doc_description}}`, `{{case_data}}`, `{{objection_data_massive}}`, `{{offer_rules}}`, `{{offer_type}}`, `{{offer_title}}`, `{{brand_style}}`. Оставить только инструкции, где эти переменные упоминаются как «данные будут в сообщении пользователя».
-
-2. **`email-builder-full-letter`** (`system_prompt`): аналогично — убрать дублированные данные, оставив ссылки вида «используй данные из сообщения».
-
-3. **`email-builder-free-form`** (`system_prompt`): убрать `{{content_theme}}`, `{{audience_description}}`, `{{audience_segment}}`, `{{brand_style}}`, `{{image_style}}` из system_prompt. Эти переменные уже есть в user_prompt.
-
-Для webinar 1/2 — не трогать, дублируется только `audience_segment` (несколько слов).
-
-### Важно
-Я **не буду** менять сами тексты промптов целиком. Я только уберу конкретные `{{переменные}}` из `system_prompt`, заменив их на указание «данные переданы в сообщении пользователя». Это сохранит все инструкции и правила.
-
-### Дополнительная защита
-В edge functions (`generate-email-letter/index.ts`) добавить обрезку длинных текстов:
 ```ts
-const truncate = (text: string, max = 30000) =>
-  text.length > max ? text.substring(0, max) + "\n...[обрезано]" : text;
+// В generate-email-letter, в блоке генерации изображения:
+const controller = new AbortController();
+const timeout = setTimeout(() => controller.abort(), 120000);
+try {
+  const resp = await fetch(openrouterUrl, { ...opts, signal: controller.signal });
+  // ...
+} finally {
+  clearTimeout(timeout);
+}
 ```
 
-Применить к `programDocDescription`, `audienceDescription`, `offerDesc`, `caseContext` перед подстановкой.
+Аналогично добавить в `generate-email-block/index.ts` для режима изображений.
 
 ### Файлы
-- Миграция SQL — обновление `system_prompt` для 3 промптов
-- `supabase/functions/generate-email-letter/index.ts` — truncate для крупных переменных
-- `supabase/functions/generate-email-block/index.ts` — аналогичный truncate
+- `supabase/functions/process-queue/index.ts` — watchdog 10 мин → 3 мин
+- `supabase/functions/generate-email-letter/index.ts` — AbortController 120с для image fetch
+- `supabase/functions/generate-email-block/index.ts` — AbortController 120с для image fetch
 
