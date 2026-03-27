@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +24,7 @@ export default function CreateDiagnostic() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [docUrl, setDocUrl] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -37,14 +37,6 @@ export default function CreateDiagnostic() {
     },
   });
 
-  const { data: allTags } = useQuery({
-    queryKey: ["tags"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("tags").select("*").order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const { data: testPrompts } = useQuery({
     queryKey: ["prompts", "test_generation"],
@@ -60,11 +52,6 @@ export default function CreateDiagnostic() {
     },
   });
 
-  const toggleTag = (tagId: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
-  };
 
   const handleSave = async () => {
     if (!programId) { toast.error("Выберите программу"); return; }
@@ -77,10 +64,6 @@ export default function CreateDiagnostic() {
     try {
       const imageUrl = await uploadOfferImage(imageFile, user!.id);
 
-      const tagNames = (allTags || [])
-        .filter((t) => selectedTags.includes(t.id))
-        .map((t) => t.name);
-
       const { data: diag, error: diagErr } = await supabase
         .from("diagnostics")
         .insert({
@@ -88,7 +71,6 @@ export default function CreateDiagnostic() {
           name: title,
           description,
           doc_url: docUrl || null,
-          audience_tags: tagNames,
           prompt_id: null,
           status: "draft",
           created_by: user!.id,
@@ -185,28 +167,6 @@ export default function CreateDiagnostic() {
               <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." required />
             </div>
 
-            <div className="space-y-2">
-              <Label>Теги аудитории</Label>
-              {allTags && allTags.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {allTags.map((tag) => (
-                    <Badge
-                      key={tag.id}
-                      variant={selectedTags.includes(tag.id) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleTag(tag.id)}
-                    >
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Нет тегов.{" "}
-                  <a href="/tags" className="underline text-primary">Создать теги</a>
-                </p>
-              )}
-            </div>
 
             {testPrompts && testPrompts.length > 0 ? (
               <div className="space-y-2">

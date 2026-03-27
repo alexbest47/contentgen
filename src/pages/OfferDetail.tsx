@@ -99,7 +99,7 @@ export default function OfferDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("offers")
-        .select("*, offer_tags(tag_id, tags(name)), paid_programs(title)")
+        .select("*, paid_programs(title)")
         .eq("id", offerId!)
         .single();
       if (error) throw error;
@@ -212,13 +212,6 @@ export default function OfferDetail() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{offer?.title ?? "..."}</h1>
           <p className="text-muted-foreground">{typeLabel} • Проекты</p>
-          {(offer as any)?.offer_tags?.length > 0 && (
-            <div className="flex gap-1 mt-1">
-              {(offer as any).offer_tags.map((ot: any) => (
-                <Badge key={ot.tag_id} variant="secondary" className="text-xs">{ot.tags?.name}</Badge>
-              ))}
-            </div>
-          )}
         </div>
       </div>
       {promptInfo?.[0] && (

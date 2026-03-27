@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RotateCcw, Trash2, Archive as ArchiveIcon } from "lucide-react";
@@ -19,7 +18,7 @@ export default function ArchivePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("offers")
-        .select("*, paid_programs(title), offer_tags(tag_id, tags(id, name))")
+        .select("*, paid_programs(title)")
         .eq("is_archived", true)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -45,8 +44,6 @@ export default function ArchivePage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (offerId: string) => {
-      // Delete related tags first
-      await supabase.from("offer_tags").delete().eq("offer_id", offerId);
       const { error } = await supabase.from("offers").delete().eq("id", offerId);
       if (error) throw error;
     },
@@ -90,15 +87,6 @@ export default function ArchivePage() {
                   <span>·</span>
                   <span>{getOfferTypeLabel(o.offer_type)}</span>
                 </div>
-                {o.offer_tags?.length > 0 && (
-                  <div className="flex gap-1 mt-1">
-                    {o.offer_tags.map((ot: any) => (
-                      <Badge key={ot.tag_id} variant="secondary" className="text-xs">
-                        {ot.tags?.name}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
               </div>
               <div className="flex items-center gap-2 ml-4 shrink-0">
                 <Button variant="outline" size="sm" onClick={() => restoreMutation.mutate(o.id)} disabled={restoreMutation.isPending}>

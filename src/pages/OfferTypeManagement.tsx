@@ -43,7 +43,7 @@ export default function OfferTypeManagement() {
   const [createDescription, setCreateDescription] = useState("");
   const [createDocUrl, setCreateDocUrl] = useState("");
   const [createProgramId, setCreateProgramId] = useState("");
-  const [createSelectedTags, setCreateSelectedTags] = useState<string[]>([]);
+  
   const [createImageFile, setCreateImageFile] = useState<File | null>(null);
   const [createPromoCode, setCreatePromoCode] = useState("");
   const [createExpiresAt, setCreateExpiresAt] = useState<Date | undefined>();
@@ -59,7 +59,7 @@ export default function OfferTypeManagement() {
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editDocUrl, setEditDocUrl] = useState("");
-  const [editSelectedTags, setEditSelectedTags] = useState<string[]>([]);
+  
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editExistingImageUrl, setEditExistingImageUrl] = useState<string | null>(null);
   const [editPromoCode, setEditPromoCode] = useState("");
@@ -88,7 +88,7 @@ export default function OfferTypeManagement() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("offers")
-        .select("*, offer_tags(tag_id, tags(id, name)), paid_programs!offers_program_id_fkey(title)")
+        .select("*, paid_programs!offers_program_id_fkey(title)")
         .eq("offer_type", offerType! as any)
         .eq("is_archived", false)
         .order("created_at", { ascending: false });
@@ -97,15 +97,6 @@ export default function OfferTypeManagement() {
     },
   });
 
-  const { data: allTags } = useQuery({
-    queryKey: ["tags"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("tags").select("*").order("name");
-      if (error) throw error;
-      return data;
-    },
-    enabled: !isDiscount && !isSpotAvailable && !isNewStream,
-  });
 
   // --- Create mutation ---
   const createMutation = useMutation({
@@ -158,12 +149,6 @@ export default function OfferTypeManagement() {
         .single();
       if (error) throw error;
 
-      if (!isDiscount && !isSpotAvailable && !isNewStream && createSelectedTags.length > 0) {
-        const { error: tagErr } = await supabase.from("offer_tags").insert(
-          createSelectedTags.map((tag_id) => ({ offer_id: data.id, tag_id }))
-        );
-        if (tagErr) throw tagErr;
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["offers_by_type", offerType] });
@@ -212,15 +197,6 @@ export default function OfferTypeManagement() {
         .eq("id", editingId);
       if (error) throw error;
 
-      if (!isDiscount && !isSpotAvailable && !isNewStream) {
-        await supabase.from("offer_tags").delete().eq("offer_id", editingId);
-        if (editSelectedTags.length > 0) {
-          const { error: tagErr } = await supabase.from("offer_tags").insert(
-            editSelectedTags.map((tag_id) => ({ offer_id: editingId, tag_id }))
-          );
-          if (tagErr) throw tagErr;
-        }
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["offers_by_type", offerType] });
@@ -254,7 +230,7 @@ export default function OfferTypeManagement() {
     setCreateDescription("");
     setCreateDocUrl("");
     setCreateProgramId("");
-    setCreateSelectedTags([]);
+    
     setCreateImageFile(null);
     setCreatePromoCode("");
     setCreateExpiresAt(undefined);
@@ -265,17 +241,6 @@ export default function OfferTypeManagement() {
     setCreateLandingUrl("");
   }
 
-  const toggleCreateTag = (tagId: string) => {
-    setCreateSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
-  };
-
-  const toggleEditTag = (tagId: string) => {
-    setEditSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
-  };
 
   const openEdit = (offer: any, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -283,7 +248,7 @@ export default function OfferTypeManagement() {
     setEditTitle(offer.title);
     setEditDescription(offer.description ?? "");
     setEditDocUrl(offer.doc_url ?? "");
-    setEditSelectedTags(offer.offer_tags?.map((ot: any) => ot.tag_id) ?? []);
+    
     setEditImageFile(null);
     setEditExistingImageUrl(offer.image_url ?? null);
     setEditPromoCode((offer as any).promo_code ?? "");
@@ -414,8 +379,6 @@ export default function OfferTypeManagement() {
     const setDesc = mode === "create" ? setCreateDescription : setEditDescription;
     const docUrl = mode === "create" ? createDocUrl : editDocUrl;
     const setDocUrl = mode === "create" ? setCreateDocUrl : setEditDocUrl;
-    const selectedTags = mode === "create" ? createSelectedTags : editSelectedTags;
-    const toggleTag = mode === "create" ? toggleCreateTag : toggleEditTag;
     const imageFile = mode === "create" ? createImageFile : editImageFile;
     const setImageFile = mode === "create" ? setCreateImageFile : setEditImageFile;
     const landingUrl = mode === "create" ? createLandingUrl : editLandingUrl;
@@ -494,20 +457,6 @@ export default function OfferTypeManagement() {
         <div className="space-y-2">
           <Label>Ссылка на Google Doc</Label>
           <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." />
-        </div>
-        <div className="space-y-2">
-          <Label>Теги аудитории</Label>
-          {allTags && allTags.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {allTags.map((tag) => (
-                <Badge key={tag.id} variant={selectedTags.includes(tag.id) ? "default" : "outline"} className="cursor-pointer" onClick={() => toggleTag(tag.id)}>
-                  {tag.name}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Нет тегов.</p>
-          )}
         </div>
       </>
     );
