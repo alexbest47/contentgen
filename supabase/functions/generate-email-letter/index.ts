@@ -328,6 +328,8 @@ serve(async (req) => {
     for (const [k, v] of Object.entries(gv)) {
       userPrompt = userPrompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
     }
+    // Override {{image_style}} with selected style
+    userPrompt = userPrompt.replace(/\{\{image_style\}\}/g, imageStyleText);
 
     const anthropicBody = JSON.stringify({
       model: prompt.model || "claude-sonnet-4-20250514",

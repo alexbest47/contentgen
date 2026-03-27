@@ -222,6 +222,14 @@ serve(async (req) => {
       userPrompt = userPrompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
     }
 
+    // Override {{image_style}} with selected style from image_styles table
+    if (imageStyleId) {
+      const { data: styleRow } = await sb.from("image_styles").select("description").eq("id", imageStyleId).single();
+      if (styleRow?.description) {
+        userPrompt = userPrompt.replace(/\{\{image_style\}\}/g, styleRow.description);
+      }
+    }
+
     // Call Anthropic
     const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

@@ -603,6 +603,20 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Стиль изображений</Label>
+                <Select value={imageStyleId || ""} onValueChange={setImageStyleId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите стиль" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {imageStyles?.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
         </div>
