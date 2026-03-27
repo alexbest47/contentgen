@@ -1,22 +1,37 @@
 
 
-## Показывать индикатор загрузки вместо пустого состояния при генерации письма
+## Исправить ошибку компиляции generate-email-letter и поведение «Повторить»
 
-### Суть проблемы
-При нажатии «Сгенерировать письмо» система очищает блоки и `generatedHtml`, после чего на канвасе появляется пустое сообщение «Добавьте блоки из библиотеки слева…» — это бессмысленно и сбивает с толку, ведь генерация идёт в фоне.
+### Проблема 1: Таймаут из-за ошибки компиляции
 
-### Решение
-
-**`src/components/email-builder/BlockCanvas.tsx`**
-
-Добавить проп `generatingLetter?: boolean`. Если `generatingLetter && !isFullLetterMode && visibleBlocks.length === 0` — показать спиннер с текстом «Генерация письма…» вместо пустого состояния.
+В файле `supabase/functions/generate-email-letter/index.ts` строки 190-194 содержат дублирование переменных `templateId` и `selectedObjectionIds`. При добавлении `imageStyleId` строки были вставлены перед существующими вместо замены:
 
 ```text
-До:  "Добавьте блоки из библиотеки слева или сгенерируйте письмо целиком"
-После (при generatingLetter=true):  [Spinner] "Генерация письма…"
+190: const templateId = letter.template_id;          // первое объявление
+191: const selectedObjectionIds = ...                 // первое объявление  
+192: const imageStyleId = (letter as any).image_style_id;  // ← добавлено
+193: const templateId = letter.template_id;          // ← ДУБЛИКАТ
+194: const selectedObjectionIds = ...                // ← ДУБЛИКАТ
 ```
 
-**`src/pages/EmailBuilder.tsx`**
+Deno отказывается загружать функцию → задача зависает → через 10 мин watchdog ставит timeout.
 
-Передать `generatingLetter={generatingLetter}` в `<BlockCanvas>`.
+**Исправление**: удалить строки 193-194 (дубликаты).
+
+### Проблема 2: Кнопка «Повторить» создаёт новую задачу
+
+Текущий `handleRetry` вызывает `enqueue()` — это by design создаёт новую запись. Для истинного повтора нужно:
+
+**`src/pages/TaskQueue.tsx`**: изменить `handleRetry` — вместо `enqueue()` сбрасывать существующую задачу в статус `pending` напрямую через update в `task_queue`, а затем триггерить `process-queue`.
+
+```text
+handleRetry(task):
+  1. UPDATE task_queue SET status='pending', started_at=null, 
+     completed_at=null, error_message=null WHERE id=task.id
+  2. POST /functions/v1/process-queue {trigger: true}
+```
+
+### Файлы
+- `supabase/functions/generate-email-letter/index.ts` — удалить дубликаты строк 193-194
+- `src/pages/TaskQueue.tsx` — переписать `handleRetry` на сброс существующей задачи
 
