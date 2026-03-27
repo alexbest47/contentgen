@@ -64,10 +64,6 @@ export default function CreateDiagnostic() {
     try {
       const imageUrl = await uploadOfferImage(imageFile, user!.id);
 
-      const tagNames = (allTags || [])
-        .filter((t) => selectedTags.includes(t.id))
-        .map((t) => t.name);
-
       const { data: diag, error: diagErr } = await supabase
         .from("diagnostics")
         .insert({
@@ -75,7 +71,6 @@ export default function CreateDiagnostic() {
           name: title,
           description,
           doc_url: docUrl || null,
-          audience_tags: tagNames,
           prompt_id: null,
           status: "draft",
           created_by: user!.id,
