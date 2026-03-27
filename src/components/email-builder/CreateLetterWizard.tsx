@@ -192,7 +192,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   });
 
   // Load color schemes — needed on settings step
-  const settingsStepNum = (isDirectOffer || isWebinar) ? 3 : 4;
+  const settingsStepNum = is3StepFlow ? 3 : (isFreeForm ? 3 : 4);
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
