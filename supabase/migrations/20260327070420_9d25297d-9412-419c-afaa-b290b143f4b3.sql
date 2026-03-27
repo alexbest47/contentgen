@@ -1,0 +1,1 @@
+ALTER TABLE public.offers ALTER COLUMN program_id DROP NOT NULL;
