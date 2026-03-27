@@ -482,19 +482,21 @@ export default function OfferTypeManagement() {
             <DialogTitle>Новый оффер — {typeLabel}</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Программа *</Label>
-              <Select value={createProgramId} onValueChange={setCreateProgramId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите программу" />
-                </SelectTrigger>
-                <SelectContent>
-                  {programs?.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {!isSpotAvailable && (
+              <div className="space-y-2">
+                <Label>Программа *</Label>
+                <Select value={createProgramId} onValueChange={setCreateProgramId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите программу" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {programs?.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {isDiscount ? renderDiscountFields("create") : isSpotAvailable ? renderSpotAvailableFields("create") : isNewStream ? renderNewStreamFields("create") : renderDefaultFields("create")}
             <Button type="submit" className="w-full" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Создание..." : "Создать"}
