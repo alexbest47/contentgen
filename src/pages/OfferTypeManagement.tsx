@@ -97,15 +97,6 @@ export default function OfferTypeManagement() {
     },
   });
 
-  const { data: allTags } = useQuery({
-    queryKey: ["tags"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("tags").select("*").order("name");
-      if (error) throw error;
-      return data;
-    },
-    enabled: !isDiscount && !isSpotAvailable && !isNewStream,
-  });
 
   // --- Create mutation ---
   const createMutation = useMutation({
