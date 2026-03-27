@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { blockTypeLabels } from "./BlockLibrary";
@@ -139,6 +140,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const [offerType, setOfferType] = useState("");
   const [offerId, setOfferId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [freeFormDescription, setFreeFormDescription] = useState("");
 
   // Load topics
   const { data: topicRows } = useQuery({
@@ -163,16 +165,18 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     enabled: open && step >= 1,
   });
 
-  // Determine if selected template is "Прямой оффер"
+  // Determine template type
   const selectedTemplate = templates?.find((t) => t.id === selectedTemplateId);
   const selectedTemplateName = selectedTemplate?.name || "";
   const selectedTemplateCategory = (selectedTemplate as any)?.category || "paid_programs";
   const isDirectOffer = selectedTemplateName === "Прямой оффер";
   const isWebinar = selectedTemplateCategory === "webinar";
-  const totalSteps = (isDirectOffer || isWebinar) ? 3 : 4;
+  const isFreeForm = selectedTemplateName === "С нуля";
+  const is3StepFlow = isDirectOffer || isWebinar;
+  const totalSteps = isFreeForm ? 4 : (is3StepFlow ? 3 : 4);
 
   // Load audience variable descriptions — needed on audience step
-  const audienceStepNum = (isDirectOffer || isWebinar) ? 2 : 3;
+  const audienceStepNum = is3StepFlow ? 2 : (isFreeForm ? 2 : 3);
   const { data: audienceVars } = useQuery({
     queryKey: ["audience_global_vars"],
     queryFn: async () => {
@@ -188,7 +192,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   });
 
   // Load color schemes — needed on settings step
-  const settingsStepNum = (isDirectOffer || isWebinar) ? 3 : 4;
+  const settingsStepNum = is3StepFlow ? 3 : (isFreeForm ? 3 : 4);
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
@@ -262,7 +266,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const canNext2 = !!audienceSegment;   // audience selected
   const canNext3 = !!selectedTemplateId; // template selected
   const canNextWebinarAudience = isWebinar ? (!!audienceSegment && !!offerId) : !!audienceSegment;
-  const canCreate = !!letterTitle.trim();
+  const canCreate = isFreeForm ? (!!letterTitle.trim() && !!freeFormDescription.trim()) : !!letterTitle.trim();
 
   const handleNext1 = () => {
     if (themeOnlyMode && onThemeChanged) {
@@ -285,8 +289,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           title: letterTitle,
           selected_color_scheme_id: colorSchemeId,
           image_style_id: imageStyleId,
-          letter_theme_title: (isDirectOffer || isWebinar) ? "" : themeTitle,
-          letter_theme_description: (isDirectOffer || isWebinar) ? "" : themeDescription,
+          letter_theme_title: isFreeForm ? letterTitle : ((is3StepFlow) ? "" : themeTitle),
+          letter_theme_description: isFreeForm ? freeFormDescription : ((is3StepFlow) ? "" : themeDescription),
           template_id: selectedTemplateId,
           program_id: programId,
           offer_type: offerType,
@@ -330,7 +334,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     setImageStyleId(null);
     setProgramId(null);
     setOfferType("");
-    setOfferId(null);
+     setOfferId(null);
+    setFreeFormDescription("");
   };
 
   const offerTypes = OFFER_TYPES.map((t) => [t.key, t.label] as const);
@@ -339,8 +344,15 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const getStepTitle = () => {
     if (themeOnlyMode) return "Выбор темы письма";
 
-    if (isDirectOffer || isWebinar) {
-      const label = isWebinar ? "вебинар" : "оффер";
+    if (isFreeForm) {
+      if (step === 1) return "Шаг 1 из 4 — Как построить письмо?";
+      if (step === 2) return "Шаг 2 из 4 — Для кого это письмо?";
+      if (step === 3) return "Шаг 3 из 4 — Настройки";
+      if (step === 4) return "Шаг 4 из 4 — О чём это письмо?";
+      return "";
+    }
+
+    if (is3StepFlow) {
       if (step === 1) return "Шаг 1 из 3 — Как построить письмо?";
       if (step === 2) return isWebinar
         ? "Шаг 2 из 3 — Выбор вебинара и аудитории"
@@ -349,7 +361,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       return "";
     }
 
-    // Default 4-step flow
+    // Default 4-step flow (История трансформации)
     if (step === 1) return "Шаг 1 из 4 — Как построить письмо?";
     if (step === 2) return "Шаг 2 из 4 — О чём это письмо?";
     if (step === 3) return "Шаг 3 из 4 — Для кого это письмо?";
@@ -357,12 +369,14 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   };
 
   // ─── Step content mapping ───
+  // Free form:              step 1 = template, step 2 = audience, step 3 = settings, step 4 = description
   // Direct offer / Webinar: step 1 = template, step 2 = audience (+webinar picker), step 3 = settings
   // Default:                step 1 = template, step 2 = topic,    step 3 = audience, step 4 = settings
   const showTemplateStep = step === 1;
-  const showTopicStep = !(isDirectOffer || isWebinar) && step === 2;
-  const showAudienceStep = (isDirectOffer || isWebinar) ? step === 2 : step === 3;
-  const showSettingsStep = (isDirectOffer || isWebinar) ? step === 3 : step === 4;
+  const showTopicStep = !(is3StepFlow || isFreeForm) && step === 2;
+  const showAudienceStep = (is3StepFlow || isFreeForm) ? step === 2 : step === 3;
+  const showSettingsStep = (is3StepFlow || isFreeForm) ? step === 3 : step === 4;
+  const showFreeFormStep = isFreeForm && step === 4;
 
   return (
     <Dialog
@@ -619,6 +633,23 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
               </div>
             </div>
           )}
+
+          {/* Step: Free form description (only for «С нуля») */}
+          {showFreeFormStep && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Напишите свободно — чем подробнее, тем точнее получится письмо</p>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">О чём это письмо?</Label>
+                <Textarea
+                  className="min-h-[160px]"
+                  value={freeFormDescription}
+                  onChange={(e) => setFreeFormDescription(e.target.value)}
+                  placeholder="Например: хочу рассказать про новый формат мастерской, которую мы запускаем в мае. Это письмо для тех кто уже проходил наши программы — хочу объяснить почему этот формат другой и дать ссылку на регистрацию."
+                />
+                <p className="text-xs text-muted-foreground">Можно указать: цель письма, ключевые мысли, нужную ссылку, тон — всё что важно передать.</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -638,8 +669,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           {/* Step 2 */}
           {step === 2 && (
             <>
-              {(isDirectOffer || isWebinar) ? (
-                /* Direct offer / Webinar: step 2 = audience (+webinar) → step 3 */
+              {(is3StepFlow || isFreeForm) ? (
+                /* Direct offer / Webinar / Free form: step 2 = audience → step 3 */
                 <Button onClick={() => setStep(3)} disabled={!canNextWebinarAudience}>
                   Далее
                 </Button>
@@ -655,11 +686,16 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           {/* Step 3 */}
           {step === 3 && (
             <>
-              {(isDirectOffer || isWebinar) ? (
+              {is3StepFlow ? (
                 /* Direct offer / Webinar: step 3 = settings → create */
                 <Button onClick={handleCreate} disabled={!canCreate || creating}>
                   {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
                   Создать письмо
+                </Button>
+              ) : isFreeForm ? (
+                /* Free form: step 3 = settings → step 4 */
+                <Button onClick={() => setStep(4)} disabled={!letterTitle.trim()}>
+                  Далее
                 </Button>
               ) : (
                 /* Default: step 3 = audience → step 4 */
@@ -670,8 +706,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
             </>
           )}
 
-          {/* Step 4 (only for default 4-step flow) */}
-          {step === 4 && !(isDirectOffer || isWebinar) && (
+          {/* Step 4 */}
+          {step === 4 && (
             <Button onClick={handleCreate} disabled={!canCreate || creating}>
               {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
               Создать письмо

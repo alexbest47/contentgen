@@ -253,6 +253,7 @@ serve(async (req) => {
       "Прямой оффер": "email-builder-direct-offer",
       "Приглашение на вебинар: письмо 1": "email-builder-webinar-letter-1",
       "Приглашение на вебинар: письмо 2": "email-builder-webinar-letter-2",
+      "С нуля": "email-builder-free-form",
     };
     const promptSlug = TEMPLATE_PROMPT_MAP[templateName] || "email-builder-full-letter";
 
