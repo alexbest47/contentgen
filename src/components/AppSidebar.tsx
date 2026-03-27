@@ -41,6 +41,7 @@ const emailSettingsNav = [
 ];
 
 const adminNav = [
+  { title: "Платные программы", url: "/manage-programs", icon: GraduationCap },
   { title: "Теги", url: "/tags", icon: Tag },
   { title: "Таблица описаний", url: "/descriptions", icon: TableProperties },
   { title: "Архив", url: "/archive", icon: Archive },
