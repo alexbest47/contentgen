@@ -342,6 +342,19 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Summary block */}
+            <div className="rounded-md border bg-muted/50 p-3 space-y-1.5 text-sm">
+              <p className="font-medium text-foreground">Сводка перед созданием</p>
+              <p><span className="text-muted-foreground">Шаблон:</span> {selectedTemplate?.name || "—"}</p>
+              <p><span className="text-muted-foreground">Вебинар:</span> {selectedWebinar?.title || "—"}</p>
+              <p><span className="text-muted-foreground">Программа:</span> {selectedWebinar?.paid_programs?.title || "—"}</p>
+              <p><span className="text-muted-foreground">PDF:</span> {pdfMaterialId && pdfMaterialId !== "__skip__" ? pdfMaterials?.find((p: any) => p.id === pdfMaterialId)?.title : "Пропущено"}</p>
+              <p><span className="text-muted-foreground">Кейс:</span> {caseId && caseId !== "__skip__" ? cases?.find((c: any) => c.id === caseId)?.file_name : "Пропущено"}</p>
+              <p><span className="text-muted-foreground">Мини-курс:</span> {miniCourseOfferId && miniCourseOfferId !== "__skip__" ? miniCourses?.find((m: any) => m.id === miniCourseOfferId)?.title : "Пропущено"}</p>
+              <p><span className="text-muted-foreground">Цветовая гамма:</span> {colorSchemeId ? colorSchemes?.find((cs: any) => cs.id === colorSchemeId)?.name : "Не выбрана"}</p>
+              <p><span className="text-muted-foreground">Стиль изображений:</span> {imageStyleId ? imageStyles?.find((s: any) => s.id === imageStyleId)?.name : "Не выбран"}</p>
+            </div>
           </div>
         )}
 
