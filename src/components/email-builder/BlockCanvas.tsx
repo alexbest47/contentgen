@@ -178,6 +178,7 @@ export default function BlockCanvas({
   onGeneratePlaceholderImage, generatingPlaceholderIds,
   onUpdateGeneratedHtml, onUploadPlaceholderImage,
   onPickFromLibrary, onSavePlaceholderToLibrary,
+  generatingLetter,
 }: Props) {
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
