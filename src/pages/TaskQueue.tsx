@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useTaskQueue } from "@/hooks/useTaskQueue";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -52,7 +52,7 @@ const statusColors: Record<string, string> = {
 
 export default function TaskQueue() {
   const { isAdmin } = useAuth();
-  const { enqueue } = useTaskQueue();
+  
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -104,13 +104,35 @@ export default function TaskQueue() {
     };
   }, [filter]);
 
-  const handleRetry = async (task: Task) => {
-    await enqueue({
-      functionName: task.function_name,
-      payload: task.payload,
-      displayTitle: task.display_title,
-      lane: task.lane as "claude" | "openrouter",
-    });
+  const handleRetry = async (taskId: string) => {
+    const { error } = await supabase
+      .from("task_queue")
+      .update({
+        status: "pending",
+        started_at: null,
+        completed_at: null,
+        error_message: null,
+      })
+      .eq("id", taskId);
+
+    if (error) {
+      toast.error("Ошибка повтора задачи");
+      return;
+    }
+
+    toast.success("Задача возвращена в очередь");
+
+    // Trigger queue processing
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    fetch(`${supabaseUrl}/functions/v1/process-queue`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ trigger: true }),
+    }).catch(() => {});
   };
 
   const handleDelete = async (taskId: string) => {
@@ -229,7 +251,7 @@ export default function TaskQueue() {
                   <TableCell>
                     <div className="flex gap-1">
                       {task.status === "error" && (
-                        <Button size="icon" variant="ghost" onClick={() => handleRetry(task)} title="Повторить">
+                        <Button size="icon" variant="ghost" onClick={() => handleRetry(task.id)} title="Повторить">
                           <RotateCcw className="h-4 w-4" />
                         </Button>
                       )}
