@@ -851,12 +851,29 @@ export default function EmailBuilder() {
             <DialogTitle>Экспорт HTML</DialogTitle>
           </DialogHeader>
           <Textarea value={exportHtml} readOnly className="font-mono text-xs min-h-[400px]" />
-          <Button
-            className="gap-1.5"
-            onClick={() => { navigator.clipboard.writeText(exportHtml); toast.success("Скопировано"); }}
-          >
-            <Copy className="h-4 w-4" /> Скопировать
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              className="gap-1.5"
+              onClick={() => { navigator.clipboard.writeText(exportHtml); toast.success("Скопировано"); }}
+            >
+              <Copy className="h-4 w-4" /> Скопировать
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => {
+                const blob = new Blob([exportHtml], { type: "text/html" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${title || "email"}.html`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              <Download className="h-4 w-4" /> Скачать
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
