@@ -46,7 +46,7 @@ serve(async (req) => {
   try {
     const body = await req.json();
     taskId = body._task_id || null;
-    const { prompt, banner_type, color_scheme_id, title, category, program_id, offer_type, note, created_by, generation_prompt, reference_image, existing_banner_id } = body;
+    const { prompt, banner_type, color_scheme_id, title, category, program_id, offer_type, note, created_by, generation_prompt, reference_image, existing_banner_id, image_style_id } = body;
     if (!prompt || !banner_type) throw new Error("prompt and banner_type are required");
 
     const isCustom = banner_type === "custom";
