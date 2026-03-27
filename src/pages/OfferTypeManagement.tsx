@@ -537,7 +537,7 @@ export default function OfferTypeManagement() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Программа</TableHead>
+                  {!isSpotAvailable && <TableHead>Программа</TableHead>}
                   {isDiscount ? (
                     <>
                       <TableHead>Описание</TableHead>
