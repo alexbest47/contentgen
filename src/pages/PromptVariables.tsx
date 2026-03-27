@@ -17,7 +17,7 @@ const GLOBAL_VARS = [
   { key: "offer_rules", name: "{{offer_rules}}", description: "Адаптация под тип оффера" },
   { key: "antiAI_rules", name: "{{antiAI_rules}}", description: "Требования к тексту — антиAI" },
   { key: "brand_voice", name: "{{brand_voice}}", description: "Голос бренда Talentsy" },
-  { key: "image_style", name: "{{image_style}}", description: "Стиль изображений для всех imagen-промптов" },
+  { key: "image_style", name: "{{image_style}}", description: "Стиль изображений для всех imagen-промптов в письмах" },
 ];
 
 const AUDIENCE_VARS = [
