@@ -230,7 +230,7 @@ export default function OfferTypeManagement() {
     setCreateDescription("");
     setCreateDocUrl("");
     setCreateProgramId("");
-    setCreateSelectedTags([]);
+    
     setCreateImageFile(null);
     setCreatePromoCode("");
     setCreateExpiresAt(undefined);
