@@ -101,7 +101,7 @@ export default function OfferTypeManagement() {
   // --- Create mutation ---
   const createMutation = useMutation({
     mutationFn: async () => {
-      if (!createProgramId) throw new Error("Выберите программу");
+      if (!isSpotAvailable && !createProgramId) throw new Error("Выберите программу");
 
       if (isDiscount) {
         if (!createDescription.trim()) throw new Error("Укажите описание");
@@ -135,7 +135,7 @@ export default function OfferTypeManagement() {
           description: (isContentType || isDiscount) ? createDescription : null,
           doc_url: (isDiscount || isSpotAvailable || isNewStream) ? null : (createDocUrl || null),
           offer_type: offerType! as any,
-          program_id: createProgramId,
+          program_id: isSpotAvailable ? null : createProgramId,
           created_by: user!.id,
           image_url: imageUrl,
           promo_code: isDiscount ? createPromoCode : null,
@@ -482,19 +482,21 @@ export default function OfferTypeManagement() {
             <DialogTitle>Новый оффер — {typeLabel}</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Программа *</Label>
-              <Select value={createProgramId} onValueChange={setCreateProgramId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите программу" />
-                </SelectTrigger>
-                <SelectContent>
-                  {programs?.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {!isSpotAvailable && (
+              <div className="space-y-2">
+                <Label>Программа *</Label>
+                <Select value={createProgramId} onValueChange={setCreateProgramId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите программу" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {programs?.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {isDiscount ? renderDiscountFields("create") : isSpotAvailable ? renderSpotAvailableFields("create") : isNewStream ? renderNewStreamFields("create") : renderDefaultFields("create")}
             <Button type="submit" className="w-full" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Создание..." : "Создать"}
@@ -535,7 +537,7 @@ export default function OfferTypeManagement() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Программа</TableHead>
+                  {!isSpotAvailable && <TableHead>Программа</TableHead>}
                   {isDiscount ? (
                     <>
                       <TableHead>Описание</TableHead>
@@ -556,9 +558,11 @@ export default function OfferTypeManagement() {
               <TableBody>
                 {offers.map((o: any) => (
                   <TableRow key={o.id}>
-                    <TableCell className="font-medium">
-                      {(o as any).paid_programs?.title || "—"}
-                    </TableCell>
+                    {!isSpotAvailable && (
+                      <TableCell className="font-medium">
+                        {(o as any).paid_programs?.title || "—"}
+                      </TableCell>
+                    )}
                     {isDiscount ? (
                       <>
                         <TableCell>{o.description || "—"}</TableCell>

@@ -740,7 +740,7 @@ export type Database = {
           is_date_confirmed: boolean
           landing_url: string | null
           offer_type: Database["public"]["Enums"]["offer_type"]
-          program_id: string
+          program_id: string | null
           promo_code: string | null
           stream_start_date: string | null
           title: string
@@ -759,7 +759,7 @@ export type Database = {
           is_date_confirmed?: boolean
           landing_url?: string | null
           offer_type: Database["public"]["Enums"]["offer_type"]
-          program_id: string
+          program_id?: string | null
           promo_code?: string | null
           stream_start_date?: string | null
           title: string
@@ -778,7 +778,7 @@ export type Database = {
           is_date_confirmed?: boolean
           landing_url?: string | null
           offer_type?: Database["public"]["Enums"]["offer_type"]
-          program_id?: string
+          program_id?: string | null
           promo_code?: string | null
           stream_start_date?: string | null
           title?: string
