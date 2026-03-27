@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import PromptFormDialog from "@/components/prompts/PromptFormDialog";
@@ -574,20 +575,37 @@ export default function Prompts() {
            <TabsContent value="objection_handling">
              {renderObjectionHandlingTab()}
            </TabsContent>
-           <TabsContent value="email_builder">
-              {(() => {
-                const sorted = emailBuilderPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
-                return (
-                  <div className="space-y-3">
-                    {sorted.length > 0 ? sorted.map((p: any) => (
-                      <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
-                    )) : (
-                      <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
-                    )}
-                  </div>
-                );
-              })()}
-            </TabsContent>
+            <TabsContent value="email_builder">
+               {(() => {
+                 const general = emailBuilderPrompts.filter((p: any) => !p.channel || (p.channel !== 'webinar_before' && p.channel !== 'webinar_after'));
+                 const webinarBefore = emailBuilderPrompts.filter((p: any) => p.channel === 'webinar_before').sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                 const webinarAfter = emailBuilderPrompts.filter((p: any) => p.channel === 'webinar_after').sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                 const sortedGeneral = general.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                 const hasWebinar = webinarBefore.length > 0 || webinarAfter.length > 0;
+                 return (
+                   <div className="space-y-8">
+                     {sortedGeneral.length > 0 && (
+                       <PipelineGroup groupKey="email_general" label="Генерация писем" prompts={sortedGeneral} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                     )}
+                     {hasWebinar && (
+                       <div className="space-y-6">
+                         <Separator />
+                         <h2 className="text-xl font-bold">Письма ДО и ПОСЛЕ вебинара</h2>
+                         {webinarBefore.length > 0 && (
+                           <PipelineGroup groupKey="webinar_before" label="ДО вебинара" prompts={webinarBefore} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                         )}
+                         {webinarAfter.length > 0 && (
+                           <PipelineGroup groupKey="webinar_after" label="ПОСЛЕ вебинара" prompts={webinarAfter} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                         )}
+                       </div>
+                     )}
+                     {sortedGeneral.length === 0 && !hasWebinar && (
+                       <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
+                     )}
+                   </div>
+                 );
+               })()}
+             </TabsContent>
             <TabsContent value="pdf_material">
               {(() => {
                 const sorted = pdfMaterialPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
