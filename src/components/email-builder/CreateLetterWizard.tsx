@@ -140,6 +140,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const [offerType, setOfferType] = useState("");
   const [offerId, setOfferId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [freeFormDescription, setFreeFormDescription] = useState("");
 
   // Load topics
   const { data: topicRows } = useQuery({
