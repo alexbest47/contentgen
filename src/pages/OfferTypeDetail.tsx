@@ -77,7 +77,7 @@ export default function OfferTypeDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("offers")
-        .select("*, offer_tags(tag_id, tags(id, name))")
+        .select("*")
         .eq("program_id", programId!)
         .eq("offer_type", offerType! as any)
         .eq("is_archived", false)
