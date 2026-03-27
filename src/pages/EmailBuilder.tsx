@@ -340,6 +340,7 @@ export default function EmailBuilder() {
     await supabase.from("email_letter_blocks").delete().eq("id", id);
     setBlocks((prev) => prev.filter((b) => b.id !== id).map((b, i) => ({ ...b, sort_order: i })));
     if (selectedBlockId === id) setSelectedBlockId(null);
+    queryClient.invalidateQueries({ queryKey: ["email_letter_blocks", letterId] });
   };
 
   const updateBlockConfig = (blockId: string, config: Record<string, any>) => {
