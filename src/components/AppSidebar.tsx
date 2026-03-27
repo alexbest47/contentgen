@@ -39,6 +39,7 @@ const contentPrepNav = [
 const emailSettingsNav = [
   { title: "Шаблоны писем", url: "/email-templates", icon: FileText },
   { title: "Настройка хедера и футера", url: "/email-settings", icon: Mail },
+  { title: "Шаблоны цепочек", url: "/chain-templates", icon: Layers },
 ];
 
 const adminNav = [

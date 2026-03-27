@@ -83,6 +83,9 @@ const App = () => (
               <Route path="/archive" element={<ProtectedRoute adminOnly><Archive /></ProtectedRoute>} />
               <Route path="/email-builder" element={<EmailBuilderList />} />
               <Route path="/email-builder/:letterId" element={<EmailBuilder />} />
+              <Route path="/email-chains" element={<EmailChainList />} />
+              <Route path="/email-chains/:chainId" element={<EmailChainDetail />} />
+              <Route path="/chain-templates" element={<ProtectedRoute adminOnly><ChainTemplates /></ProtectedRoute>} />
               <Route path="/diagnostics" element={<ProtectedRoute adminOnly><Diagnostics /></ProtectedRoute>} />
               <Route path="/create-diagnostic" element={<ProtectedRoute adminOnly><CreateDiagnostic /></ProtectedRoute>} />
               <Route path="/diagnostics/:diagnosticId" element={<ProtectedRoute adminOnly><DiagnosticDetail /></ProtectedRoute>} />
