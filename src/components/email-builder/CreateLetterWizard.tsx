@@ -165,13 +165,15 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     enabled: open && step >= 1,
   });
 
-  // Determine if selected template is "Прямой оффер"
+  // Determine template type
   const selectedTemplate = templates?.find((t) => t.id === selectedTemplateId);
   const selectedTemplateName = selectedTemplate?.name || "";
   const selectedTemplateCategory = (selectedTemplate as any)?.category || "paid_programs";
   const isDirectOffer = selectedTemplateName === "Прямой оффер";
   const isWebinar = selectedTemplateCategory === "webinar";
-  const totalSteps = (isDirectOffer || isWebinar) ? 3 : 4;
+  const isFreeForm = selectedTemplateName === "С нуля";
+  const is3StepFlow = isDirectOffer || isWebinar;
+  const totalSteps = isFreeForm ? 4 : (is3StepFlow ? 3 : 4);
 
   // Load audience variable descriptions — needed on audience step
   const audienceStepNum = (isDirectOffer || isWebinar) ? 2 : 3;
