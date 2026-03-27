@@ -198,6 +198,16 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     enabled: open && step >= settingsStepNum,
   });
 
+  // Load image styles — needed on settings step
+  const { data: imageStyles } = useQuery({
+    queryKey: ["image_styles_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("image_styles").select("id, name").eq("is_active", true).order("name");
+      return data ?? [];
+    },
+    enabled: open && step >= settingsStepNum,
+  });
+
   // Load programs
   const { data: programs } = useQuery({
     queryKey: ["paid_programs_list"],
