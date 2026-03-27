@@ -317,6 +317,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     setSelectedTemplateId(null);
     setLetterTitle("");
     setColorSchemeId(null);
+    setImageStyleId(null);
     setProgramId(null);
     setOfferType("");
     setOfferId(null);
