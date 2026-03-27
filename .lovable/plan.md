@@ -1,38 +1,78 @@
 
 
-## Исправить подстановку стиля изображений в generate-email-letter
+## Добавить шаблон «С нуля» (free_form)
 
-### Проблема
-В `supabase/functions/generate-email-letter/index.ts` порядок замен неверный:
+### Обзор
+Новый шаблон email-письма со свободной формой. Пользователь описывает цель письма в текстовом поле, и это передаётся в промпт через существующую переменную `{{letter_theme}}`.
 
-```text
-Строка 326-328: for (const [k, v] of Object.entries(gv)) { ... }  
-  → заменяет {{image_style}} на ГЛОБАЛЬНОЕ значение
+### 1. Добавить шаблон в БД
 
-Строка 330: userPrompt.replace(/\{\{image_style\}\}/g, imageStyleText)  
-  → пытается заменить {{image_style}}, но плейсхолдер УЖЕ заменён
+**Миграция SQL** — вставка строки в `email_templates`:
+```sql
+INSERT INTO email_templates (name, description, category, sort_order, blocks) VALUES (
+  'С нуля',
+  'Свободная форма. Пользователь сам определяет тему и цель письма.',
+  'paid_programs',
+  3,
+  '[
+    {"block_type":"image","label":"Баннер-заголовок","mode":"header_image"},
+    {"block_type":"text","label":"Тело письма","mode":"text_only"},
+    {"block_type":"cta","label":"CTA","mode":"accent_block"}
+  ]'::jsonb
+);
 ```
 
-Результат: всегда используется глобальная переменная, выбранный пользователем стиль игнорируется.
+### 2. Визард (`CreateLetterWizard.tsx`)
 
-### Решение
+Добавить новый флаг `isFreeForm` (проверка `selectedTemplateName === "С нуля"`).
 
-**`supabase/functions/generate-email-letter/index.ts`** — переместить замену `{{image_style}}` **до** цикла глобальных переменных:
+**Поток для «С нуля» — 4 шага:**
+1. Выбор шаблона (стандартный)
+2. Для кого письмо (аудитория — как у «Прямого оффера»)
+3. Настройки (программа, оффер, цвет, стиль — как у «Прямого оффера»)
+4. **Новый шаг** — «О чём это письмо?» (textarea, min-height 160px, обязательное)
 
-```text
-// Сначала заменяем image_style выбранным стилем
-userPrompt = userPrompt.replace(/\{\{image_style\}\}/g, imageStyleText);
+Изменения в логике:
+- `totalSteps`: для `isFreeForm` = 4
+- Заголовки шагов: «Шаг X из 4»
+- Шаг 4 показывает textarea с описанием цели письма
+- Новый state `freeFormDescription`
+- `canCreate` для free_form: `letterTitle.trim() && freeFormDescription.trim()`
+- `handleCreate`: сохранять `freeFormDescription` в `letter_theme_description`, а `letterTitle` в `letter_theme_title`
+- Кнопка на шаге 4: «Создать письмо»
 
-// Потом глобальные переменные (image_style уже заменён, повторно не перезапишется)
-for (const [k, v] of Object.entries(gv)) {
-  userPrompt = userPrompt.replace(...);
-}
-// Удалить строку 330 (дублирующую замену после цикла)
+Маппинг шагов для `isFreeForm`:
+- step 1 = шаблон, step 2 = аудитория, step 3 = настройки, step 4 = описание письма
+
+### 3. Промпт-маппинг (`generate-email-letter/index.ts`)
+
+Добавить в `TEMPLATE_PROMPT_MAP`:
+```ts
+"С нуля": "email-builder-free-form",
 ```
 
-Аналогично проверить `supabase/functions/generate-email-block/index.ts` на тот же баг.
+Фолбэк на `email-builder-full-letter` если промпт не найден — уже есть.
 
-### Файлы
-- `supabase/functions/generate-email-letter/index.ts` — переместить замену `{{image_style}}`
-- `supabase/functions/generate-email-block/index.ts` — проверить и исправить аналогично
+### 4. BlockLibrary — скрыть генерируемые блоки
+
+Добавить `"С нуля"` в `NO_CASE_TEMPLATES` в `BlockLibrary.tsx`, чтобы скрыть секцию «Генерируемые блоки».
+
+### 5. LetterGenerationPanel — пропустить выбор кейса
+
+Для шаблона «С нуля» передать `noCaseRequired={true}` из `EmailBuilder.tsx` (аналогично вебинарным шаблонам). Добавить `"С нуля"` в список шаблонов без кейса.
+
+### 6. Каталог переменных (`PromptVariables.tsx`)
+
+Добавить в блок «Тема от пользователя» описание использования `{{letter_theme}}` для шаблона «С нуля»:
+```
+{{letter_theme}} — Свободное описание цели и содержания письма (шаблон «С нуля»)
+```
+
+### Файлы для изменения
+- **Миграция** — новая строка в `email_templates`
+- `src/components/email-builder/CreateLetterWizard.tsx` — 4-шаговый поток для free_form
+- `src/components/email-builder/BlockLibrary.tsx` — добавить в `NO_CASE_TEMPLATES`
+- `src/pages/EmailBuilder.tsx` — `noCaseRequired` для «С нуля»
+- `supabase/functions/generate-email-letter/index.ts` — маппинг промпта
+- `src/pages/PromptVariables.tsx` — описание переменной
 
