@@ -104,13 +104,35 @@ export default function TaskQueue() {
     };
   }, [filter]);
 
-  const handleRetry = async (task: Task) => {
-    await enqueue({
-      functionName: task.function_name,
-      payload: task.payload,
-      displayTitle: task.display_title,
-      lane: task.lane as "claude" | "openrouter",
-    });
+  const handleRetry = async (taskId: string) => {
+    const { error } = await supabase
+      .from("task_queue")
+      .update({
+        status: "pending",
+        started_at: null,
+        completed_at: null,
+        error_message: null,
+      })
+      .eq("id", taskId);
+
+    if (error) {
+      toast.error("Ошибка повтора задачи");
+      return;
+    }
+
+    toast.success("Задача возвращена в очередь");
+
+    // Trigger queue processing
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    fetch(`${supabaseUrl}/functions/v1/process-queue`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ trigger: true }),
+    }).catch(() => {});
   };
 
   const handleDelete = async (taskId: string) => {
