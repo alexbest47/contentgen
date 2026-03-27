@@ -46,8 +46,8 @@ const categories = [
       { name: "{{offer_description}}", description: "Полное описание оффера из Google Docs", source: "offers.doc_url → Google Docs export" },
       { name: "{{offer_image}}", description: "URL изображения оффера (квадрат)", source: "offers.image_url" },
       { name: "{{brand_style}}", description: "Фирменный стиль (описание выбранной цветовой гаммы)", source: "Выбранная цветовая гамма (color_schemes.description)" },
-      { name: "{{image_style}}", description: "Визуальный стиль для всех imagen-промптов", source: "prompt_global_variables (image_style)" },
-      
+      { name: "{{image_style}}", description: "Визуальный стиль для imagen-промптов в письмах", source: "image_styles (выбранный стиль)" },
+
     ],
   },
   {
