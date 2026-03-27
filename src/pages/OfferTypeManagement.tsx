@@ -101,7 +101,7 @@ export default function OfferTypeManagement() {
   // --- Create mutation ---
   const createMutation = useMutation({
     mutationFn: async () => {
-      if (!createProgramId) throw new Error("Выберите программу");
+      if (!isSpotAvailable && !createProgramId) throw new Error("Выберите программу");
 
       if (isDiscount) {
         if (!createDescription.trim()) throw new Error("Укажите описание");
