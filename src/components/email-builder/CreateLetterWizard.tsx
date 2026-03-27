@@ -694,7 +694,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
                 </Button>
               ) : isFreeForm ? (
                 /* Free form: step 3 = settings → step 4 */
-                <Button onClick={() => setStep(4)} disabled={!canCreate}>
+                <Button onClick={() => setStep(4)} disabled={!letterTitle.trim()}>
                   Далее
                 </Button>
               ) : (
