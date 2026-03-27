@@ -51,16 +51,16 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // Watchdog: reset stuck tasks (processing > 10 min)
-    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const threeMinAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
     await supabase
       .from("task_queue")
       .update({
         status: "error",
         completed_at: new Date().toISOString(),
-        error_message: "Timeout: задача выполнялась более 10 минут",
+        error_message: "Timeout: задача выполнялась более 3 минут",
       })
       .eq("status", "processing")
-      .lt("started_at", tenMinAgo);
+      .lt("started_at", threeMinAgo);
 
     const lanes = ["claude", "openrouter"];
     const results: Record<string, boolean> = {};
