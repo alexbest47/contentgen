@@ -266,7 +266,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const canNext2 = !!audienceSegment;   // audience selected
   const canNext3 = !!selectedTemplateId; // template selected
   const canNextWebinarAudience = isWebinar ? (!!audienceSegment && !!offerId) : !!audienceSegment;
-  const canCreate = !!letterTitle.trim();
+  const canCreate = isFreeForm ? (!!letterTitle.trim() && !!freeFormDescription.trim()) : !!letterTitle.trim();
 
   const handleNext1 = () => {
     if (themeOnlyMode && onThemeChanged) {
