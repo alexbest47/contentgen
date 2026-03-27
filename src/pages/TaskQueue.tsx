@@ -251,7 +251,7 @@ export default function TaskQueue() {
                   <TableCell>
                     <div className="flex gap-1">
                       {task.status === "error" && (
-                        <Button size="icon" variant="ghost" onClick={() => handleRetry(task)} title="Повторить">
+                        <Button size="icon" variant="ghost" onClick={() => handleRetry(task.id)} title="Повторить">
                           <RotateCcw className="h-4 w-4" />
                         </Button>
                       )}
