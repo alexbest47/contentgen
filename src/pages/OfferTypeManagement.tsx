@@ -241,17 +241,6 @@ export default function OfferTypeManagement() {
     setCreateLandingUrl("");
   }
 
-  const toggleCreateTag = (tagId: string) => {
-    setCreateSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
-  };
-
-  const toggleEditTag = (tagId: string) => {
-    setEditSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
-  };
 
   const openEdit = (offer: any, e: React.MouseEvent) => {
     e.stopPropagation();
