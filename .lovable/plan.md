@@ -1,36 +1,78 @@
 
 
-## Исправить зависание очереди при таймауте Edge Function
+## Добавить шаблон «Доверимся ИИ»
 
-### Проблема
-Edge Function `generate-email-letter` (режим генерации изображений через OpenRouter) упала по таймауту (~150с). Функция не успела вызвать `failTask()`, и задача осталась в статусе `processing` навсегда (до 10-минутного watchdog). Все pending-задачи в линии `openrouter` заблокированы.
+### 1. SQL-миграция — запись в `email_templates` и `prompts`
 
-### Решение — 2 изменения
+**email_templates**: Добавить новую строку:
+- name: `Доверимся ИИ`
+- category: `paid_programs`
+- description: текст из ТЗ
+- sort_order: 3 (после «С нуля»)
+- blocks JSON: `[{"block_type":"image","label":"Баннер-заголовок","mode":"header_image"},{"block_type":"text","label":"Тело письма","mode":"text_only"},{"block_type":"cta","label":"CTA","mode":"accent_block"}]`
 
-**1. Уменьшить watchdog-таймаут с 10 до 3 минут**
+**prompts**: Добавить новую строку:
+- name: `Доверимся ИИ`
+- slug: `email-builder-ai-driven`
+- content_type: `email_builder`
+- category: `email_builder`
+- system_prompt и user_prompt_template: пустые заглушки (пользователь заполнит через UI управления промптами)
+- provider: `anthropic`, model: `claude-sonnet-4-20250514`
+- is_active: true, step_order: 1
 
-В `process-queue/index.ts`: изменить `10 * 60 * 1000` → `3 * 60 * 1000`. Edge Functions имеют таймаут ~150с, поэтому если задача в processing > 3 минут — она точно зависла.
+### 2. Маппинг шаблон → промпт (`generate-email-letter/index.ts`)
 
-**2. Добавить AbortController с таймаутом в generate-email-letter (режим изображений)**
-
-При генерации изображения через OpenRouter — ограничить fetch до 120с. Если таймаут — вызвать `failTask()` и вернуть ошибку. Это гарантирует, что задача будет помечена как `error` до того, как Edge Function убьётся платформой.
-
-```ts
-// В generate-email-letter, в блоке генерации изображения:
-const controller = new AbortController();
-const timeout = setTimeout(() => controller.abort(), 120000);
-try {
-  const resp = await fetch(openrouterUrl, { ...opts, signal: controller.signal });
-  // ...
-} finally {
-  clearTimeout(timeout);
-}
+Добавить в `TEMPLATE_PROMPT_MAP`:
+```
+"Доверимся ИИ": "email-builder-ai-driven"
 ```
 
-Аналогично добавить в `generate-email-block/index.ts` для режима изображений.
+### 3. Визард (`CreateLetterWizard.tsx`)
 
-### Файлы
-- `supabase/functions/process-queue/index.ts` — watchdog 10 мин → 3 мин
-- `supabase/functions/generate-email-letter/index.ts` — AbortController 120с для image fetch
-- `supabase/functions/generate-email-block/index.ts` — AbortController 120с для image fetch
+Логика «Доверимся ИИ» идентична «Прямому офферу» (3-шаговый flow без темы и без free-form описания):
+
+- Добавить: `const isAiDriven = selectedTemplateName === "Доверимся ИИ";`
+- Обновить `is3StepFlow`: `const is3StepFlow = isDirectOffer || isWebinar || isAiDriven;`
+- `letter_theme_title` и `letter_theme_description` — пустые строки (как у direct offer)
+- Всё остальное (шаги аудитория → настройки → создать) работает как у 3-шаговых шаблонов
+
+### 4. `noCaseRequired` — шаблон без кейса
+
+**EmailBuilder.tsx** (строка ~847): Добавить `"Доверимся ИИ"` в массив `noCaseRequired`:
+```ts
+noCaseRequired={["Приглашение на вебинар: письмо 1", "Приглашение на вебинар: письмо 2", "С нуля", "Доверимся ИИ"].includes(template?.name || "")}
+```
+
+**BlockLibrary.tsx** (строка 48): Добавить в `NO_CASE_TEMPLATES`:
+```ts
+const NO_CASE_TEMPLATES = ["Приглашение на вебинар: письмо 1", "Приглашение на вебинар: письмо 2", "С нуля", "Доверимся ИИ"];
+```
+
+### 5. Панель генерации (`LetterGenerationPanel.tsx`)
+
+Для `noCaseRequired && !isWebinar` (т.е. «Доверимся ИИ» и «С нуля»): показать текст-подсказку «ИИ самостоятельно определит структуру письма» вместо «Данные берутся из настроек вебинара».
+
+Обновить строку 315-321:
+```ts
+{noCaseRequired && !isDirectOffer && (
+  <div className="pt-2">
+    <p className="text-xs text-muted-foreground text-center">
+      {isWebinar ? "Данные берутся из настроек вебинара" : "ИИ самостоятельно определит структуру письма"}
+    </p>
+  </div>
+)}
+```
+
+Также передать `templateName` в props (он уже приходит).
+
+### Файлы в изменениях
+
+| Файл | Что меняется |
+|------|-------------|
+| Миграция SQL | INSERT в `email_templates` и `prompts` |
+| `supabase/functions/generate-email-letter/index.ts` | +1 строка в `TEMPLATE_PROMPT_MAP` |
+| `src/components/email-builder/CreateLetterWizard.tsx` | `isAiDriven`, обновить `is3StepFlow` |
+| `src/pages/EmailBuilder.tsx` | Добавить «Доверимся ИИ» в массив `noCaseRequired` |
+| `src/components/email-builder/BlockLibrary.tsx` | Добавить в `NO_CASE_TEMPLATES` |
+| `src/components/email-builder/LetterGenerationPanel.tsx` | Уточнить подсказку для no-case шаблонов |
 
