@@ -379,8 +379,6 @@ export default function OfferTypeManagement() {
     const setDesc = mode === "create" ? setCreateDescription : setEditDescription;
     const docUrl = mode === "create" ? createDocUrl : editDocUrl;
     const setDocUrl = mode === "create" ? setCreateDocUrl : setEditDocUrl;
-    const selectedTags = mode === "create" ? createSelectedTags : editSelectedTags;
-    const toggleTag = mode === "create" ? toggleCreateTag : toggleEditTag;
     const imageFile = mode === "create" ? createImageFile : editImageFile;
     const setImageFile = mode === "create" ? setCreateImageFile : setEditImageFile;
     const landingUrl = mode === "create" ? createLandingUrl : editLandingUrl;
