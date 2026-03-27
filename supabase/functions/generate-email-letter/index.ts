@@ -260,6 +260,9 @@ serve(async (req) => {
       }
     }
 
+    // Support chain_letter_slug from chain wizard
+    const chainLetterSlug = body.chain_letter_slug || null;
+
     const TEMPLATE_PROMPT_MAP: Record<string, string> = {
       "Прямой оффер": "email-builder-direct-offer",
       "Приглашение на вебинар: письмо 1": "email-builder-webinar-letter-1",
@@ -267,7 +270,7 @@ serve(async (req) => {
       "С нуля": "email-builder-free-form",
       "Доверимся ИИ": "email-builder-ai-driven",
     };
-    const promptSlug = TEMPLATE_PROMPT_MAP[templateName] || "email-builder-full-letter";
+    const promptSlug = chainLetterSlug || TEMPLATE_PROMPT_MAP[templateName] || "email-builder-full-letter";
 
     const { data: prompt } = await sb.from("prompts")
       .select("*")
