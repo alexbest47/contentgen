@@ -218,16 +218,16 @@ serve(async (req) => {
       .replace(/\{\{letter_theme\}\}/g, letterTheme)
       .replace(/\{\{block_type\}\}/g, block_type);
 
-    for (const [k, v] of Object.entries(gv)) {
-      userPrompt = userPrompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
-    }
-
-    // Override {{image_style}} with selected style from image_styles table
+    // Override {{image_style}} with selected style BEFORE global variables loop
     if (imageStyleId) {
       const { data: styleRow } = await sb.from("image_styles").select("description").eq("id", imageStyleId).single();
       if (styleRow?.description) {
         userPrompt = userPrompt.replace(/\{\{image_style\}\}/g, styleRow.description);
       }
+    }
+
+    for (const [k, v] of Object.entries(gv)) {
+      userPrompt = userPrompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
     }
 
     // Call Anthropic
