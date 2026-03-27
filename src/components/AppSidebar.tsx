@@ -8,13 +8,14 @@ import {
 import {
   GraduationCap, Tag, TableProperties,
   MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion, MailPlus, TreePine, FileText, FilePlus2,
-  BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown, ListOrdered, ImageIcon,
+  BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown, ListOrdered, ImageIcon, Link2, Layers,
 } from "lucide-react";
 
 const mainNav = [
   { title: "Очередь задач", url: "/queue", icon: ListOrdered },
   { title: "Создание контента", url: "/programs", icon: GraduationCap },
   { title: "Конструктор писем", url: "/email-builder", icon: MailPlus },
+  { title: "Конструктор цепочек", url: "/email-chains", icon: Link2 },
 ];
 
 const offerPrepNav = [
