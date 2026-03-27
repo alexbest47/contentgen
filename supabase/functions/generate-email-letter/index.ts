@@ -324,17 +324,50 @@ serve(async (req) => {
       .replace(/\{\{brand_voice\}\}/g, gv.brand_voice || "")
       .replace(/\{\{objection_data_massive\}\}/g, objectionDataMassive);
 
-    // Override {{image_style}} with selected style BEFORE global variables loop
-    userPrompt = userPrompt.replace(/\{\{image_style\}\}/g, imageStyleText);
+    // Build a unified template vars map with image_style taking priority over global
+    const templateVars: Record<string, string> = {
+      ...gv,
+      program_title: program?.title || "",
+      program_description: program?.description || "",
+      program_doc_description: programDocDescription,
+      audience_description: audienceDescription,
+      offer_title: offerTitle,
+      offer_value: offerValue,
+      offer_description: offerDesc,
+      offer_image: offerImageUrl,
+      offer_type: offerTypeLabel,
+      brand_style: brandStyle,
+      letter_theme: letterTheme,
+      template_name: templateName,
+      template_structure: templateName,
+      case_data: caseContext,
+      offers_selection: offersSelectionContext,
+      extra_offers: offersSelectionContext,
+      offer_rules: gv.offer_rules || "",
+      antiAI_rules: gv.antiAI_rules || "",
+      brand_voice: gv.brand_voice || "",
+      objection_data_massive: objectionDataMassive,
+      image_style: imageStyleText, // override global with selected style
+    };
 
-    for (const [k, v] of Object.entries(gv)) {
-      userPrompt = userPrompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
+    function applyVars(text: string, vars: Record<string, string>): string {
+      let result = text;
+      for (const [k, v] of Object.entries(vars)) {
+        result = result.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
+      }
+      return result;
     }
+
+    userPrompt = applyVars(userPrompt, templateVars);
+    const resolvedSystemPrompt = applyVars(
+      prompt.system_prompt || "Ты генератор email-писем. Возвращай JSON с полями letter_html и images.",
+      templateVars
+    );
 
     const anthropicBody = JSON.stringify({
       model: prompt.model || "claude-sonnet-4-20250514",
       max_tokens: 64000,
-      system: prompt.system_prompt || "Ты генератор email-писем. Возвращай JSON с полями letter_html и images.",
+      system: resolvedSystemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     });
     const anthropicHeaders = {
