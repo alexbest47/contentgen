@@ -210,9 +210,9 @@ export default function EmailBuilder() {
   }, [letter]);
 
   useEffect(() => {
-    if (dbBlocks && !blocksLoadedRef.current) {
+    if (dbBlocks) {
       hydratingRef.current = true;
-      setBlocks(dbBlocks.map((b: any) => ({
+      const mapped = dbBlocks.map((b: any) => ({
         id: b.id,
         block_type: b.block_type as EmailBlockType,
         sort_order: b.sort_order,
@@ -220,8 +220,12 @@ export default function EmailBuilder() {
         generated_html: b.generated_html,
         banner_image_prompt: b.banner_image_prompt,
         banner_image_url: b.banner_image_url,
-      })));
-      blocksLoadedRef.current = true;
+      }));
+      // Only hydrate from DB when not dirty (no unsaved local changes)
+      if (!blocksLoadedRef.current || !dirtyRef.current) {
+        setBlocks(mapped);
+        blocksLoadedRef.current = true;
+      }
       requestAnimationFrame(() => { hydratingRef.current = false; });
     }
   }, [dbBlocks]);
@@ -340,6 +344,7 @@ export default function EmailBuilder() {
     await supabase.from("email_letter_blocks").delete().eq("id", id);
     setBlocks((prev) => prev.filter((b) => b.id !== id).map((b, i) => ({ ...b, sort_order: i })));
     if (selectedBlockId === id) setSelectedBlockId(null);
+    queryClient.invalidateQueries({ queryKey: ["email_letter_blocks", letterId] });
   };
 
   const updateBlockConfig = (blockId: string, config: Record<string, any>) => {
