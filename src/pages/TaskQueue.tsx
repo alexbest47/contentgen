@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -17,7 +16,7 @@ import {
   PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis,
 } from "@/components/ui/pagination";
 import { ru } from "date-fns/locale";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 interface Task {
   id: string;
@@ -50,43 +49,63 @@ const statusColors: Record<string, string> = {
   error: "bg-red-100 text-red-800",
 };
 
+const PAGE_SIZE = 20;
+
 export default function TaskQueue() {
   const { isAdmin } = useAuth();
-  
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [filter, setFilter] = useState("all");
-  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [laneFilter, setLaneFilter] = useState("all");
+  const [initialLoading, setInitialLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 20;
+  const [totalCount, setTotalCount] = useState(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstLoad = useRef(true);
 
-  const totalPages = Math.max(1, Math.ceil(tasks.length / PAGE_SIZE));
-  const paginatedTasks = tasks.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
-  const fetchTasks = async () => {
-    setLoading(true);
-    let query = supabase
-      .from("task_queue")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(100);
-
-    setPage(1);
-    if (filter !== "all") {
-      query = query.eq("status", filter);
+  const fetchTasks = useCallback(async (silent = false) => {
+    if (!silent) {
+      if (isFirstLoad.current) setInitialLoading(true);
     }
 
-    const { data } = await query;
-    setTasks((data as Task[]) || []);
-    setLoading(false);
-  };
+    let query = supabase
+      .from("task_queue")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
+    if (statusFilter !== "all") {
+      query = query.eq("status", statusFilter);
+    }
+    if (laneFilter !== "all") {
+      query = query.eq("lane", laneFilter);
+    }
+
+    const { data, count } = await query;
+    setTasks((data as Task[]) || []);
+    setTotalCount(count ?? 0);
+
+    if (isFirstLoad.current) {
+      setInitialLoading(false);
+      isFirstLoad.current = false;
+    }
+  }, [page, statusFilter, laneFilter]);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, laneFilter]);
+
+  // Fetch on page/filter change
   useEffect(() => {
     fetchTasks();
-  }, [filter]);
+  }, [fetchTasks]);
 
-  // Realtime subscription
+  // Realtime with debounce
   useEffect(() => {
     const channel = supabase
       .channel("task_queue_changes")
@@ -94,15 +113,19 @@ export default function TaskQueue() {
         "postgres_changes",
         { event: "*", schema: "public", table: "task_queue" },
         () => {
-          fetchTasks();
+          if (debounceRef.current) clearTimeout(debounceRef.current);
+          debounceRef.current = setTimeout(() => {
+            fetchTasks(true);
+          }, 300);
         }
       )
       .subscribe();
 
     return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
       supabase.removeChannel(channel);
     };
-  }, [filter]);
+  }, [fetchTasks]);
 
   const handleRetry = async (taskId: string) => {
     const { error } = await supabase
@@ -122,7 +145,6 @@ export default function TaskQueue() {
 
     toast.success("Задача возвращена в очередь");
 
-    // Trigger queue processing
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     fetch(`${supabaseUrl}/functions/v1/process-queue`, {
@@ -141,6 +163,7 @@ export default function TaskQueue() {
       toast.error("Ошибка удаления");
     } else {
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      setTotalCount((c) => Math.max(0, c - 1));
     }
   };
 
@@ -162,21 +185,31 @@ export default function TaskQueue() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Очередь задач</h1>
-        <Button variant="outline" size="sm" onClick={fetchTasks}>
+        <Button variant="outline" size="sm" onClick={() => fetchTasks()}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Обновить
         </Button>
       </div>
 
-      <Tabs value={filter} onValueChange={setFilter}>
-        <TabsList>
-          <TabsTrigger value="all">Все</TabsTrigger>
-          <TabsTrigger value="pending">В очереди</TabsTrigger>
-          <TabsTrigger value="processing">Выполняются</TabsTrigger>
-          <TabsTrigger value="completed">Завершено</TabsTrigger>
-          <TabsTrigger value="error">Ошибки</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-wrap gap-4">
+        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+          <TabsList>
+            <TabsTrigger value="all">Все</TabsTrigger>
+            <TabsTrigger value="pending">В очереди</TabsTrigger>
+            <TabsTrigger value="processing">Выполняются</TabsTrigger>
+            <TabsTrigger value="completed">Завершено</TabsTrigger>
+            <TabsTrigger value="error">Ошибки</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <Tabs value={laneFilter} onValueChange={setLaneFilter}>
+          <TabsList>
+            <TabsTrigger value="all">Все линии</TabsTrigger>
+            <TabsTrigger value="claude">Claude</TabsTrigger>
+            <TabsTrigger value="openrouter">OpenRouter</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
       <div className="rounded-md border">
         <Table>
@@ -191,7 +224,7 @@ export default function TaskQueue() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {initialLoading ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Загрузка...
@@ -204,7 +237,7 @@ export default function TaskQueue() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedTasks.map((task) => (
+              tasks.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell>
                     <div className="font-medium">
@@ -214,7 +247,6 @@ export default function TaskQueue() {
                           className="hover:underline text-primary cursor-pointer"
                           onClick={(e) => {
                             e.preventDefault();
-                            // Invalidate cached data so the target page fetches fresh
                             const emailMatch = task.target_url!.match(/\/email-builder\/(.+)/);
                             if (emailMatch) {
                               queryClient.removeQueries({ queryKey: ["email_letter", emailMatch[1]] });
