@@ -301,7 +301,27 @@ serve(async (req) => {
 
     const letterTheme = `${letter.letter_theme_title}\n${letter.letter_theme_description || ""}`;
 
+    // Truncate large text inputs to prevent context overflow
+    const MAX_FIELD_CHARS = 30000;
+    function truncate(text: string, max = MAX_FIELD_CHARS): string {
+      if (text.length <= max) return text;
+      console.warn(`Truncating field from ${text.length} to ${max} chars`);
+      return text.substring(0, max) + "\n...[обрезано]";
+    }
+    programDocDescription = truncate(programDocDescription);
+    audienceDescription = truncate(audienceDescription);
+    offerDesc = truncate(offerDesc);
+    caseContext = truncate(caseContext);
+
     let userPrompt = prompt.user_prompt_template || "";
+
+    // Heavy variables — only substitute into user_prompt, NOT into system_prompt
+    // to avoid doubling token usage (system_prompt references them instructionally)
+    const HEAVY_VARS = new Set([
+      "audience_description", "program_doc_description", "case_data",
+      "objection_data_massive", "offer_rules", "offer_description",
+      "brand_style", "brand_voice", "antiAI_rules", "content_theme",
+    ]);
 
     // Build a unified template vars map with image_style taking priority over global
     const templateVars: Record<string, string> = {
@@ -317,6 +337,7 @@ serve(async (req) => {
       offer_type: offerTypeLabel,
       brand_style: brandStyle,
       letter_theme: letterTheme,
+      content_theme: letterTheme,
       template_name: templateName,
       template_structure: templateName,
       case_data: caseContext,
@@ -337,15 +358,31 @@ serve(async (req) => {
       return result;
     }
 
+    // For system_prompt: replace heavy vars with "[см. данные в сообщении]"
+    const lightSystemVars: Record<string, string> = {};
+    for (const [k, v] of Object.entries(templateVars)) {
+      if (HEAVY_VARS.has(k)) {
+        lightSystemVars[k] = `[данные ${k} — см. сообщение пользователя]`;
+      } else {
+        lightSystemVars[k] = v;
+      }
+    }
+
     userPrompt = applyVars(userPrompt, templateVars);
     const resolvedSystemPrompt = applyVars(
       prompt.system_prompt || "Ты генератор email-писем. Возвращай JSON с полями letter_html и images.",
-      templateVars
+      lightSystemVars
     );
+
+    // Dynamic max_tokens to stay within context limit
+    const estimatedInputTokens = Math.ceil((resolvedSystemPrompt.length + userPrompt.length) / 4);
+    const contextLimit = 200000;
+    const maxTokens = Math.min(64000, Math.max(8000, contextLimit - estimatedInputTokens - 2000));
+    console.log(`Input ~${estimatedInputTokens} tokens, max_tokens=${maxTokens}`);
 
     const anthropicBody = JSON.stringify({
       model: prompt.model || "claude-sonnet-4-20250514",
-      max_tokens: 64000,
+      max_tokens: maxTokens,
       system: resolvedSystemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     });
