@@ -269,6 +269,13 @@ serve(async (req) => {
     const gv: Record<string, string> = {};
     gvRows?.forEach((r: any) => { gv[r.key] = r.value; });
 
+    // Load image style from image_styles table, fallback to global variable
+    let imageStyleText = gv.image_style || "";
+    if (imageStyleId) {
+      const { data: styleRow } = await sb.from("image_styles").select("description").eq("id", imageStyleId).single();
+      if (styleRow?.description) imageStyleText = styleRow.description;
+    }
+
     let brandStyle = "";
     if (colorSchemeId) {
       const { data: cs } = await sb.from("color_schemes").select("description").eq("id", colorSchemeId).single();
