@@ -149,12 +149,6 @@ export default function OfferTypeManagement() {
         .single();
       if (error) throw error;
 
-      if (!isDiscount && !isSpotAvailable && !isNewStream && createSelectedTags.length > 0) {
-        const { error: tagErr } = await supabase.from("offer_tags").insert(
-          createSelectedTags.map((tag_id) => ({ offer_id: data.id, tag_id }))
-        );
-        if (tagErr) throw tagErr;
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["offers_by_type", offerType] });
