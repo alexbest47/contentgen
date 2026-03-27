@@ -760,7 +760,7 @@ export default function EmailBuilder() {
         
         generatingLetter={generatingLetter}
         canGenerate={
-          ["Приглашение на вебинар: письмо 1", "Приглашение на вебинар: письмо 2"].includes(template?.name || "")
+          ["Приглашение на вебинар: письмо 1", "Приглашение на вебинар: письмо 2", "С нуля"].includes(template?.name || "")
             ? true
             : template?.name === "Прямой оффер"
               ? (!!caseId && selectedObjectionIds.length > 0)
