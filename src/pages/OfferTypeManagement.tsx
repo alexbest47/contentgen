@@ -88,7 +88,7 @@ export default function OfferTypeManagement() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("offers")
-        .select("*, offer_tags(tag_id, tags(id, name)), paid_programs!offers_program_id_fkey(title)")
+        .select("*, paid_programs!offers_program_id_fkey(title)")
         .eq("offer_type", offerType! as any)
         .eq("is_archived", false)
         .order("created_at", { ascending: false });
