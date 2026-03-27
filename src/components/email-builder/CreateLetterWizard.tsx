@@ -334,7 +334,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     setImageStyleId(null);
     setProgramId(null);
     setOfferType("");
-    setOfferId(null);
+     setOfferId(null);
+    setFreeFormDescription("");
   };
 
   const offerTypes = OFFER_TYPES.map((t) => [t.key, t.label] as const);
