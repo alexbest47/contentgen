@@ -58,15 +58,26 @@ serve(async (req) => {
     // Image generation mode
     if (body.generate_image && body.banner_image_prompt) {
       const blockId = body.block_id;
-      const imageResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${openrouterKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
-          messages: [{ role: "user", content: body.banner_image_prompt }],
-          modalities: ["image", "text"],
-        }),
-      });
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 120000);
+      let imageResp: Response;
+      try {
+        imageResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${openrouterKey}`, "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: "google/gemini-3-pro-image-preview",
+            messages: [{ role: "user", content: body.banner_image_prompt }],
+            modalities: ["image", "text"],
+          }),
+        });
+      } catch (err) {
+        clearTimeout(fetchTimeout);
+        if (err.name === "AbortError") throw new Error("Таймаут генерации изображения (120с)");
+        throw err;
+      }
+      clearTimeout(fetchTimeout);
       const imageData = await imageResp.json();
       const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
       if (!imageUrl) throw new Error("Не удалось сгенерировать изображение");

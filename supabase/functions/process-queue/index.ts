@@ -57,10 +57,10 @@ serve(async (req) => {
       .update({
         status: "error",
         completed_at: new Date().toISOString(),
-        error_message: "Timeout: задача выполнялась более 10 минут",
+        error_message: "Timeout: задача выполнялась более 3 минут",
       })
       .eq("status", "processing")
-      .lt("started_at", tenMinAgo);
+      .lt("started_at", threeMinAgo);
 
     const lanes = ["claude", "openrouter"];
     const results: Record<string, boolean> = {};

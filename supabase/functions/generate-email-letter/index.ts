@@ -89,15 +89,26 @@ serve(async (req) => {
       const imgApiUrl = "https://openrouter.ai/api/v1/chat/completions";
 
       const tryGenerate = async (prompt: string): Promise<string> => {
-        const imageResp = await fetch(imgApiUrl, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${imgApiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-3-pro-image-preview",
-            messages: [{ role: "user", content: prompt }],
-            modalities: ["image", "text"],
-          }),
-        });
+        const controller = new AbortController();
+        const fetchTimeout = setTimeout(() => controller.abort(), 120000);
+        let imageResp: Response;
+        try {
+          imageResp = await fetch(imgApiUrl, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${imgApiKey}`, "Content-Type": "application/json" },
+            signal: controller.signal,
+            body: JSON.stringify({
+              model: "google/gemini-3-pro-image-preview",
+              messages: [{ role: "user", content: prompt }],
+              modalities: ["image", "text"],
+            }),
+          });
+        } catch (err) {
+          clearTimeout(fetchTimeout);
+          if (err.name === "AbortError") throw new Error("Таймаут генерации изображения (120с)");
+          throw err;
+        }
+        clearTimeout(fetchTimeout);
 
         if (!imageResp.ok) {
           const errText = await imageResp.text();
