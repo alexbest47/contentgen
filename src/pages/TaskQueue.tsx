@@ -74,7 +74,7 @@ export default function TaskQueue() {
 
     let query = supabase
       .from("task_queue")
-      .select("*", { count: "exact" })
+      .select("id, created_at, started_at, completed_at, created_by, lane, status, function_name, error_message, display_title, priority, target_url", { count: "exact" })
       .order("created_at", { ascending: false })
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
