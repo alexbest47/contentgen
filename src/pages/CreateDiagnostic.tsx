@@ -52,11 +52,6 @@ export default function CreateDiagnostic() {
     },
   });
 
-  const toggleTag = (tagId: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
-  };
 
   const handleSave = async () => {
     if (!programId) { toast.error("Выберите программу"); return; }
