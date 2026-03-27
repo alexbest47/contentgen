@@ -248,7 +248,7 @@ export default function OfferTypeManagement() {
     setEditTitle(offer.title);
     setEditDescription(offer.description ?? "");
     setEditDocUrl(offer.doc_url ?? "");
-    setEditSelectedTags(offer.offer_tags?.map((ot: any) => ot.tag_id) ?? []);
+    
     setEditImageFile(null);
     setEditExistingImageUrl(offer.image_url ?? null);
     setEditPromoCode((offer as any).promo_code ?? "");
