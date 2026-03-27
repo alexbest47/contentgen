@@ -492,9 +492,16 @@ export default function BlockCanvas({
 
       {/* Blocks (all in block mode, user-only in full letter mode) */}
       {!isFullLetterMode && visibleBlocks.length === 0 ? (
-        <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
-          Добавьте блоки из библиотеки слева или сгенерируйте письмо целиком
-        </div>
+        props.generatingLetter ? (
+          <div className="py-16 flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-lg">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground">Генерация письма…</p>
+          </div>
+        ) : (
+          <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+            Добавьте блоки из библиотеки слева или сгенерируйте письмо целиком
+          </div>
+        )
       ) : visibleBlocks.length > 0 ? (
         <div className={isFullLetterMode ? "" : "space-y-2"}>
           {visibleBlocks.map((block, idx) => {
