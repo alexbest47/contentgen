@@ -312,10 +312,10 @@ export default function LetterGenerationPanel({
       )}
 
       {/* Generate button hint */}
-      {noCaseRequired && (
+      {noCaseRequired && !isDirectOffer && (
         <div className="pt-2">
           <p className="text-xs text-muted-foreground text-center">
-            Данные берутся из настроек вебинара
+            {templateName?.startsWith("Приглашение на вебинар") ? "Данные берутся из настроек вебинара" : "ИИ самостоятельно определит структуру письма"}
           </p>
         </div>
       )}

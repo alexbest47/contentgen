@@ -172,7 +172,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const isDirectOffer = selectedTemplateName === "Прямой оффер";
   const isWebinar = selectedTemplateCategory === "webinar";
   const isFreeForm = selectedTemplateName === "С нуля";
-  const is3StepFlow = isDirectOffer || isWebinar;
+  const isAiDriven = selectedTemplateName === "Доверимся ИИ";
+  const is3StepFlow = isDirectOffer || isWebinar || isAiDriven;
   const totalSteps = isFreeForm ? 4 : (is3StepFlow ? 3 : 4);
 
   // Load audience variable descriptions — needed on audience step

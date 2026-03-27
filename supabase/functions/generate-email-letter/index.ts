@@ -265,6 +265,7 @@ serve(async (req) => {
       "Приглашение на вебинар: письмо 1": "email-builder-webinar-letter-1",
       "Приглашение на вебинар: письмо 2": "email-builder-webinar-letter-2",
       "С нуля": "email-builder-free-form",
+      "Доверимся ИИ": "email-builder-ai-driven",
     };
     const promptSlug = TEMPLATE_PROMPT_MAP[templateName] || "email-builder-full-letter";
 
