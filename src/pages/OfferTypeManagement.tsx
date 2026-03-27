@@ -43,7 +43,7 @@ export default function OfferTypeManagement() {
   const [createDescription, setCreateDescription] = useState("");
   const [createDocUrl, setCreateDocUrl] = useState("");
   const [createProgramId, setCreateProgramId] = useState("");
-  const [createSelectedTags, setCreateSelectedTags] = useState<string[]>([]);
+  
   const [createImageFile, setCreateImageFile] = useState<File | null>(null);
   const [createPromoCode, setCreatePromoCode] = useState("");
   const [createExpiresAt, setCreateExpiresAt] = useState<Date | undefined>();
