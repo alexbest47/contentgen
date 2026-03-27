@@ -1,50 +1,44 @@
 
 
-## Создать файл project_context.md с полным описанием системы
+## Стили изображений: от одной переменной к 3 пресетам с выбором в визарде
 
-### Изменение
+### Суть
+Вместо одной переменной `image_style` — создать новую таблицу `image_styles` с 3 пресетами. Каждый пресет имеет название (отображается пользователю) и текст стиля (подставляется в промпты). При создании письма пользователь выбирает стиль изображений наряду с цветовой гаммой. Выбранный стиль сохраняется в `email_letters` и передаётся в генерацию.
 
-Создать файл `project_context.md` в корне проекта с полным описанием системы ContentGen — архитектуры, иерархии данных, всех модулей, Edge-функций, системы очередей, ролей пользователей, типов контента и офферов.
+### Изменения
 
-### Содержание документа
+**1. Миграция БД**
+- Создать таблицу `image_styles` (id, name, description text, is_active boolean default true, created_at)
+- Добавить колонку `image_style_id uuid references image_styles(id)` в `email_letters` (nullable)
+- RLS: чтение для authenticated, запись для admin
+- Вставить 3 начальных записи (названия-заглушки: «Стиль 1», «Стиль 2», «Стиль 3» — пользователь заполнит текст сам)
 
-1. **Общее описание** — ContentGen как платформа автоматизации создания маркетингового контента для платных образовательных программ.
+**2. `src/pages/PromptVariables.tsx`**
+- Убрать `image_style` из массива `GLOBAL_VARS` (больше не единая переменная)
+- Добавить новую карточку `ImageStylesCard` (по аналогии с `ColorSchemesCard`): CRUD для стилей изображений — название, описание (textarea), активность. Кнопки добавить/редактировать/удалить
+- Разместить после `ColorSchemesCard`
+- В справочной таблице «Оффер» обновить описание `{{image_style}}`: источник → `image_styles (выбранный стиль)`
 
-2. **Технологический стек** — React, Vite, TypeScript, Tailwind CSS, shadcn/ui, Supabase (Lovable Cloud), Anthropic Claude, OpenRouter/Gemini, Deepgram.
+**3. `src/components/email-builder/CreateLetterWizard.tsx`**
+- Добавить state `imageStyleId`
+- Загрузить активные стили: `useQuery` на `image_styles` где `is_active = true`
+- На шаге «Настройки» после выбора цветовой гаммы добавить Select «Стиль изображений»
+- При создании письма сохранять `image_style_id` в `email_letters`
 
-3. **Иерархия данных**:
-   - Платная программа → Оффер → Проект → Лид-магнит → Канал (Instagram/Telegram/VK/Email) → Контент
-   - 8 типов офферов: mini_course, diagnostic, webinar, pre_list, new_stream, spot_available, discount, download_pdf
-   - Контентные офферы vs Продающие офферы
-   - spot_available не привязан к программе
+**4. `supabase/functions/generate-banner-image/index.ts`**
+- Вместо загрузки `image_style` из `prompt_global_variables` — принимать `image_style_id` в body
+- Загружать текст стиля из таблицы `image_styles` по id
+- Если id не передан — фолбэк на `prompt_global_variables.image_style` (обратная совместимость)
 
-4. **Типы контента** — 10 типов: lead_magnet, reference_material, expert_content, provocative_content, list_content, testimonial_content, myth_busting, objection_handling, case_analysis, diagnostic.
+**5. `supabase/functions/generate-email-letter/index.ts`**
+- После загрузки letter — получить `image_style_id` из letter
+- Загрузить `image_styles.description` и подставить в `{{image_style}}`
+- Фолбэк на `gv.image_style` если id нет
 
-5. **Модули системы** (по разделам сайдбара):
-   - Основное: Очередь задач, Создание контента, Конструктор писем
-   - Подготовка офферов: Диагностики, Мини-курс, Вебинар, PDF, Предсписок, Новый поток, Место, Промокод
-   - Подготовка контента: Баннеры, Программы, Кейсы, Темы, Возражения
-   - Настройка email: Шаблоны, Хедер/футер
-   - Администрирование: Теги, Описания, Архив, Промпты, Переменные, Пользователи
+**6. `supabase/functions/generate-email-block/index.ts`**
+- Аналогично: загрузить `image_style_id` из letter, подставить описание в `{{image_style}}`
 
-6. **Система очередей задач** — enqueue-task → task_queue → process-queue → целевая функция. Два лейна: claude, openrouter. Watchdog 10 мин. Self-chaining.
-
-7. **Edge-функции** — полный список 25 функций с кратким описанием назначения каждой.
-
-8. **Система промптов** — категории, версионирование, глобальные переменные, шаблонные подстановки.
-
-9. **Конструктор email** — блочный редактор, генерация блоков через AI, полная генерация письма, экспорт HTML, тестовая отправка.
-
-10. **Диагностики** — генерация квизов, изображений, каскадный пайплайн.
-
-11. **Управление кейсами** — сканирование Yandex Disk, транскрибация Deepgram, классификация Claude.
-
-12. **Аутентификация и роли** — admin/user, RLS, первый пользователь = admin.
-
-13. **Хранилище** — 3 бакета: generated-images, quiz-images, offer-images.
-
-14. **Таблицы БД** — полный список ~25 таблиц с краткой аннотацией.
-
-### Файлы
-- `project_context.md` — создать в корне проекта
+### Что НЕ трогаем
+- Существующую переменную `image_style` в `prompt_global_variables` — оставляем как фолбэк
+- Генерацию изображений для проектов (не email) — они продолжают использовать глобальную переменную
 
