@@ -135,7 +135,7 @@ export default function OfferTypeManagement() {
           description: (isContentType || isDiscount) ? createDescription : null,
           doc_url: (isDiscount || isSpotAvailable || isNewStream) ? null : (createDocUrl || null),
           offer_type: offerType! as any,
-          program_id: createProgramId,
+          program_id: isSpotAvailable ? null : createProgramId,
           created_by: user!.id,
           image_url: imageUrl,
           promo_code: isDiscount ? createPromoCode : null,
