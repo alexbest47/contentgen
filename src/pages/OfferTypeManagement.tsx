@@ -59,7 +59,7 @@ export default function OfferTypeManagement() {
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editDocUrl, setEditDocUrl] = useState("");
-  const [editSelectedTags, setEditSelectedTags] = useState<string[]>([]);
+  
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editExistingImageUrl, setEditExistingImageUrl] = useState<string | null>(null);
   const [editPromoCode, setEditPromoCode] = useState("");
