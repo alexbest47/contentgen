@@ -24,7 +24,7 @@ export default function CreateDiagnostic() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [docUrl, setDocUrl] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
