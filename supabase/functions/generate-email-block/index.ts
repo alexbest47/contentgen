@@ -146,6 +146,14 @@ serve(async (req) => {
       if (cs) brandStyle = cs.description;
     }
 
+    // Truncate large text inputs to prevent context overflow
+    const MAX_FIELD_CHARS = 30000;
+    function truncate(text: string, max = MAX_FIELD_CHARS): string {
+      if (text.length <= max) return text;
+      console.warn(`Truncating field from ${text.length} to ${max} chars`);
+      return text.substring(0, max) + "\n...[обрезано]";
+    }
+
     // Fetch audience description
     let audienceDescription = program?.audience_description || "";
     if (program?.audience_doc_url && !audienceDescription) {
@@ -160,6 +168,11 @@ serve(async (req) => {
     if (program?.program_doc_url) {
       programDocDescription = await fetchGoogleDoc(program.program_doc_url);
     }
+
+    // Truncate heavy fields
+    audienceDescription = truncate(audienceDescription);
+    programDocDescription = truncate(programDocDescription);
+    offerDesc = truncate(offerDesc);
 
     // Build variant context strings
     let leadMagnetContext = "";
@@ -188,6 +201,13 @@ serve(async (req) => {
       caseAngleContext = JSON.stringify({ angle_type: selectedVariant.visual_format || "", angle_title: selectedVariant.title || "", hook: selectedVariant.instant_value || "", key_quote: selectedVariant.visual_content || null, story_arc: storyArc, what_reader_feels: selectedVariant.cta_text || "", transition_to_offer: selectedVariant.transition_to_course || "" }, null, 2);
       objectionAngleContext = JSON.stringify({ angle_type: selectedVariant.visual_format || "", angle_title: selectedVariant.title || "", description: selectedVariant.visual_content || "", hook: selectedVariant.instant_value || "", transition_to_offer: selectedVariant.transition_to_course || "" }, null, 2);
     }
+
+    // Heavy variables — only substitute into user_prompt, NOT into system_prompt
+    const HEAVY_VARS = new Set([
+      "audience_description", "program_doc_description", "case_data",
+      "objection_data_massive", "offer_rules", "offer_description",
+      "brand_style", "brand_voice", "antiAI_rules", "content_theme",
+    ]);
 
     // Build user prompt with all substitutions
     let userPrompt = prompt.user_prompt_template || "";
@@ -236,9 +256,19 @@ serve(async (req) => {
     }
 
     userPrompt = applyVars(userPrompt, templateVars);
+
+    // For system_prompt: replace heavy vars with reference to user message
+    const lightSystemVars: Record<string, string> = {};
+    for (const [k, v] of Object.entries(templateVars)) {
+      if (HEAVY_VARS.has(k)) {
+        lightSystemVars[k] = `[данные ${k} — см. сообщение пользователя]`;
+      } else {
+        lightSystemVars[k] = v;
+      }
+    }
     const resolvedSystemPrompt = applyVars(
       prompt.system_prompt || "Ты генератор email-блоков. Возвращай JSON с полями block_html и banner_image_prompt.",
-      templateVars
+      lightSystemVars
     );
 
     // Call Anthropic
