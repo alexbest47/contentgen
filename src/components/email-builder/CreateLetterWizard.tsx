@@ -134,6 +134,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [letterTitle, setLetterTitle] = useState("");
   const [colorSchemeId, setColorSchemeId] = useState<string | null>(null);
+  const [imageStyleId, setImageStyleId] = useState<string | null>(null);
   const [programId, setProgramId] = useState<string | null>(null);
   const [offerType, setOfferType] = useState("");
   const [offerId, setOfferId] = useState<string | null>(null);
