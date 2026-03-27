@@ -99,7 +99,7 @@ export default function OfferDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("offers")
-        .select("*, offer_tags(tag_id, tags(name)), paid_programs(title)")
+        .select("*, paid_programs(title)")
         .eq("id", offerId!)
         .single();
       if (error) throw error;
