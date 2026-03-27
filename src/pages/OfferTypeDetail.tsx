@@ -234,15 +234,6 @@ export default function OfferTypeDetail() {
                   )}
                   <div className="min-w-0">
                     <div className="font-medium">{o.title}</div>
-                    {o.offer_tags?.length > 0 && (
-                      <div className="flex gap-1 mt-1">
-                        {o.offer_tags.map((ot: any) => (
-                          <Badge key={ot.tag_id} variant="secondary" className="text-xs">
-                            {ot.tags?.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">

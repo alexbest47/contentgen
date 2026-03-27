@@ -167,28 +167,6 @@ export default function CreateDiagnostic() {
               <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." required />
             </div>
 
-            <div className="space-y-2">
-              <Label>Теги аудитории</Label>
-              {allTags && allTags.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {allTags.map((tag) => (
-                    <Badge
-                      key={tag.id}
-                      variant={selectedTags.includes(tag.id) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleTag(tag.id)}
-                    >
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Нет тегов.{" "}
-                  <a href="/tags" className="underline text-primary">Создать теги</a>
-                </p>
-              )}
-            </div>
 
             {testPrompts && testPrompts.length > 0 ? (
               <div className="space-y-2">

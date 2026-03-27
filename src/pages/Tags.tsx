@@ -77,7 +77,7 @@ export default function Tags() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Теги аудитории</h1>
-        <p className="text-muted-foreground">Управление тегами для офферов</p>
+        <p className="text-muted-foreground">Управление тегами аудитории для программ</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex gap-2 max-w-md">

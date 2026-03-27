@@ -88,15 +88,6 @@ export default function ArchivePage() {
                   <span>·</span>
                   <span>{getOfferTypeLabel(o.offer_type)}</span>
                 </div>
-                {o.offer_tags?.length > 0 && (
-                  <div className="flex gap-1 mt-1">
-                    {o.offer_tags.map((ot: any) => (
-                      <Badge key={ot.tag_id} variant="secondary" className="text-xs">
-                        {ot.tags?.name}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
               </div>
               <div className="flex items-center gap-2 ml-4 shrink-0">
                 <Button variant="outline" size="sm" onClick={() => restoreMutation.mutate(o.id)} disabled={restoreMutation.isPending}>

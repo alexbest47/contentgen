@@ -48,7 +48,7 @@ const categories = [
       { name: "{{offer_image}}", description: "URL изображения оффера (квадрат)", source: "offers.image_url" },
       { name: "{{brand_style}}", description: "Фирменный стиль (описание выбранной цветовой гаммы)", source: "Выбранная цветовая гамма (color_schemes.description)" },
       { name: "{{image_style}}", description: "Визуальный стиль для всех imagen-промптов", source: "prompt_global_variables (image_style)" },
-      { name: "{{offer_tags}}", description: "Теги аудитории оффера (через запятую)", source: "offer_tags → tags.name" },
+      
     ],
   },
   {
