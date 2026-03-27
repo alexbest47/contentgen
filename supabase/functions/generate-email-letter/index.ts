@@ -302,27 +302,6 @@ serve(async (req) => {
     const letterTheme = `${letter.letter_theme_title}\n${letter.letter_theme_description || ""}`;
 
     let userPrompt = prompt.user_prompt_template || "";
-    userPrompt = userPrompt
-      .replace(/\{\{program_title\}\}/g, program?.title || "")
-      .replace(/\{\{program_description\}\}/g, program?.description || "")
-      .replace(/\{\{program_doc_description\}\}/g, programDocDescription)
-      .replace(/\{\{audience_description\}\}/g, audienceDescription)
-      .replace(/\{\{offer_title\}\}/g, offerTitle)
-      .replace(/\{\{offer_value\}\}/g, offerValue)
-      .replace(/\{\{offer_description\}\}/g, offerDesc)
-      .replace(/\{\{offer_image\}\}/g, offerImageUrl)
-      .replace(/\{\{offer_type\}\}/g, offerTypeLabel)
-      .replace(/\{\{brand_style\}\}/g, brandStyle)
-      .replace(/\{\{letter_theme\}\}/g, letterTheme)
-      .replace(/\{\{template_name\}\}/g, templateName)
-      .replace(/\{\{template_structure\}\}/g, templateName)
-      .replace(/\{\{case_data\}\}/g, caseContext)
-      .replace(/\{\{offers_selection\}\}/g, offersSelectionContext)
-      .replace(/\{\{extra_offers\}\}/g, offersSelectionContext)
-      .replace(/\{\{offer_rules\}\}/g, gv.offer_rules || "")
-      .replace(/\{\{antiAI_rules\}\}/g, gv.antiAI_rules || "")
-      .replace(/\{\{brand_voice\}\}/g, gv.brand_voice || "")
-      .replace(/\{\{objection_data_massive\}\}/g, objectionDataMassive);
 
     // Build a unified template vars map with image_style taking priority over global
     const templateVars: Record<string, string> = {
