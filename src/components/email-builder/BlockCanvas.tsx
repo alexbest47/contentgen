@@ -493,7 +493,7 @@ export default function BlockCanvas({
 
       {/* Blocks (all in block mode, user-only in full letter mode) */}
       {!isFullLetterMode && visibleBlocks.length === 0 ? (
-        props.generatingLetter ? (
+        generatingLetter ? (
           <div className="py-16 flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-lg">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             <p className="text-sm text-muted-foreground">Генерация письма…</p>
