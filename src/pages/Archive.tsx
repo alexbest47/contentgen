@@ -19,7 +19,7 @@ export default function ArchivePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("offers")
-        .select("*, paid_programs(title), offer_tags(tag_id, tags(id, name))")
+        .select("*, paid_programs(title)")
         .eq("is_archived", true)
         .order("created_at", { ascending: false });
       if (error) throw error;
