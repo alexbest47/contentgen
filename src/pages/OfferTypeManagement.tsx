@@ -558,9 +558,11 @@ export default function OfferTypeManagement() {
               <TableBody>
                 {offers.map((o: any) => (
                   <TableRow key={o.id}>
-                    <TableCell className="font-medium">
-                      {(o as any).paid_programs?.title || "—"}
-                    </TableCell>
+                    {!isSpotAvailable && (
+                      <TableCell className="font-medium">
+                        {(o as any).paid_programs?.title || "—"}
+                      </TableCell>
+                    )}
                     {isDiscount ? (
                       <>
                         <TableCell>{o.description || "—"}</TableCell>
