@@ -197,15 +197,6 @@ export default function OfferTypeManagement() {
         .eq("id", editingId);
       if (error) throw error;
 
-      if (!isDiscount && !isSpotAvailable && !isNewStream) {
-        await supabase.from("offer_tags").delete().eq("offer_id", editingId);
-        if (editSelectedTags.length > 0) {
-          const { error: tagErr } = await supabase.from("offer_tags").insert(
-            editSelectedTags.map((tag_id) => ({ offer_id: editingId, tag_id }))
-          );
-          if (tagErr) throw tagErr;
-        }
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["offers_by_type", offerType] });
