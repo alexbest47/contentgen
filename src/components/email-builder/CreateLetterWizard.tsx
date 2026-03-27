@@ -633,6 +633,23 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
               </div>
             </div>
           )}
+
+          {/* Step: Free form description (only for «С нуля») */}
+          {showFreeFormStep && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Напишите свободно — чем подробнее, тем точнее получится письмо</p>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">О чём это письмо?</Label>
+                <Textarea
+                  className="min-h-[160px]"
+                  value={freeFormDescription}
+                  onChange={(e) => setFreeFormDescription(e.target.value)}
+                  placeholder="Например: хочу рассказать про новый формат мастерской, которую мы запускаем в мае. Это письмо для тех кто уже проходил наши программы — хочу объяснить почему этот формат другой и дать ссылку на регистрацию."
+                />
+                <p className="text-xs text-muted-foreground">Можно указать: цель письма, ключевые мысли, нужную ссылку, тон — всё что важно передать.</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -652,8 +669,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           {/* Step 2 */}
           {step === 2 && (
             <>
-              {(isDirectOffer || isWebinar) ? (
-                /* Direct offer / Webinar: step 2 = audience (+webinar) → step 3 */
+              {(is3StepFlow || isFreeForm) ? (
+                /* Direct offer / Webinar / Free form: step 2 = audience → step 3 */
                 <Button onClick={() => setStep(3)} disabled={!canNextWebinarAudience}>
                   Далее
                 </Button>
@@ -669,11 +686,16 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           {/* Step 3 */}
           {step === 3 && (
             <>
-              {(isDirectOffer || isWebinar) ? (
+              {is3StepFlow ? (
                 /* Direct offer / Webinar: step 3 = settings → create */
                 <Button onClick={handleCreate} disabled={!canCreate || creating}>
                   {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
                   Создать письмо
+                </Button>
+              ) : isFreeForm ? (
+                /* Free form: step 3 = settings → step 4 */
+                <Button onClick={() => setStep(4)} disabled={!canCreate}>
+                  Далее
                 </Button>
               ) : (
                 /* Default: step 3 = audience → step 4 */
@@ -684,8 +706,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
             </>
           )}
 
-          {/* Step 4 (only for default 4-step flow) */}
-          {step === 4 && !(isDirectOffer || isWebinar) && (
+          {/* Step 4 */}
+          {step === 4 && (
             <Button onClick={handleCreate} disabled={!canCreate || creating}>
               {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
               Создать письмо
