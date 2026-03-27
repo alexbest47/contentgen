@@ -402,6 +402,7 @@ export type Database = {
           generated_html: string
           id: string
           image_placeholders: Json
+          image_style_id: string | null
           letter_theme_description: string
           letter_theme_title: string
           offer_id: string | null
@@ -425,6 +426,7 @@ export type Database = {
           generated_html?: string
           id?: string
           image_placeholders?: Json
+          image_style_id?: string | null
           letter_theme_description?: string
           letter_theme_title?: string
           offer_id?: string | null
@@ -448,6 +450,7 @@ export type Database = {
           generated_html?: string
           id?: string
           image_placeholders?: Json
+          image_style_id?: string | null
           letter_theme_description?: string
           letter_theme_title?: string
           offer_id?: string | null
@@ -468,6 +471,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "case_classifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_letters_image_style_id_fkey"
+            columns: ["image_style_id"]
+            isOneToOne: false
+            referencedRelation: "image_styles"
             referencedColumns: ["id"]
           },
           {
@@ -604,6 +614,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      image_styles: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
       }
       lead_magnets: {
         Row: {

@@ -189,6 +189,9 @@ serve(async (req) => {
     const colorSchemeId = letter.selected_color_scheme_id;
     const templateId = letter.template_id;
     const selectedObjectionIds: string[] = (letter as any).selected_objection_ids || [];
+    const imageStyleId = (letter as any).image_style_id;
+    const templateId = letter.template_id;
+    const selectedObjectionIds: string[] = (letter as any).selected_objection_ids || [];
 
     let program: any = null;
     if (programId) {
@@ -266,6 +269,13 @@ serve(async (req) => {
     const gv: Record<string, string> = {};
     gvRows?.forEach((r: any) => { gv[r.key] = r.value; });
 
+    // Load image style from image_styles table, fallback to global variable
+    let imageStyleText = gv.image_style || "";
+    if (imageStyleId) {
+      const { data: styleRow } = await sb.from("image_styles").select("description").eq("id", imageStyleId).single();
+      if (styleRow?.description) imageStyleText = styleRow.description;
+    }
+
     let brandStyle = "";
     if (colorSchemeId) {
       const { data: cs } = await sb.from("color_schemes").select("description").eq("id", colorSchemeId).single();
@@ -318,6 +328,8 @@ serve(async (req) => {
     for (const [k, v] of Object.entries(gv)) {
       userPrompt = userPrompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
     }
+    // Override {{image_style}} with selected style
+    userPrompt = userPrompt.replace(/\{\{image_style\}\}/g, imageStyleText);
 
     const anthropicBody = JSON.stringify({
       model: prompt.model || "claude-sonnet-4-20250514",

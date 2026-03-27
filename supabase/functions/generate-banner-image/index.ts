@@ -46,7 +46,7 @@ serve(async (req) => {
   try {
     const body = await req.json();
     taskId = body._task_id || null;
-    const { prompt, banner_type, color_scheme_id, title, category, program_id, offer_type, note, created_by, generation_prompt, reference_image, existing_banner_id } = body;
+    const { prompt, banner_type, color_scheme_id, title, category, program_id, offer_type, note, created_by, generation_prompt, reference_image, existing_banner_id, image_style_id } = body;
     if (!prompt || !banner_type) throw new Error("prompt and banner_type are required");
 
     const isCustom = banner_type === "custom";
@@ -61,10 +61,16 @@ serve(async (req) => {
       // Custom: pass prompt as-is, no preamble or style
       fullPrompt = prompt;
     } else {
-      // Standard: load image_style and optionally inject color scheme
-      const { data: globalVars } = await supabase.from("prompt_global_variables").select("key, value").eq("key", "image_style");
+      // Standard: load image_style from image_styles table or fallback to global variable
       let imageStyle = "";
-      if (globalVars?.[0]?.value) imageStyle = globalVars[0].value;
+      if (image_style_id) {
+        const { data: styleRow } = await supabase.from("image_styles").select("description").eq("id", image_style_id).single();
+        if (styleRow?.description) imageStyle = styleRow.description;
+      }
+      if (!imageStyle) {
+        const { data: globalVars } = await supabase.from("prompt_global_variables").select("key, value").eq("key", "image_style");
+        if (globalVars?.[0]?.value) imageStyle = globalVars[0].value;
+      }
 
       if (color_scheme_id) {
         const { data: scheme } = await supabase.from("color_schemes").select("description, preview_colors").eq("id", color_scheme_id).single();

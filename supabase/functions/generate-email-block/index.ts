@@ -89,12 +89,16 @@ serve(async (req) => {
     const { block_type, config, color_scheme_id, mode, letter_id } = body;
     if (!block_type || !config?.program_id) throw new Error("Missing block_type or program_id");
 
-    // Load letter theme
+    // Load letter theme and image_style_id
     let letterTheme = "";
+    let imageStyleId: string | null = null;
     if (letter_id) {
-      const { data: letterData } = await sb.from("email_letters").select("letter_theme_title, letter_theme_description").eq("id", letter_id).single();
-      if (letterData && letterData.letter_theme_title) {
-        letterTheme = `${letterData.letter_theme_title}\n${letterData.letter_theme_description || ""}`;
+      const { data: letterData } = await sb.from("email_letters").select("letter_theme_title, letter_theme_description, image_style_id").eq("id", letter_id).single();
+      if (letterData) {
+        if (letterData.letter_theme_title) {
+          letterTheme = `${letterData.letter_theme_title}\n${letterData.letter_theme_description || ""}`;
+        }
+        imageStyleId = (letterData as any).image_style_id || null;
       }
     }
 
@@ -216,6 +220,14 @@ serve(async (req) => {
 
     for (const [k, v] of Object.entries(gv)) {
       userPrompt = userPrompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
+    }
+
+    // Override {{image_style}} with selected style from image_styles table
+    if (imageStyleId) {
+      const { data: styleRow } = await sb.from("image_styles").select("description").eq("id", imageStyleId).single();
+      if (styleRow?.description) {
+        userPrompt = userPrompt.replace(/\{\{image_style\}\}/g, styleRow.description);
+      }
     }
 
     // Call Anthropic

@@ -17,7 +17,6 @@ const GLOBAL_VARS = [
   { key: "offer_rules", name: "{{offer_rules}}", description: "Адаптация под тип оффера" },
   { key: "antiAI_rules", name: "{{antiAI_rules}}", description: "Требования к тексту — антиAI" },
   { key: "brand_voice", name: "{{brand_voice}}", description: "Голос бренда Talentsy" },
-  { key: "image_style", name: "{{image_style}}", description: "Стиль изображений для всех imagen-промптов в письмах" },
 ];
 
 const AUDIENCE_VARS = [
@@ -47,8 +46,8 @@ const categories = [
       { name: "{{offer_description}}", description: "Полное описание оффера из Google Docs", source: "offers.doc_url → Google Docs export" },
       { name: "{{offer_image}}", description: "URL изображения оффера (квадрат)", source: "offers.image_url" },
       { name: "{{brand_style}}", description: "Фирменный стиль (описание выбранной цветовой гаммы)", source: "Выбранная цветовая гамма (color_schemes.description)" },
-      { name: "{{image_style}}", description: "Визуальный стиль для всех imagen-промптов", source: "prompt_global_variables (image_style)" },
-      
+      { name: "{{image_style}}", description: "Визуальный стиль для imagen-промптов в письмах", source: "image_styles (выбранный стиль)" },
+
     ],
   },
   {
@@ -522,6 +521,141 @@ function ColorSchemesCard() {
   );
 }
 
+interface ImageStyle {
+  id: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+}
+
+function ImageStylesCard() {
+  const [styles, setStyles] = useState<ImageStyle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<ImageStyle | null>(null);
+  const [form, setForm] = useState({ name: "", description: "", is_active: true });
+  const [saving, setSaving] = useState(false);
+
+  const fetchStyles = async () => {
+    const { data, error } = await supabase.from("image_styles").select("*").order("created_at");
+    if (error) { toast.error("Ошибка загрузки стилей"); return; }
+    setStyles((data as any[]) ?? []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchStyles(); }, []);
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ name: "", description: "", is_active: true });
+    setDialogOpen(true);
+  };
+
+  const openEdit = (s: ImageStyle) => {
+    setEditing(s);
+    setForm({ name: s.name, description: s.description, is_active: s.is_active });
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) { toast.error("Введите название"); return; }
+    setSaving(true);
+    const payload = { name: form.name.trim(), description: form.description, is_active: form.is_active };
+
+    if (editing) {
+      const { error } = await supabase.from("image_styles").update(payload).eq("id", editing.id);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+    } else {
+      const { error } = await supabase.from("image_styles").insert(payload);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+    }
+    setSaving(false);
+    setDialogOpen(false);
+    toast.success("Сохранено");
+    fetchStyles();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Удалить стиль изображений?")) return;
+    const { error } = await supabase.from("image_styles").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Удалено");
+    fetchStyles();
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader><CardTitle>Стили изображений</CardTitle></CardHeader>
+        <CardContent className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Загрузка…
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Стили изображений</CardTitle>
+              <CardDescription>Управляйте стилями для переменной <Badge variant="secondary" className="font-mono text-xs">{"{{image_style}}"}</Badge>. При создании письма пользователь выбирает один из активных стилей.</CardDescription>
+            </div>
+            <Button size="sm" onClick={openCreate}><Plus className="mr-1 h-4 w-4" />Добавить</Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {styles.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Нет стилей изображений</p>
+          ) : (
+            <div className="space-y-2">
+              {styles.map((s) => (
+                <div key={s.id} className="flex items-center gap-3 rounded-md border p-3">
+                  <span className="font-medium flex-1">{s.name}</span>
+                  {s.description && <span className="text-xs text-muted-foreground truncate max-w-[300px]">{s.description.substring(0, 80)}…</span>}
+                  <Badge variant={s.is_active ? "default" : "secondary"}>{s.is_active ? "активен" : "неактивен"}</Badge>
+                  <Button size="icon" variant="ghost" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => handleDelete(s.id)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Редактировать стиль" : "Новый стиль изображений"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Название стиля</Label>
+              <Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Плоский вектор" />
+            </div>
+            <div className="space-y-2">
+              <Label>Описание стиля (значение {"{{image_style}}"})</Label>
+              <Textarea className="min-h-[160px] font-mono text-sm" value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Современный плоский векторный стиль с чёткими контурами..." />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={form.is_active} onCheckedChange={(v) => setForm(f => ({ ...f, is_active: v }))} />
+              <Label>Активен</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Отмена</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function PromoCodesCard() {
   const example = {
     promo_code: "PROMO2025",
@@ -622,6 +756,7 @@ export default function PromptVariables() {
       <GlobalVariablesCard />
       <AudienceVariablesCard />
       <ColorSchemesCard />
+      <ImageStylesCard />
       <PromoCodesCard />
       <NewStreamCard />
       <WebinarDataCard />

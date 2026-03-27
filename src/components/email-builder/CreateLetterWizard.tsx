@@ -134,6 +134,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [letterTitle, setLetterTitle] = useState("");
   const [colorSchemeId, setColorSchemeId] = useState<string | null>(null);
+  const [imageStyleId, setImageStyleId] = useState<string | null>(null);
   const [programId, setProgramId] = useState<string | null>(null);
   const [offerType, setOfferType] = useState("");
   const [offerId, setOfferId] = useState<string | null>(null);
@@ -192,6 +193,16 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
       const { data } = await supabase.from("color_schemes").select("id, name, preview_colors").eq("is_active", true).order("name");
+      return data ?? [];
+    },
+    enabled: open && step >= settingsStepNum,
+  });
+
+  // Load image styles — needed on settings step
+  const { data: imageStyles } = useQuery({
+    queryKey: ["image_styles_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("image_styles").select("id, name").eq("is_active", true).order("name");
       return data ?? [];
     },
     enabled: open && step >= settingsStepNum,
@@ -273,6 +284,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           created_by: user.id,
           title: letterTitle,
           selected_color_scheme_id: colorSchemeId,
+          image_style_id: imageStyleId,
           letter_theme_title: (isDirectOffer || isWebinar) ? "" : themeTitle,
           letter_theme_description: (isDirectOffer || isWebinar) ? "" : themeDescription,
           template_id: selectedTemplateId,
@@ -315,6 +327,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     setSelectedTemplateId(null);
     setLetterTitle("");
     setColorSchemeId(null);
+    setImageStyleId(null);
     setProgramId(null);
     setOfferType("");
     setOfferId(null);
@@ -586,6 +599,20 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
                           {cs.name}
                         </div>
                       </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Стиль изображений</Label>
+                <Select value={imageStyleId || ""} onValueChange={setImageStyleId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите стиль" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {imageStyles?.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
