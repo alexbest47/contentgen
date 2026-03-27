@@ -189,6 +189,9 @@ serve(async (req) => {
     const colorSchemeId = letter.selected_color_scheme_id;
     const templateId = letter.template_id;
     const selectedObjectionIds: string[] = (letter as any).selected_objection_ids || [];
+    const imageStyleId = (letter as any).image_style_id;
+    const templateId = letter.template_id;
+    const selectedObjectionIds: string[] = (letter as any).selected_objection_ids || [];
 
     let program: any = null;
     if (programId) {
