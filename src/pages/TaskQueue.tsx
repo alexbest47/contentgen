@@ -85,7 +85,16 @@ export default function TaskQueue() {
       query = query.eq("lane", laneFilter);
     }
 
-    const { data, count } = await query;
+    const { data, count, error } = await query;
+    if (error) {
+      console.error("task_queue fetch error:", error);
+      toast.error("Ошибка загрузки очереди задач");
+      if (isFirstLoad.current) {
+        setInitialLoading(false);
+        isFirstLoad.current = false;
+      }
+      return;
+    }
     setTasks((data as Task[]) || []);
     setTotalCount(count ?? 0);
 
