@@ -51,7 +51,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // Watchdog: reset stuck tasks (processing > 10 min)
-    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const threeMinAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
     await supabase
       .from("task_queue")
       .update({
