@@ -45,8 +45,6 @@ export default function ArchivePage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (offerId: string) => {
-      // Delete related tags first
-      await supabase.from("offer_tags").delete().eq("offer_id", offerId);
       const { error } = await supabase.from("offers").delete().eq("id", offerId);
       if (error) throw error;
     },
