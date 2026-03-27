@@ -218,17 +218,28 @@ serve(async (req) => {
       .replace(/\{\{letter_theme\}\}/g, letterTheme)
       .replace(/\{\{block_type\}\}/g, block_type);
 
-    // Override {{image_style}} with selected style BEFORE global variables loop
+    // Build unified template vars with image_style priority
+    let imageStyleText = gv.image_style || "";
     if (imageStyleId) {
       const { data: styleRow } = await sb.from("image_styles").select("description").eq("id", imageStyleId).single();
-      if (styleRow?.description) {
-        userPrompt = userPrompt.replace(/\{\{image_style\}\}/g, styleRow.description);
-      }
+      if (styleRow?.description) imageStyleText = styleRow.description;
     }
 
-    for (const [k, v] of Object.entries(gv)) {
-      userPrompt = userPrompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
+    const templateVars: Record<string, string> = { ...gv, image_style: imageStyleText };
+
+    function applyVars(text: string, vars: Record<string, string>): string {
+      let result = text;
+      for (const [k, v] of Object.entries(vars)) {
+        result = result.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
+      }
+      return result;
     }
+
+    userPrompt = applyVars(userPrompt, templateVars);
+    const resolvedSystemPrompt = applyVars(
+      prompt.system_prompt || "Ты генератор email-блоков. Возвращай JSON с полями block_html и banner_image_prompt.",
+      templateVars
+    );
 
     // Call Anthropic
     const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -241,7 +252,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: prompt.model || "claude-sonnet-4-20250514",
         max_tokens: 4096,
-        system: prompt.system_prompt || "Ты генератор email-блоков. Возвращай JSON с полями block_html и banner_image_prompt.",
+        system: resolvedSystemPrompt,
         messages: [{ role: "user", content: userPrompt }],
       }),
     });
