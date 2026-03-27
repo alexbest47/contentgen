@@ -344,8 +344,15 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const getStepTitle = () => {
     if (themeOnlyMode) return "Выбор темы письма";
 
-    if (isDirectOffer || isWebinar) {
-      const label = isWebinar ? "вебинар" : "оффер";
+    if (isFreeForm) {
+      if (step === 1) return "Шаг 1 из 4 — Как построить письмо?";
+      if (step === 2) return "Шаг 2 из 4 — Для кого это письмо?";
+      if (step === 3) return "Шаг 3 из 4 — Настройки";
+      if (step === 4) return "Шаг 4 из 4 — О чём это письмо?";
+      return "";
+    }
+
+    if (is3StepFlow) {
       if (step === 1) return "Шаг 1 из 3 — Как построить письмо?";
       if (step === 2) return isWebinar
         ? "Шаг 2 из 3 — Выбор вебинара и аудитории"
@@ -354,7 +361,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       return "";
     }
 
-    // Default 4-step flow
+    // Default 4-step flow (История трансформации)
     if (step === 1) return "Шаг 1 из 4 — Как построить письмо?";
     if (step === 2) return "Шаг 2 из 4 — О чём это письмо?";
     if (step === 3) return "Шаг 3 из 4 — Для кого это письмо?";
@@ -362,12 +369,14 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   };
 
   // ─── Step content mapping ───
+  // Free form:              step 1 = template, step 2 = audience, step 3 = settings, step 4 = description
   // Direct offer / Webinar: step 1 = template, step 2 = audience (+webinar picker), step 3 = settings
   // Default:                step 1 = template, step 2 = topic,    step 3 = audience, step 4 = settings
   const showTemplateStep = step === 1;
-  const showTopicStep = !(isDirectOffer || isWebinar) && step === 2;
-  const showAudienceStep = (isDirectOffer || isWebinar) ? step === 2 : step === 3;
-  const showSettingsStep = (isDirectOffer || isWebinar) ? step === 3 : step === 4;
+  const showTopicStep = !(is3StepFlow || isFreeForm) && step === 2;
+  const showAudienceStep = (is3StepFlow || isFreeForm) ? step === 2 : step === 3;
+  const showSettingsStep = (is3StepFlow || isFreeForm) ? step === 3 : step === 4;
+  const showFreeFormStep = isFreeForm && step === 4;
 
   return (
     <Dialog
