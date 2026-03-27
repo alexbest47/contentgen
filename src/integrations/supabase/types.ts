@@ -345,6 +345,192 @@ export type Database = {
           },
         ]
       }
+      email_chain_letters: {
+        Row: {
+          chain_id: string
+          created_at: string
+          group_name: string
+          id: string
+          letter_id: string
+          letter_number: number
+          slug: string
+          sort_order: number
+          status: string
+        }
+        Insert: {
+          chain_id: string
+          created_at?: string
+          group_name?: string
+          id?: string
+          letter_id: string
+          letter_number?: number
+          slug?: string
+          sort_order?: number
+          status?: string
+        }
+        Update: {
+          chain_id?: string
+          created_at?: string
+          group_name?: string
+          id?: string
+          letter_id?: string
+          letter_number?: number
+          slug?: string
+          sort_order?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_chain_letters_chain_id_fkey"
+            columns: ["chain_id"]
+            isOneToOne: false
+            referencedRelation: "email_chains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_chain_letters_letter_id_fkey"
+            columns: ["letter_id"]
+            isOneToOne: false
+            referencedRelation: "email_letters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_chain_templates: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          letter_count: number
+          letters_config: Json
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          letter_count?: number
+          letters_config?: Json
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          letter_count?: number
+          letters_config?: Json
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      email_chains: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          created_by: string
+          id: string
+          image_style_id: string | null
+          mini_course_offer_id: string | null
+          pdf_material_id: string | null
+          program_id: string | null
+          selected_color_scheme_id: string | null
+          status: string
+          template_id: string | null
+          title: string
+          webinar_offer_id: string | null
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          image_style_id?: string | null
+          mini_course_offer_id?: string | null
+          pdf_material_id?: string | null
+          program_id?: string | null
+          selected_color_scheme_id?: string | null
+          status?: string
+          template_id?: string | null
+          title?: string
+          webinar_offer_id?: string | null
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          image_style_id?: string | null
+          mini_course_offer_id?: string | null
+          pdf_material_id?: string | null
+          program_id?: string | null
+          selected_color_scheme_id?: string | null
+          status?: string
+          template_id?: string | null
+          title?: string
+          webinar_offer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_chains_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_classifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_chains_image_style_id_fkey"
+            columns: ["image_style_id"]
+            isOneToOne: false
+            referencedRelation: "image_styles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_chains_mini_course_offer_id_fkey"
+            columns: ["mini_course_offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_chains_pdf_material_id_fkey"
+            columns: ["pdf_material_id"]
+            isOneToOne: false
+            referencedRelation: "pdf_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_chains_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "paid_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_chains_selected_color_scheme_id_fkey"
+            columns: ["selected_color_scheme_id"]
+            isOneToOne: false
+            referencedRelation: "color_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_chains_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_chain_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_chains_webinar_offer_id_fkey"
+            columns: ["webinar_offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_letter_blocks: {
         Row: {
           banner_image_prompt: string
@@ -879,6 +1065,8 @@ export type Database = {
           landing_slug: string | null
           material_type: string
           offer_id: string | null
+          pdf_reg_title: string | null
+          pdf_reg_url: string | null
           program_id: string | null
           program_name: string | null
           sections_count: number | null
@@ -904,6 +1092,8 @@ export type Database = {
           landing_slug?: string | null
           material_type: string
           offer_id?: string | null
+          pdf_reg_title?: string | null
+          pdf_reg_url?: string | null
           program_id?: string | null
           program_name?: string | null
           sections_count?: number | null
@@ -929,6 +1119,8 @@ export type Database = {
           landing_slug?: string | null
           material_type?: string
           offer_id?: string | null
+          pdf_reg_title?: string | null
+          pdf_reg_url?: string | null
           program_id?: string | null
           program_name?: string | null
           sections_count?: number | null
