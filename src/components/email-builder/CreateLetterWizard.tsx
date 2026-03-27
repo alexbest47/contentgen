@@ -176,7 +176,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const totalSteps = isFreeForm ? 4 : (is3StepFlow ? 3 : 4);
 
   // Load audience variable descriptions — needed on audience step
-  const audienceStepNum = (isDirectOffer || isWebinar) ? 2 : 3;
+  const audienceStepNum = is3StepFlow ? 2 : (isFreeForm ? 2 : 3);
   const { data: audienceVars } = useQuery({
     queryKey: ["audience_global_vars"],
     queryFn: async () => {
