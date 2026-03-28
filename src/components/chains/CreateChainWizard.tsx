@@ -315,7 +315,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
         {step === 4 && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Название цепочки</Label>
+              <Label>Название цепочки <span className="text-destructive">*</span></Label>
               <Input
                 value={chainTitle}
                 onChange={(e) => setChainTitle(e.target.value)}
@@ -324,9 +324,11 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label>Цветовая гамма</Label>
-              <Select value={colorSchemeId} onValueChange={setColorSchemeId}>
-                <SelectTrigger><SelectValue placeholder="Выберите" /></SelectTrigger>
+              <Label>Цветовая гамма <span className="text-destructive">*</span></Label>
+              <Select key={`cs-${open}`} value={colorSchemeId} onValueChange={setColorSchemeId}>
+                <SelectTrigger className={!colorSchemeId ? "border-destructive/50" : ""}>
+                  <SelectValue placeholder="Обязательно — выберите гамму" />
+                </SelectTrigger>
                 <SelectContent>
                   {colorSchemes?.map((cs: any) => (
                     <SelectItem key={cs.id} value={cs.id}>
@@ -345,9 +347,11 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label>Стиль изображений</Label>
-              <Select value={imageStyleId} onValueChange={setImageStyleId}>
-                <SelectTrigger><SelectValue placeholder="Выберите" /></SelectTrigger>
+              <Label>Стиль изображений <span className="text-destructive">*</span></Label>
+              <Select key={`is-${open}`} value={imageStyleId} onValueChange={setImageStyleId}>
+                <SelectTrigger className={!imageStyleId ? "border-destructive/50" : ""}>
+                  <SelectValue placeholder="Обязательно — выберите стиль" />
+                </SelectTrigger>
                 <SelectContent>
                   {imageStyles?.map((s: any) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
@@ -355,6 +359,10 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
                 </SelectContent>
               </Select>
             </div>
+
+            {(!colorSchemeId || !imageStyleId) && (
+              <p className="text-sm text-destructive">Выберите цветовую гамму и стиль изображений для продолжения</p>
+            )}
 
             {/* Summary block */}
             <div className="rounded-md border bg-muted/50 p-3 space-y-1.5 text-sm">
@@ -365,8 +373,12 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
               <p><span className="text-muted-foreground">PDF:</span> {pdfMaterialId && pdfMaterialId !== "__skip__" ? pdfMaterials?.find((p: any) => p.id === pdfMaterialId)?.title : "Пропущено"}</p>
               <p><span className="text-muted-foreground">Кейс:</span> {caseId && caseId !== "__skip__" ? cases?.find((c: any) => c.id === caseId)?.file_name : "Пропущено"}</p>
               <p><span className="text-muted-foreground">Мини-курс:</span> {miniCourseOfferId && miniCourseOfferId !== "__skip__" ? miniCourses?.find((m: any) => m.id === miniCourseOfferId)?.title : "Пропущено"}</p>
-              <p><span className="text-muted-foreground">Цветовая гамма:</span> {colorSchemeId ? colorSchemes?.find((cs: any) => cs.id === colorSchemeId)?.name : "Не выбрана"}</p>
-              <p><span className="text-muted-foreground">Стиль изображений:</span> {imageStyleId ? imageStyles?.find((s: any) => s.id === imageStyleId)?.name : "Не выбран"}</p>
+              <p className={!colorSchemeId ? "text-destructive font-medium" : ""}>
+                <span className="text-muted-foreground">Цветовая гамма:</span> {colorSchemeId ? colorSchemes?.find((cs: any) => cs.id === colorSchemeId)?.name : "⚠ Не выбрана"}
+              </p>
+              <p className={!imageStyleId ? "text-destructive font-medium" : ""}>
+                <span className="text-muted-foreground">Стиль изображений:</span> {imageStyleId ? imageStyles?.find((s: any) => s.id === imageStyleId)?.name : "⚠ Не выбран"}
+              </p>
             </div>
           </div>
         )}
