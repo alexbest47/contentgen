@@ -386,7 +386,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
               Далее
             </Button>
           ) : (
-            <Button onClick={handleCreate} disabled={creating || !chainTitle.trim()}>
+            <Button onClick={handleCreate} disabled={creating || !chainTitle.trim() || !colorSchemeId || !imageStyleId}>
               {creating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Создать цепочку
             </Button>
