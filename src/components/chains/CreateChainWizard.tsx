@@ -117,7 +117,20 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
   };
 
   const handleCreate = async () => {
-    if (!user || !templateId || !webinarOfferId || !chainTitle.trim()) return;
+    if (!user || !templateId || !webinarOfferId || !chainTitle.trim() || !colorSchemeId || !imageStyleId) return;
+
+    // Validate that selected IDs actually exist in loaded data
+    const validStyle = imageStyles?.find((s: any) => s.id === imageStyleId);
+    const validScheme = colorSchemes?.find((cs: any) => cs.id === colorSchemeId);
+    if (!validStyle) {
+      toast.error("Выбранный стиль изображений не найден. Выберите заново.");
+      return;
+    }
+    if (!validScheme) {
+      toast.error("Выбранная цветовая гамма не найдена. Выберите заново.");
+      return;
+    }
+
     setCreating(true);
 
     try {
