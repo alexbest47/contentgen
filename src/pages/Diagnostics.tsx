@@ -336,12 +336,13 @@ export default function Diagnostics() {
               existingUrl={editingDiag?.image_url || null}
             />
             <div className="space-y-2">
-              <Label>Ссылка на документ</Label>
+              <Label>Ссылка на описание</Label>
               <Input
                 value={editingDiag?.doc_url || ""}
                 onChange={(e) => setEditingDiag((prev) => prev ? { ...prev, doc_url: e.target.value } : null)}
-                placeholder="https://..."
+                placeholder="Google Doc или Talentsy KB ссылка"
               />
+              <p className="text-xs text-muted-foreground">Поддерживаются ссылки на Google Docs и Talentsy KB (talentsy-kb.vercel.app/share/tk_...)</p>
             </div>
           </div>
           <DialogFooter>

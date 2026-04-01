@@ -15,7 +15,7 @@ import { blockTypeLabels } from "./BlockLibrary";
 import { OFFER_TYPES } from "@/lib/offerTypes";
 import { toast } from "sonner";
 import {
-  ChevronRight, ChevronDown, Search, Check, Loader2,
+  ChevronRight, ChevronDown, Search, Check, Loader2, Plus, X,
 } from "lucide-react";
 
 interface TopicRow {
@@ -134,11 +134,13 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const [audienceSegment, setAudienceSegment] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [letterTitle, setLetterTitle] = useState("");
+  const [letterThemeTitle, setLetterThemeTitle] = useState("");
   const [colorSchemeId, setColorSchemeId] = useState<string | null>(null);
   const [imageStyleId, setImageStyleId] = useState<string | null>(null);
   const [programId, setProgramId] = useState<string | null>(null);
   const [offerType, setOfferType] = useState("");
   const [offerId, setOfferId] = useState<string | null>(null);
+  const [extraOffers, setExtraOffers] = useState<Array<{offerType: string, offerId: string}>>([]);
   const [creating, setCreating] = useState(false);
   const [freeFormDescription, setFreeFormDescription] = useState("");
 
@@ -173,7 +175,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const isWebinar = selectedTemplateCategory === "webinar";
   const isFreeForm = selectedTemplateName === "С нуля";
   const isAiDriven = selectedTemplateName === "Доверимся ИИ";
-  const is3StepFlow = isDirectOffer || isWebinar || isAiDriven;
+  const isMultiOffer = selectedTemplateName === "Мультиоффер";
+  const is3StepFlow = isDirectOffer || isWebinar || isAiDriven || isMultiOffer;
   const totalSteps = isFreeForm ? 4 : (is3StepFlow ? 3 : 4);
 
   // Load audience variable descriptions — needed on audience step
@@ -236,6 +239,37 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     enabled: open && step >= settingsStepNum && !!programId && !isWebinar,
   });
 
+  // Load offers for extra offer slots (Мультиоффер)
+  // We use the first extra offer's type for slot 0, second for slot 1
+  const extraType0 = extraOffers[0]?.offerType || "";
+  const extraType1 = extraOffers[1]?.offerType || "";
+
+  const { data: extraOffers0 } = useQuery({
+    queryKey: ["offers_wizard_extra", programId, extraType0],
+    queryFn: async () => {
+      if (!programId) return [];
+      let q = supabase.from("offers").select("id, title").eq("program_id", programId).eq("is_archived", false);
+      if (extraType0) q = q.eq("offer_type", extraType0 as any);
+      const { data } = await q.order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: open && !!programId && extraType0.length > 0,
+  });
+
+  const { data: extraOffers1 } = useQuery({
+    queryKey: ["offers_wizard_extra", programId, extraType1],
+    queryFn: async () => {
+      if (!programId) return [];
+      let q = supabase.from("offers").select("id, title").eq("program_id", programId).eq("is_archived", false);
+      if (extraType1) q = q.eq("offer_type", extraType1 as any);
+      const { data } = await q.order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: open && !!programId && extraType1.length > 0,
+  });
+
+  const extraOffersData = [extraOffers0 ?? [], extraOffers1 ?? []];
+
   // Load webinar offers (all active, no program filter needed)
   const { data: webinarOffers } = useQuery({
     queryKey: ["webinar_offers_wizard"],
@@ -267,7 +301,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const canNext2 = !!audienceSegment;   // audience selected
   const canNext3 = !!selectedTemplateId; // template selected
   const canNextWebinarAudience = isWebinar ? (!!audienceSegment && !!offerId) : !!audienceSegment;
-  const canCreate = isFreeForm ? (!!letterTitle.trim() && !!freeFormDescription.trim()) : !!letterTitle.trim();
+  const canCreateMultiOffer = isMultiOffer ? (!!letterTitle.trim() && !!letterThemeTitle.trim() && !!offerId) : true;
+  const canCreate = isFreeForm ? (!!letterTitle.trim() && !!freeFormDescription.trim()) : (isMultiOffer ? canCreateMultiOffer : !!letterTitle.trim());
 
   const handleNext1 = () => {
     if (themeOnlyMode && onThemeChanged) {
@@ -290,12 +325,13 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           title: letterTitle,
           selected_color_scheme_id: colorSchemeId,
           image_style_id: imageStyleId,
-          letter_theme_title: isFreeForm ? letterTitle : ((is3StepFlow) ? "" : themeTitle),
+          letter_theme_title: isFreeForm ? letterTitle : (isMultiOffer ? letterThemeTitle : ((is3StepFlow) ? "" : themeTitle)),
           letter_theme_description: isFreeForm ? freeFormDescription : ((is3StepFlow) ? "" : themeDescription),
           template_id: selectedTemplateId,
           program_id: programId,
           offer_type: offerType,
           offer_id: offerId,
+          extra_offer_ids: isMultiOffer ? extraOffers.map(e => e.offerId).filter(Boolean) : [],
           audience_segment: audienceSegment || "",
         } as any)
         .select("id")
@@ -331,11 +367,13 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     setAudienceSegment(null);
     setSelectedTemplateId(null);
     setLetterTitle("");
+    setLetterThemeTitle("");
     setColorSchemeId(null);
     setImageStyleId(null);
     setProgramId(null);
     setOfferType("");
-     setOfferId(null);
+    setOfferId(null);
+    setExtraOffers([]);
     setFreeFormDescription("");
   };
 
@@ -357,6 +395,8 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
       if (step === 1) return "Шаг 1 из 3 — Как построить письмо?";
       if (step === 2) return isWebinar
         ? "Шаг 2 из 3 — Выбор вебинара и аудитории"
+        : isMultiOffer
+        ? "Шаг 2 из 3 — Для кого это письмо?"
         : "Шаг 2 из 3 — Для кого это письмо?";
       if (step === 3) return "Шаг 3 из 3 — Настройки";
       return "";
@@ -545,6 +585,18 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
                 />
               </div>
 
+              {/* For Мультиоффер: show subject/theme input */}
+              {isMultiOffer && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Тема письма (чем это о?)</Label>
+                  <Input
+                    value={letterThemeTitle}
+                    onChange={(e) => setLetterThemeTitle(e.target.value)}
+                    placeholder="Например: Как избавиться от выгорания"
+                  />
+                </div>
+              )}
+
               {/* Hide program/offer/type for webinar — already selected on step 2 */}
               {!isWebinar && (
                 <>
@@ -562,33 +614,139 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
                     </Select>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Тип оффера</Label>
-                    <Select value={offerType} onValueChange={(v) => { setOfferType(v); setOfferId(null); }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Выберите тип" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {offerTypes.map(([key, label]) => (
-                          <SelectItem key={key} value={key}>{String(label)}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {/* For Мультиоффер: show only primary offer selector without type selector */}
+                  {isMultiOffer ? (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Первый оффер</Label>
+                        <div className="flex gap-2">
+                          <Select value={offerType} onValueChange={(v) => { setOfferType(v); setOfferId(null); }}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Тип" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {offerTypes.map(([key, label]) => (
+                                <SelectItem key={key} value={key}>{String(label)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select value={offerId || ""} onValueChange={setOfferId} disabled={!programId}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Оффер" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {offers?.map((o) => (
+                                <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Конкретный оффер</Label>
-                    <Select value={offerId || ""} onValueChange={setOfferId} disabled={!programId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Выберите оффер" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {offers?.map((o) => (
-                          <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      {/* Extra offers for Мультиоффер */}
+                      {extraOffers.length > 0 && (
+                        <div className="space-y-2 border-l-2 border-muted pl-3">
+                          {extraOffers.map((extra, idx) => (
+                              <div key={idx} className="flex gap-2">
+                                <Select
+                                  value={extra.offerType}
+                                  onValueChange={(v) => {
+                                    const updated = [...extraOffers];
+                                    updated[idx].offerType = v;
+                                    updated[idx].offerId = "";
+                                    setExtraOffers(updated);
+                                  }}
+                                >
+                                  <SelectTrigger className="h-9">
+                                    <SelectValue placeholder="Тип" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {offerTypes.map(([key, label]) => (
+                                      <SelectItem key={key} value={key}>{String(label)}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Select
+                                  value={extra.offerId}
+                                  onValueChange={(v) => {
+                                    const updated = [...extraOffers];
+                                    updated[idx].offerId = v;
+                                    setExtraOffers(updated);
+                                  }}
+                                  disabled={!programId || !extra.offerType}
+                                >
+                                  <SelectTrigger className="h-9">
+                                    <SelectValue placeholder="Оффер" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(extraOffersData[idx] || []).map((o: any) => (
+                                      <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setExtraOffers(extraOffers.filter((_, i) => i !== idx));
+                                  }}
+                                  className="h-9 w-9 p-0"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Add extra offer button */}
+                      {extraOffers.length < 2 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setExtraOffers([...extraOffers, { offerType: "", offerId: "" }]);
+                          }}
+                          className="w-full"
+                        >
+                          <Plus className="h-4 w-4 mr-1.5" />
+                          Добавить оффер
+                        </Button>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Тип оффера</Label>
+                        <Select value={offerType} onValueChange={(v) => { setOfferType(v); setOfferId(null); }}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите тип" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {offerTypes.map(([key, label]) => (
+                              <SelectItem key={key} value={key}>{String(label)}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Конкретный оффер</Label>
+                        <Select value={offerId || ""} onValueChange={setOfferId} disabled={!programId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите оффер" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {offers?.map((o) => (
+                              <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 

@@ -113,7 +113,26 @@ function preprocessHtmlWithPlaceholders(
   const phMap = new Map<string, ImagePlaceholder>();
   for (const ph of placeholders) phMap.set(ph.id, ph);
 
+  // Build reverse map: type name → placeholder id (e.g. "tool_diagram" → "image_placeholder_3")
+  const typeToId = new Map<string, string>();
+  for (const ph of placeholders) {
+    if (ph.type) typeToId.set(ph.type.toLowerCase(), ph.id);
+  }
+
   let result = html;
+
+  // FALLBACK: Claude sometimes generates <div ...>type_name — WxH</div> instead of {{image_placeholder_N}}.
+  // Detect these and convert them to proper <img src="{{id}}"> markers before the main regexes run.
+  if (typeToId.size > 0) {
+    result = result.replace(
+      /<div[^>]*>\s*([a-z_]+(?:_[a-z_]+)*)\s*(?:—|–|-)\s*(\d+)\s*[x×]\s*(\d+)\s*<\/div>/gi,
+      (_match, typeName, w, h) => {
+        const id = typeToId.get(typeName.toLowerCase());
+        if (!id) return _match;
+        return `<img src="{{${id}}}" width="${w}" height="${h}" style="display:block;width:100%;height:auto;border-radius:16px;" />`;
+      }
+    );
+  }
 
   // Replace img src="{{id}}" patterns
   result = result.replace(
@@ -360,9 +379,10 @@ export default function BlockCanvas({
               }
             }}
             onBlur={(e) => {
-              // Don't close link popup if clicking inside it
+              // Don't trigger re-render if clicking inside link popup or placeholder buttons
               const related = e.relatedTarget as HTMLElement | null;
               if (related?.closest("[data-link-popup]")) return;
+              if (related?.closest("[data-placeholder-buttons]")) return;
               let html = e.currentTarget.innerHTML;
               if (imagePlaceholders?.length) {
                 html = restorePlaceholderMarkers(html, imagePlaceholders);
@@ -432,6 +452,7 @@ export default function BlockCanvas({
             return (
               <div
                 key={`ph-buttons-${rect.id}`}
+                data-placeholder-buttons
                 className="absolute flex flex-col gap-1 pointer-events-auto z-10"
                 style={{
                   top: rect.top + 4,

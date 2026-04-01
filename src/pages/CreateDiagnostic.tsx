@@ -58,7 +58,7 @@ export default function CreateDiagnostic() {
     if (!title.trim()) { toast.error("Укажите название"); return; }
     if (!description.trim()) { toast.error("Укажите описание"); return; }
     if (!imageFile) { toast.error("Загрузите изображение"); return; }
-    if (!docUrl.trim()) { toast.error("Укажите ссылку на Google Doc"); return; }
+    if (!docUrl.trim()) { toast.error("Укажите ссылку на описание"); return; }
 
     setSaving(true);
     try {
@@ -163,8 +163,9 @@ export default function CreateDiagnostic() {
             <ImageUploadField imageFile={imageFile} setImageFile={setImageFile} />
 
             <div className="space-y-2">
-              <Label>Ссылка на Google Doc</Label>
-              <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." required />
+              <Label>Ссылка на описание</Label>
+              <Input value={docUrl} onChange={(e) => setDocUrl(e.target.value)} placeholder="Google Doc или Talentsy KB ссылка" required />
+              <p className="text-xs text-muted-foreground">Поддерживаются ссылки на Google Docs и Talentsy KB (talentsy-kb.vercel.app/share/tk_...)</p>
             </div>
 
 

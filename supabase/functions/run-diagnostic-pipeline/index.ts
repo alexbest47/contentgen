@@ -59,6 +59,19 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
   return data.content?.[0]?.text || "";
 }
 
+async function fetchDocContent(docUrl: string): Promise<string> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const res = await fetch(`${supabaseUrl}/functions/v1/fetch-google-doc`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+    body: JSON.stringify({ url: docUrl }),
+  });
+  if (!res.ok) { console.error("fetch-google-doc error:", res.status, await res.text()); return ""; }
+  const data = await res.json();
+  return data.text || "";
+}
+
 function buildUserPrompt(template: string, vars: Record<string, string>, outputHint?: string): string {
   let result = template;
   for (const [key, value] of Object.entries(vars)) { result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value); }
@@ -83,7 +96,7 @@ serve(async (req) => {
     let diagnosticDocDescription = "";
     const { data: diagData } = await supabase.from("diagnostics").select("doc_url").eq("id", diagnostic_id).single();
     if (diagData?.doc_url) {
-      try { const docMatch = diagData.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/); if (docMatch) { const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`; const docResponse = await fetch(exportUrl); if (docResponse.ok) diagnosticDocDescription = await docResponse.text(); } } catch (e) { console.error("Error fetching diagnostic doc:", e); }
+      try { diagnosticDocDescription = await fetchDocContent(diagData.doc_url); } catch (e) { console.error("Error fetching diagnostic doc:", e); }
     }
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -99,7 +112,7 @@ serve(async (req) => {
 
     let programDocDescription = "";
     if (program?.program_doc_url) {
-      try { const docMatch = program.program_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/); if (docMatch) { const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`; const docResponse = await fetch(exportUrl); if (docResponse.ok) programDocDescription = await docResponse.text(); } } catch (e) { console.error("Error fetching program doc:", e); }
+      try { programDocDescription = await fetchDocContent(program.program_doc_url); } catch (e) { console.error("Error fetching program doc:", e); }
     }
 
     const templateVars: Record<string, string> = {

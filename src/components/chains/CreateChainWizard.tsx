@@ -171,6 +171,8 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
             selected_color_scheme_id: colorSchemeId || null,
             image_style_id: imageStyleId || null,
             case_id: caseId || null,
+            pdf_material_id: pdfMaterialId || null,
+            mini_course_offer_id: miniCourseOfferId || null,
             status: "draft",
           })
           .select("id")

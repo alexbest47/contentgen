@@ -9,7 +9,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, RotateCcw, Trash2 } from "lucide-react";
+import { RefreshCw, RotateCcw, Trash2, XCircle } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import {
   Pagination, PaginationContent, PaginationItem,
@@ -60,6 +65,7 @@ export default function TaskQueue() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [laneFilter, setLaneFilter] = useState("all");
   const [initialLoading, setInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,6 +76,7 @@ export default function TaskQueue() {
   const fetchTasks = useCallback(async (silent = false) => {
     if (!silent) {
       if (isFirstLoad.current) setInitialLoading(true);
+      else setIsRefreshing(true);
     }
 
     let query = supabase
@@ -93,6 +100,7 @@ export default function TaskQueue() {
         setInitialLoading(false);
         isFirstLoad.current = false;
       }
+      setIsRefreshing(false);
       return;
     }
     setTasks((data as Task[]) || []);
@@ -102,6 +110,7 @@ export default function TaskQueue() {
       setInitialLoading(false);
       isFirstLoad.current = false;
     }
+    setIsRefreshing(false);
   }, [page, statusFilter, laneFilter]);
 
   // Reset page on filter change
@@ -135,6 +144,22 @@ export default function TaskQueue() {
       supabase.removeChannel(channel);
     };
   }, [fetchTasks]);
+
+  const handleRefresh = () => {
+    fetchTasks();
+    if (tasks.some(t => t.status === "pending" || t.status === "processing")) {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      fetch(`${supabaseUrl}/functions/v1/process-queue`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({ trigger: true }),
+      }).catch(() => {});
+    }
+  };
 
   const handleRetry = async (taskId: string) => {
     const { error } = await supabase
@@ -176,28 +201,74 @@ export default function TaskQueue() {
     }
   };
 
+  const handleClearQueue = async () => {
+    const { error, count } = await supabase
+      .from("task_queue")
+      .delete()
+      .in("status", ["completed", "error"]);
+
+    if (error) {
+      toast.error("Ошибка очистки очереди");
+    } else {
+      toast.success("Очередь очищена");
+      fetchTasks();
+    }
+  };
+
   const formatTime = (dateStr: string | null) => {
     if (!dateStr) return "—";
     return format(new Date(dateStr), "dd MMM HH:mm:ss", { locale: ru });
   };
 
+  const formatSec = (sec: number) => {
+    if (sec < 60) return `${sec}с`;
+    return `${Math.floor(sec / 60)}м ${sec % 60}с`;
+  };
+
   const getDuration = (task: Task) => {
+    if (task.status === "pending") {
+      const sec = Math.round((Date.now() - new Date(task.created_at).getTime()) / 1000);
+      return `ожидает ${formatSec(sec)}`;
+    }
     if (!task.started_at) return "—";
     const end = task.completed_at ? new Date(task.completed_at) : new Date();
     const start = new Date(task.started_at);
     const sec = Math.round((end.getTime() - start.getTime()) / 1000);
-    if (sec < 60) return `${sec}с`;
-    return `${Math.floor(sec / 60)}м ${sec % 60}с`;
+    return formatSec(sec);
   };
 
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Очередь задач</h1>
-        <Button variant="outline" size="sm" onClick={() => fetchTasks()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Обновить
-        </Button>
+        <div className="flex gap-2">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                <XCircle className="h-4 w-4 mr-2" />
+                Очистить очередь
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Очистить очередь?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Будут удалены все завершённые задачи и задачи с ошибками. Задачи в обработке и в ожидании останутся.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                <AlertDialogAction onClick={handleClearQueue} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Очистить
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+            Обновить
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4">

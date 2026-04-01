@@ -201,6 +201,8 @@ serve(async (req) => {
     const templateId = letter.template_id;
     const selectedObjectionIds: string[] = (letter as any).selected_objection_ids || [];
     const imageStyleId = (letter as any).image_style_id;
+    const pdfMaterialId = (letter as any).pdf_material_id;
+    const miniCourseOfferId = (letter as any).mini_course_offer_id;
 
     let program: any = null;
     if (programId) {
@@ -228,6 +230,30 @@ serve(async (req) => {
       }
     }
 
+    // Load PDF material data
+    let pdfRegTitle = "", pdfRegUrl = "";
+    if (pdfMaterialId) {
+      const { data: pdfMat } = await sb.from("pdf_materials").select("title, landing_slug, landing_headline").eq("id", pdfMaterialId).single();
+      if (pdfMat) {
+        pdfRegTitle = pdfMat.title || "";
+        pdfRegUrl = pdfMat.landing_slug ? `https://talentsy.ru/pdf/${pdfMat.landing_slug}` : "";
+      }
+    }
+
+    // Load mini-course offer data
+    let miniCourseTitle = "", miniCourseDescription = "", miniCourseUrl = "";
+    if (miniCourseOfferId) {
+      const { data: mcOffer } = await sb.from("offers").select("title, description, landing_url, doc_url").eq("id", miniCourseOfferId).single();
+      if (mcOffer) {
+        miniCourseTitle = mcOffer.title || "";
+        miniCourseDescription = mcOffer.description || "";
+        miniCourseUrl = mcOffer.landing_url || "";
+        if (mcOffer.doc_url && !miniCourseDescription) {
+          miniCourseDescription = await fetchGoogleDoc(mcOffer.doc_url);
+        }
+      }
+    }
+
     let offersSelectionContext = "";
     if (extraOfferIds.length > 0) {
       const { data: extras } = await sb.from("offers").select("title, description, offer_type, doc_url").in("id", extraOfferIds);
@@ -242,10 +268,41 @@ serve(async (req) => {
       }
     }
 
+    // Fetch template name early — needed for multi-offer check and prompt map
     let templateName = "";
     if (templateId) {
       const { data: tpl } = await sb.from("email_templates").select("name").eq("id", templateId).single();
       if (tpl) templateName = tpl.name;
+    }
+
+    // Multi-offer: build offers_data from offer_id + extra_offer_ids
+    let offersData = "";
+    const isMultiOffer = templateName === "Мультиоффер";
+    if (isMultiOffer) {
+      const allOfferIds: string[] = [];
+      if (offerId) allOfferIds.push(offerId);
+      if (letter.extra_offer_ids && Array.isArray(letter.extra_offer_ids)) {
+        allOfferIds.push(...letter.extra_offer_ids.filter((id: string) => id && !allOfferIds.includes(id)));
+      }
+
+      if (allOfferIds.length > 0) {
+        const { data: allOffers } = await sb
+          .from("offers")
+          .select("id, title, offer_type, description, landing_url, image_url")
+          .in("id", allOfferIds);
+
+        if (allOffers && allOffers.length > 0) {
+          // Preserve order: main offer first, then extras
+          const ordered = allOfferIds
+            .map(id => allOffers.find(o => o.id === id))
+            .filter(Boolean);
+
+          offersData = ordered.map((offer: any, idx: number) => {
+            const typeLabel = OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type;
+            return `ОФФЕР ${idx + 1}:\nТип: ${typeLabel}\nНазвание: ${offer.title}\nОписание: ${offer.description || "—"}\nСсылка: ${offer.landing_url || "{{OFFER_LINK}}"}`;
+          }).join("\n\n");
+        }
+      }
     }
 
     let objectionDataMassive = "[]";
@@ -260,8 +317,16 @@ serve(async (req) => {
       }
     }
 
-    // Support chain_letter_slug from chain wizard
-    const chainLetterSlug = body.chain_letter_slug || null;
+    // Support chain_letter_slug from chain wizard or look up from DB
+    let chainLetterSlug = body.chain_letter_slug || null;
+    if (!chainLetterSlug && letter_id) {
+      const { data: chainLink } = await sb
+        .from("email_chain_letters")
+        .select("slug")
+        .eq("letter_id", letter_id)
+        .maybeSingle();
+      if (chainLink?.slug) chainLetterSlug = chainLink.slug;
+    }
 
     const TEMPLATE_PROMPT_MAP: Record<string, string> = {
       "Прямой оффер": "email-builder-direct-offer",
@@ -269,6 +334,7 @@ serve(async (req) => {
       "Приглашение на вебинар: письмо 2": "email-builder-webinar-letter-2",
       "С нуля": "email-builder-free-form",
       "Доверимся ИИ": "email-builder-ai-driven",
+      "Мультиоффер": "email-builder-multi-offer",
     };
     const promptSlug = chainLetterSlug || TEMPLATE_PROMPT_MAP[templateName] || "email-builder-full-letter";
 
@@ -358,6 +424,12 @@ serve(async (req) => {
       case_data: caseContext,
       offers_selection: offersSelectionContext,
       extra_offers: offersSelectionContext,
+      offers_data: offersData,
+      pdf_reg_title: pdfRegTitle,
+      pdf_reg_url: pdfRegUrl,
+      mini_course_title: miniCourseTitle,
+      mini_course_description: miniCourseDescription,
+      mini_course_url: miniCourseUrl,
       offer_rules: gv.offer_rules || "",
       antiAI_rules: gv.antiAI_rules || "",
       brand_voice: gv.brand_voice || "",
@@ -439,14 +511,25 @@ serve(async (req) => {
     try {
       const jsonMatch = text.match(/```json\s*([\s\S]*?)```/) || text.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text;
-      const parsed = JSON.parse(jsonStr);
+
+      let parsed: any;
+      try {
+        parsed = JSON.parse(jsonStr);
+      } catch {
+        // Fallback: Claude sometimes returns JSON with literal newlines inside string values.
+        // Replace actual newlines with spaces (safe for HTML email context).
+        const fixedStr = jsonStr.replace(/\r?\n/g, " ");
+        parsed = JSON.parse(fixedStr);
+        console.warn("JSON parsed after newline fix");
+      }
 
       html = parsed.letter_html || parsed.html || parsed.block_html || text;
       const rawImages = parsed.images || parsed.image_placeholders || [];
       imagePlaceholders = normalizeImagePlaceholders(rawImages);
       emailSubject = parsed.email_subject || "";
       emailPreheader = parsed.email_preheader || "";
-    } catch {
+    } catch (e) {
+      console.error("JSON parse failed:", (e as Error).message, "text start:", text.substring(0, 200));
       html = text;
     }
 

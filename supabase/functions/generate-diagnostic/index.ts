@@ -7,6 +7,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+async function fetchDocContent(docUrl: string): Promise<string> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const res = await fetch(`${supabaseUrl}/functions/v1/fetch-google-doc`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+    body: JSON.stringify({ url: docUrl }),
+  });
+  if (!res.ok) { console.error("fetch-google-doc error:", res.status, await res.text()); return ""; }
+  const data = await res.json();
+  return data.text || "";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -26,7 +39,7 @@ serve(async (req) => {
       throw new Error("ANTHROPIC_API_KEY not configured");
     }
 
-    // Load diagnostic doc_url for Google Doc content
+    // Load diagnostic doc_url content (supports Google Docs and Talentsy KB)
     let diagnosticDocDescription = "";
     const { data: diagData } = await supabase
       .from("diagnostics")
@@ -34,16 +47,7 @@ serve(async (req) => {
       .eq("id", diagnostic_id)
       .single();
     if (diagData?.doc_url) {
-      try {
-        const docMatch = diagData.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
-        if (docMatch) {
-          const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`;
-          const docResponse = await fetch(exportUrl);
-          if (docResponse.ok) {
-            diagnosticDocDescription = await docResponse.text();
-          }
-        }
-      } catch (e) { console.error("Error fetching diagnostic doc:", e); }
+      try { diagnosticDocDescription = await fetchDocContent(diagData.doc_url); } catch (e) { console.error("Error fetching diagnostic doc:", e); }
     }
 
     // Load prompt
@@ -66,19 +70,10 @@ serve(async (req) => {
 
     const programTitle = program?.title || "";
 
-    // Fetch program description from Google Doc if available
+    // Fetch program description (supports Google Docs and Talentsy KB)
     let programDocDescription = "";
     if (program?.program_doc_url) {
-      try {
-        const docMatch = program.program_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
-        if (docMatch) {
-          const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`;
-          const docResponse = await fetch(exportUrl);
-          if (docResponse.ok) {
-            programDocDescription = await docResponse.text();
-          }
-        }
-      } catch (e) { console.error("Error fetching program doc:", e); }
+      try { programDocDescription = await fetchDocContent(program.program_doc_url); } catch (e) { console.error("Error fetching program doc:", e); }
     }
 
     // Build user prompt with variable substitution
