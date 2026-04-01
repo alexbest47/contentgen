@@ -577,11 +577,14 @@ export default function Prompts() {
            </TabsContent>
             <TabsContent value="email_builder">
                {(() => {
-                 const general = emailBuilderPrompts.filter((p: any) => !p.channel || (p.channel !== 'webinar_before' && p.channel !== 'webinar_after'));
+                 const knownChannels = ['webinar_before', 'webinar_after', 'warming'];
+                 const general = emailBuilderPrompts.filter((p: any) => !p.channel || !knownChannels.includes(p.channel));
                  const webinarBefore = emailBuilderPrompts.filter((p: any) => p.channel === 'webinar_before').sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
                  const webinarAfter = emailBuilderPrompts.filter((p: any) => p.channel === 'webinar_after').sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                 const warming = emailBuilderPrompts.filter((p: any) => p.channel === 'warming').sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
                  const sortedGeneral = general.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
                  const hasWebinar = webinarBefore.length > 0 || webinarAfter.length > 0;
+                 const hasWarming = warming.length > 0;
                  return (
                    <div className="space-y-8">
                      {sortedGeneral.length > 0 && (
@@ -599,7 +602,14 @@ export default function Prompts() {
                          )}
                        </div>
                      )}
-                     {sortedGeneral.length === 0 && !hasWebinar && (
+                     {hasWarming && (
+                       <div className="space-y-6">
+                         <Separator />
+                         <h2 className="text-xl font-bold">Прогрев после заявки</h2>
+                         <PipelineGroup groupKey="warming" label="Прогрев после заявки (7 писем)" prompts={warming} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                       </div>
+                     )}
+                     {sortedGeneral.length === 0 && !hasWebinar && !hasWarming && (
                        <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
                      )}
                    </div>

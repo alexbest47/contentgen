@@ -11,8 +11,9 @@ const GROUP_LABELS: Record<string, string> = {
   before: "До вебинара",
   webinar_day: "День вебинара",
   after: "После вебинара",
+  warming: "Прогрев после заявки",
 };
-const GROUP_ORDER = ["before", "webinar_day", "after"];
+const GROUP_ORDER = ["before", "webinar_day", "after", "warming"];
 
 function statusBadge(status: string) {
   switch (status) {

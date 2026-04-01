@@ -29,6 +29,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
   // Selections
   const [templateId, setTemplateId] = useState<string>("");
   const [webinarOfferId, setWebinarOfferId] = useState<string>("");
+  const [programId, setProgramId] = useState<string>("");
   const [pdfMaterialId, setPdfMaterialId] = useState<string>("");
   const [caseId, setCaseId] = useState<string>("");
   const [miniCourseOfferId, setMiniCourseOfferId] = useState<string>("");
@@ -50,6 +51,15 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
     queryKey: ["webinar_offers"],
     queryFn: async () => {
       const { data } = await supabase.from("offers").select("*, paid_programs(title)").eq("offer_type", "webinar").eq("is_archived", false).order("created_at", { ascending: false });
+      return (data || []) as any[];
+    },
+    enabled: open,
+  });
+
+  const { data: programs } = useQuery({
+    queryKey: ["paid_programs_list"],
+    queryFn: async () => {
+      const { data } = await supabase.from("paid_programs").select("id, title").order("title");
       return (data || []) as any[];
     },
     enabled: open,
@@ -101,12 +111,15 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
   });
 
   const selectedTemplate = templates?.find((t: any) => t.id === templateId);
+  const isWarming = selectedTemplate?.chain_type === "warming";
   const selectedWebinar = webinars?.find((w: any) => w.id === webinarOfferId);
+  const selectedProgram = programs?.find((p: any) => p.id === programId);
 
   const reset = () => {
     setStep(1);
     setTemplateId("");
     setWebinarOfferId("");
+    setProgramId("");
     setPdfMaterialId("");
     setCaseId("");
     setMiniCourseOfferId("");
@@ -117,7 +130,8 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
   };
 
   const handleCreate = async () => {
-    if (!user || !templateId || !webinarOfferId || !chainTitle.trim() || !colorSchemeId || !imageStyleId) return;
+    const hasRequiredStep2 = isWarming ? !!programId : !!webinarOfferId;
+    if (!user || !templateId || !hasRequiredStep2 || !chainTitle.trim() || !colorSchemeId || !imageStyleId) return;
 
     // Validate that selected IDs actually exist in loaded data
     const validStyle = imageStyles?.find((s: any) => s.id === imageStyleId);
@@ -134,7 +148,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
     setCreating(true);
 
     try {
-      const programId = selectedWebinar?.program_id || null;
+      const resolvedProgramId = isWarming ? programId : (selectedWebinar?.program_id || null);
       const lettersConfig: any[] = selectedTemplate?.letters_config || [];
 
       // 1. Create chain
@@ -143,8 +157,8 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
         .insert({
           title: chainTitle.trim(),
           template_id: templateId,
-          webinar_offer_id: webinarOfferId,
-          program_id: programId,
+          webinar_offer_id: isWarming ? null : webinarOfferId,
+          program_id: resolvedProgramId,
           selected_color_scheme_id: colorSchemeId || null,
           image_style_id: imageStyleId || null,
           pdf_material_id: pdfMaterialId || null,
@@ -165,9 +179,9 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
           .insert({
             created_by: user.id,
             title: `${chainTitle} — Письмо ${lc.number}: ${lc.title}`,
-            program_id: programId,
-            offer_id: webinarOfferId,
-            offer_type: "webinar",
+            program_id: resolvedProgramId,
+            offer_id: isWarming ? null : webinarOfferId,
+            offer_type: isWarming ? null : "webinar",
             selected_color_scheme_id: colorSchemeId || null,
             image_style_id: imageStyleId || null,
             case_id: caseId || null,
@@ -240,7 +254,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
           </div>
         )}
 
-        {step === 2 && (
+        {step === 2 && !isWarming && (
           <div className="space-y-4">
             <Label>Вебинар</Label>
             <Select value={webinarOfferId} onValueChange={setWebinarOfferId}>
@@ -262,12 +276,31 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
           </div>
         )}
 
+        {step === 2 && isWarming && (
+          <div className="space-y-4">
+            <Label>Платная программа</Label>
+            <Select value={programId} onValueChange={setProgramId}>
+              <SelectTrigger><SelectValue placeholder="Выберите программу" /></SelectTrigger>
+              <SelectContent>
+                {programs?.map((p: any) => (
+                  <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedProgram && (
+              <p className="text-sm text-muted-foreground">
+                Цепочка будет создана для программы «{selectedProgram.title}»
+              </p>
+            )}
+          </div>
+        )}
+
         {step === 3 && (
           <div className="space-y-5">
             <p className="text-sm text-muted-foreground">Все поля необязательные — можно пропустить</p>
 
             <div className="space-y-2">
-              <Label>PDF при регистрации (письма 1, 10)</Label>
+              <Label>{isWarming ? "PDF-материал (письмо 4)" : "PDF при регистрации (письма 1, 10)"}</Label>
               <Select value={pdfMaterialId} onValueChange={setPdfMaterialId}>
                 <SelectTrigger><SelectValue placeholder="Пропустить" /></SelectTrigger>
                 <SelectContent>
@@ -280,7 +313,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label>Кейс студента (письма 4, 11, 15)</Label>
+              <Label>{isWarming ? "Кейс студента (письмо 3)" : "Кейс студента (письма 4, 11, 15)"}</Label>
               <Select value={caseId} onValueChange={setCaseId}>
                 <SelectTrigger><SelectValue placeholder="Пропустить" /></SelectTrigger>
                 <SelectContent>
@@ -293,7 +326,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label>Мини-курс (письмо 13)</Label>
+              <Label>{isWarming ? "Мини-курс в подарок (письмо 7)" : "Мини-курс (письмо 13)"}</Label>
               <Select value={miniCourseOfferId} onValueChange={setMiniCourseOfferId}>
                 <SelectTrigger><SelectValue placeholder="Пропустить" /></SelectTrigger>
                 <SelectContent>
@@ -308,7 +341,9 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
             <div className="flex gap-2 items-start p-3 bg-muted rounded-md">
               <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
               <p className="text-xs text-muted-foreground">
-                Схему-инструмент, провокационный контент, отработку возражений и дедлайн система генерирует сама на основе данных вебинара и программы
+                {isWarming
+                  ? "Экспертный контент, описание программы, отработку возражений и мотивацию система генерирует сама на основе данных программы"
+                  : "Схему-инструмент, провокационный контент, отработку возражений и дедлайн система генерирует сама на основе данных вебинара и программы"}
               </p>
             </div>
           </div>
@@ -321,7 +356,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
               <Input
                 value={chainTitle}
                 onChange={(e) => setChainTitle(e.target.value)}
-                placeholder="Например: Вебинар «Масштаб» — март 2026"
+                placeholder={isWarming ? "Например: Прогрев — Профессия стилист — апрель 2026" : "Например: Вебинар «Масштаб» — март 2026"}
               />
             </div>
 
@@ -370,8 +405,14 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
             <div className="rounded-md border bg-muted/50 p-3 space-y-1.5 text-sm">
               <p className="font-medium text-foreground">Сводка перед созданием</p>
               <p><span className="text-muted-foreground">Шаблон:</span> {selectedTemplate?.name || "—"}</p>
-              <p><span className="text-muted-foreground">Вебинар:</span> {selectedWebinar?.title || "—"}</p>
-              <p><span className="text-muted-foreground">Программа:</span> {selectedWebinar?.paid_programs?.title || "—"}</p>
+              {isWarming ? (
+                <p><span className="text-muted-foreground">Программа:</span> {selectedProgram?.title || "—"}</p>
+              ) : (
+                <>
+                  <p><span className="text-muted-foreground">Вебинар:</span> {selectedWebinar?.title || "—"}</p>
+                  <p><span className="text-muted-foreground">Программа:</span> {selectedWebinar?.paid_programs?.title || "—"}</p>
+                </>
+              )}
               <p><span className="text-muted-foreground">PDF:</span> {pdfMaterialId && pdfMaterialId !== "__skip__" ? pdfMaterials?.find((p: any) => p.id === pdfMaterialId)?.title : "Пропущено"}</p>
               <p><span className="text-muted-foreground">Кейс:</span> {caseId && caseId !== "__skip__" ? cases?.find((c: any) => c.id === caseId)?.file_name : "Пропущено"}</p>
               <p><span className="text-muted-foreground">Мини-курс:</span> {miniCourseOfferId && miniCourseOfferId !== "__skip__" ? miniCourses?.find((m: any) => m.id === miniCourseOfferId)?.title : "Пропущено"}</p>
@@ -394,7 +435,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
               onClick={() => setStep(step + 1)}
               disabled={
                 (step === 1 && !templateId) ||
-                (step === 2 && !webinarOfferId)
+                (step === 2 && (isWarming ? !programId : !webinarOfferId))
               }
             >
               Далее
