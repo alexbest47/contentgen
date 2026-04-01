@@ -18,7 +18,7 @@
 ## 2. Технологический стек
 
 | Слой | Технологии |
-|------|-----------|
+|------|----------|
 | Frontend | React 18, Vite 5, TypeScript 5.8, Tailwind CSS 3, shadcn/ui |
 | Роутинг | React Router v6 |
 | Состояние | TanStack React Query v5, React Context (Auth) |
@@ -77,7 +77,7 @@ src/
 │   ├── project/                     # PipelineResultView
 │   ├── prompts/                     # PromptFormDialog, PromptStepCard, PipelineGroup, и др.
 │   └── ui/                          # shadcn/ui компоненты (40+)
-├── pages/                           # 34 страницы
+├── pages/                           # 35 страниц
 └── integrations/supabase/
     ├── client.ts                    # Supabase клиент (авто-генерация)
     └── types.ts                     # TypeScript типы БД (авто-генерация)
@@ -109,8 +109,8 @@ supabase/
 │   ├── Блоки писем (email_letter_blocks) — 9 блоков
 │   └── Шаблоны писем (email_templates) — 7 шаблонов
 ├── Email-цепочки (email_chains)
-│   ├── Письма в цепочке (email_chain_letters) — 17 связей
-│   └── Шаблоны цепочек (email_chain_templates) — 1 шаблон
+│   ├── Письма в цепочке (email_chain_letters) — связь цепочка→письмо (slug, group_name)
+│   └── Шаблоны цепочек (email_chain_templates) — 2 шаблона (вебинарная + прогрев)
 ├── PDF-материалы (pdf_materials) — 8 материалов
 ├── Баннеры (banners) — 4 баннера
 ├── Кейсы (case_files) — 228 файлов
@@ -130,7 +130,7 @@ supabase/
 ### Основные маршруты (все требуют аутентификации)
 
 | Маршрут | Страница | Описание |
-|---------|----------|---------|
+|---------|----------|----------|
 | `/` | — | Редирект на `/queue` |
 | `/queue` | TaskQueue | Мониторинг очереди задач (фильтр по статусу, lane) |
 | `/programs` | Programs | Список платных программ для создания контента |
@@ -142,12 +142,12 @@ supabase/
 | `/email-builder` | EmailBuilderList | Список email-писем |
 | `/email-builder/:letterId` | EmailBuilder | 3-панельный конструктор писем |
 | `/email-chains` | EmailChainList | Список email-цепочек |
-| `/email-chains/:chainId` | EmailChainDetail | Цепочка с письмами (до/во время/после вебинара) |
+| `/email-chains/:chainId` | EmailChainDetail | Цепочка с письмами (вебинарная: до/день/после; прогрев: 7 писем) |
 
 ### Admin-only маршруты
 
 | Маршрут | Страница | Описание |
-|---------|----------|---------|
+|---------|----------|----------|
 | `/diagnostics` | Diagnostics | Список диагностик |
 | `/diagnostics/:diagnosticId` | DiagnosticDetail | Детали диагностики (генерация, статус) |
 | `/create-diagnostic` | CreateDiagnostic | Форма создания диагностики |
@@ -165,6 +165,7 @@ supabase/
 | `/email-settings` | EmailSettings | Заголовок и футер писем |
 | `/chain-templates` | ChainTemplates | Шаблоны цепочек |
 | `/prompts` | Prompts | CRUD промптов, версионирование |
+| `/diagnostics` | Diagnostics | Список диагностик с инлайн-редактированием |
 | `/prompt-variables` | PromptVariables | Глобальные переменные промптов |
 | `/tags` | Tags | Теги аудитории |
 | `/descriptions` | Descriptions | Описания программ/аудиторий |
@@ -243,6 +244,12 @@ process-queue self-chain (если еще pending задачи)
 
 ### Watchdog
 Сбрасывает зависшие задачи (processing > 3 мин) → error
+
+### pg_cron Автоматический Watchdog
+- Миграция: `20260330100000_process_queue_cron.sql`
+- Запускает `process-queue` Edge Function каждую минуту через pg_cron
+- Автоматически триггерит обработку если есть pending/processing задачи
+- Предотвращает зависание задач при сбое self-chain механизма
 
 ---
 
@@ -337,8 +344,9 @@ process-queue self-chain (если еще pending задачи)
 ### Контентные типы (12 типов)
 - lead_magnet, quiz, guide, workbook, slide, post, email, banner, diagnostic, case, pdf, custom
 
-### Каналы (4 канала)
-- instagram, telegram, vk, email
+### Каналы (4 канала + 3 email-специфичных)
+- Контентные: instagram, telegram, vk, email
+- Email Builder: webinar_before, webinar_after, warming
 
 ### Версионирование
 - Таблица `prompt_versions` с change_type (manual/ai_refine)
@@ -408,22 +416,35 @@ process-queue self-chain (если еще pending задачи)
 
 ## 11. Email Цепочки
 
-### CreateChainWizard (5 шагов)
-1. Template (выбор шаблона)
-2. Settings (параметры цепочки)
-3. Letters (выбор писем)
-4. Timing (временные промежутки)
-5. Review (подтверждение)
+### CreateChainWizard (4 шага)
+1. Template — выбор шаблона цепочки (вебинарная или прогрев после заявки)
+2. Webinar/Program — выбор вебинара (для вебинарной цепочки) или платной программы (для прогрева)
+3. Optional Content — PDF-материал, кейс студента, мини-курс (необязательно)
+4. Settings — название цепочки, цветовая гамма, стиль изображений + сводка
+
+### Два типа цепочек
+- **Вебинарная** (`chain_type: "webinar"`) — 16 писем до/во время/после вебинара, привязка к webinar offer
+- **Прогрев после заявки** (`chain_type: "warming"`) — 7 писем для нурминга лидов с заявок на платный продукт, привязка напрямую к программе (без вебинара)
+
+### Warming Chain — 7 писем (1 в день)
+1. Welcome: Добро пожаловать в Talentsy
+2. Экспертное: Профессия будущего
+3. Кейс: История выпускника
+4. Программа: Что вы получите (+ PDF)
+5. Возражения: Честные ответы
+6. Мотивация: Первый шаг сделан
+7. Подарок: Курс в подарок (мини-курс)
 
 ### Таблицы
-- `email_chains` — цепочки
-- `email_chain_letters` — связи письма-цепочка
-- `email_chain_templates` — шаблоны цепочек
+- `email_chains` — цепочки (webinar_offer_id nullable для warming)
+- `email_chain_letters` — связи письма-цепочка (slug → promptSlug для генерации)
+- `email_chain_templates` — шаблоны цепочек (поле `chain_type`: "webinar" | "warming", `letters_config` JSON)
 
-### Группировка писем
+### Группировка писем (EmailChainDetail)
 - before: До вебинара
-- during: Во время вебинара
+- webinar_day: День вебинара
 - after: После вебинара
+- warming: Прогрев после заявки
 
 ---
 
@@ -491,7 +512,7 @@ generate-card-prompt → process-diagnostic-image (chain)
 ```
 scan-case-folder → case_jobs + case_files →
 transcribe-case-file → Deepgram (async webhook) →
-deepgram-callback → classify-case (Claude, self-chaining)
+deepcgram-callback → classify-case (Claude, self-chaining)
 ```
 
 ### Поддерживаемые видеоформаты
@@ -534,10 +555,16 @@ deepgram-callback → classify-case (Claude, self-chaining)
 ## 17. Storage Buckets
 
 | Bucket | Назначение |
-|--------|-----------|
+|--------|----------|
 | generated-images | Генерируемые изображения контента |
 | quiz-images | Изображения диагностических квизов |
 | offer-images | Изображения-обложки офферов |
+
+### Локальный генерируемый контент
+- Папка: `public/generated_content/`
+- Содержит примеры сгенерированного контента для 5 программ:
+  - Гештальт-терапевт, Декоратор интерьера, Дизайнер одежды, Интегративный нутрициолог, КПТ-терапевт
+- Файлы: `test_diagnostic.txt`, `pdf_lead_magnet.txt`, `diagnostic_image.png`
 
 ---
 
@@ -575,7 +602,7 @@ deepgram-callback → classify-case (Claude, self-chaining)
 ## 21. Полный Список Таблиц БД (33 таблицы)
 
 | Таблица | Строк | Назначение |
-|---------|-------|-----------|
+|---------|-------|----------|
 | profiles | 1 | Профили пользователей |
 | user_roles | 1 | Роли (admin/user) |
 | paid_programs | 26 | Платные программы обучения |
@@ -595,7 +622,7 @@ deepgram-callback → classify-case (Claude, self-chaining)
 | email_settings | 2 | Заголовок и футер писем |
 | email_chains | 1 | Email-цепочки |
 | email_chain_letters | 17 | Связь цепочка-письмо |
-| email_chain_templates | 1 | Шаблоны цепочек |
+| email_chain_templates | 2 | Шаблоны цепочек (вебинарная + прогрев) |
 | pdf_materials | 8 | PDF-материалы |
 | banners | 4 | Библиотека баннеров |
 | color_schemes | 14 | Цветовые схемы |
@@ -614,7 +641,7 @@ deepgram-callback → classify-case (Claude, self-chaining)
 ## 22. SQL Functions (RPC)
 
 | Функция | Аргументы | Возвращает | Security Definer |
-|---------|-----------|-----------|-----------------|
+|---------|-----------|-----------|----------|
 | claim_next_task | p_lane text | SETOF task_queue | Yes |
 | has_role | _user_id uuid, _role app_role | boolean | Yes |
 | handle_new_user | — | trigger | Yes |
@@ -636,7 +663,7 @@ deepgram-callback → classify-case (Claude, self-chaining)
 ## 24. Triggers
 
 | Trigger | Таблица | Функция |
-|---------|--------|---------|
+|---------|--------|----------|
 | update_color_schemes_updated_at | color_schemes | update_updated_at_column() |
 | update_email_letter_blocks_updated_at | email_letter_blocks | update_updated_at_column() |
 | update_email_letters_updated_at | email_letters | update_updated_at_column() |
@@ -669,7 +696,7 @@ deepgram-callback → classify-case (Claude, self-chaining)
 ## 26. Внешние API и Секреты
 
 | Секрет | Назначение | Используется в |
-|--------|-----------|-----------------|
+|--------|-----------|----------|
 | ANTHROPIC_API_KEY | Claude API (текстовая генерация) | 11 функций (generate-*, classify-case, refine-prompt) |
 | OPENROUTER_API_KEY | OpenRouter/Gemini 3 Pro Image Preview (генерация изображений) | 6 функций (generate-image*, generate-banner-image, generate-pdf-material) |
 | DEEPGRAM_API_KEY | Deepgram API (транскрибация) | transcribe-case-file |
@@ -799,10 +826,11 @@ serve(async (req: Request) => {
 ### EmailChainDetail
 Цепочка писем, сгруппированных по фазам:
 - before: До вебинара
-- during: Во время вебинара
+- webinar_day: День вебинара
 - after: После вебинара
+- warming: Прогрев после заявки
 
-Позволяет переупорядочивать письма, добавлять новые, регенерировать существующие.
+Позволяет просматривать статус писем, навигировать в Email Builder, регенерировать при ошибке.
 
 ### CreateDiagnostic
 Форма создания диагностики:
@@ -848,6 +876,7 @@ Admin CRUD для промптов:
 - Управление версиями (manual/ai_refine)
 - Фильтр по content_type/channel/category
 - Bulk-операции (import/export)
+- Email Builder таб группирует промпты: «Генерация писем» (общие), «Письма ДО и ПОСЛЕ вебинара» (webinar_before/webinar_after), «Прогрев после заявки» (warming, 7 промптов)
 
 ### BannerLibrary
 Управление библиотекой баннеров:
@@ -999,7 +1028,7 @@ CRUD шаблонов email-писем (admin):
 - Try-catch в Edge Functions с failTask()
 - Graceful degradation в UI
 - User-friendly error messages в toast'ах
-- Retry-логика для네트워크ошибок
+- Retry-логика для сетевых ошибок
 
 ### Code Organization
 - Feature-based структура (pages, components, hooks)
@@ -1035,8 +1064,9 @@ CRUD шаблонов email-писем (admin):
 4. Supabase local development (если нужно)
 
 ### Деплой
-- Frontend: Vercel/Netlify (CI/CD из GitHub)
+- Frontend: Vercel (CI/CD из GitHub) — https://contentgen-five.vercel.app
 - Backend: Supabase автоматически деплоит функции из `/supabase/functions/`
+- Vercel Project: `contentgen` (team: alexbest47s-projects)
 
 ### Тестирование
 - Unit-тесты: Jest (если настроены)
@@ -1083,4 +1113,5 @@ CRUD шаблонов email-писем (admin):
 
 **Документация актуальна на**: 2026-04-01
 **GitHub**: https://github.com/alexbest47/contentgen
+**Vercel**: https://contentgen-five.vercel.app
 **Supabase Project ID**: szlvnesyoydwvtqieazo
