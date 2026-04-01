@@ -17,7 +17,6 @@ const CSS_FILES = [
 
 const BASE_PATH = "/talentsy-template/";
 
-/** Fetch all template CSS files and return inlined <style> blocks */
 async function fetchInlinedCSS(): Promise<string> {
   const baseUrl = window.location.origin + BASE_PATH;
   const results = await Promise.all(
@@ -168,13 +167,11 @@ function replaceTextInHtml(html: string, oldText: string, newText: string): stri
     return replaced ? parts.join("") : h;
   };
 
-  // First try safe direct replacement in text nodes
   if (html.includes(oldText)) {
     const result = safeReplace(html, oldText, newText);
     if (result !== html) return result;
   }
 
-  // Also try matching with &nbsp; decoded to space in text nodes
   const htmlDecoded = html.replace(/&nbsp;/g, " ");
   if (htmlDecoded.includes(oldText)) {
     const parts = html.split(/(<[^>]*>)/);
@@ -191,7 +188,6 @@ function replaceTextInHtml(html: string, oldText: string, newText: string): stri
     if (replaced) return parts.join("");
   }
 
-  // Token-based matching across HTML tags
   const tokens = oldText
     .split(/\s+/)
     .filter(Boolean)
@@ -370,10 +366,9 @@ export default function LandingPreview() {
       }
 
       rawHtmls.push(html);
-
       html = absolutifyPaths(html, baseUrl);
 
-      const blockName = def.name || joinedDef?.name || def.block_type || "\u0411\u043b\u043e\u043a";
+      const blockName = def.name || joinedDef?.name || def.block_type || "Блок";
       const blockType = def.block_type || joinedDef?.block_type || "";
       return `<div class="__preview-block__" data-block-id="${b.id}">
         <div class="__preview-block-label__">${blockName}<span class="__preview-block-type__">${blockType}</span></div>
@@ -387,7 +382,7 @@ export default function LandingPreview() {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>${landing?.name || "\u041f\u0440\u0435\u0434\u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440 \u043b\u0435\u043d\u0434\u0438\u043d\u0433\u0430"}</title>
+  <title>${landing?.name || "Предпросмотр лендинга"}</title>
   ${inlinedCSS}
   <style>
     img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
@@ -448,7 +443,7 @@ ${blockHtmls.join("\n\n")}
           <Button variant="ghost" size="icon" onClick={() => navigate(`/landings/${landingId}`)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-lg font-semibold">\u041f\u0440\u0435\u0434\u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440: {landing?.name}</h1>
+          <h1 className="text-lg font-semibold">Предпросмотр: {landing?.name}</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -457,7 +452,7 @@ ${blockHtmls.join("\n\n")}
             disabled={exporting}
             onClick={async () => {
               if (rawBlockHtmlsRef.current.length === 0) {
-                toast.error("\u041d\u0435\u0442 \u0431\u043b\u043e\u043a\u043e\u0432 \u0434\u043b\u044f \u044d\u043a\u0441\u043f\u043e\u0440\u0442\u0430");
+                toast.error("Нет блоков для экспорта");
                 return;
               }
               setExporting(true);
@@ -466,19 +461,19 @@ ${blockHtmls.join("\n\n")}
                   rawBlockHtmlsRef.current,
                   landing?.name || "landing"
                 );
-                toast.success("ZIP-\u0430\u0440\u0445\u0438\u0432 \u0441\u043a\u0430\u0447\u0430\u043d");
+                toast.success("ZIP-архив скачан");
               } catch (err: any) {
-                toast.error("\u041e\u0448\u0438\u0431\u043a\u0430 \u044d\u043a\u0441\u043f\u043e\u0440\u0442\u0430: " + err.message);
+                toast.error("Ошибка экспорта: " + err.message);
               } finally {
                 setExporting(false);
               }
             }}
           >
             {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
-            \u0421\u043a\u0430\u0447\u0430\u0442\u044c ZIP
+            Скачать ZIP
           </Button>
           <Button variant="outline" size="sm" onClick={() => navigate(`/landings/${landingId}`)}>
-            \u0412\u0435\u0440\u043d\u0443\u0442\u044c\u0441\u044f \u0432 \u043a\u043e\u043d\u0441\u0442\u0440\u0443\u043a\u0442\u043e\u0440
+            Вернуться в конструктор
           </Button>
         </div>
       </div>
