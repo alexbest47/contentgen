@@ -181,7 +181,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
             title: `${chainTitle} — Письмо ${lc.number}: ${lc.title}`,
             program_id: resolvedProgramId,
             offer_id: isWarming ? null : webinarOfferId,
-            offer_type: isWarming ? null : "webinar",
+            offer_type: isWarming ? "" : "webinar",
             selected_color_scheme_id: colorSchemeId || null,
             image_style_id: imageStyleId || null,
             case_id: caseId || null,
