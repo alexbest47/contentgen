@@ -30,3 +30,7 @@ dist-ssr
 # Temp files
 *.timestamp-*
 supabase/.temp/
+
+mini-course-factory/
+supabase/.temp/
+*.bak
