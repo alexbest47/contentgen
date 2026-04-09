@@ -70,7 +70,7 @@ export function AppSidebar() {
           <span className="text-lg font-bold text-sidebar-foreground">ContentGen</span>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="sidebar-scroll">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>

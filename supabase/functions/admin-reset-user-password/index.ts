@@ -45,10 +45,7 @@ serve(async (req) => {
       .eq("role", "admin")
       .maybeSingle();
 
-    if (roleError) {
-      throw new Error(`Role check failed: ${roleError.message}`);
-    }
-
+    if (roleError) throw new Error(`Role check failed: ${roleError.message}`);
     if (!roleRow) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
@@ -56,60 +53,39 @@ serve(async (req) => {
       });
     }
 
-    const { email, full_name, role } = await req.json();
-
-    if (!email || !full_name || !String(full_name).trim()) {
-      return new Response(JSON.stringify({ error: "email and full_name are required" }), {
+    const { user_id } = await req.json();
+    if (!user_id) {
+      return new Response(JSON.stringify({ error: "user_id is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const normalizedRole = role === "admin" ? "admin" : "user";
-    const generatedPassword = generatePassword();
-
-    const { data: createdUser, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      password: generatedPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: String(full_name).trim(),
-      },
-    });
-
-    if (createError || !createdUser.user) {
-      return new Response(JSON.stringify({ error: createError?.message ?? "Failed to create user" }), {
+    const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(user_id);
+    if (userError || !userData.user) {
+      return new Response(JSON.stringify({ error: userError?.message ?? "User not found" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { error: clearRolesError } = await adminClient
-      .from("user_roles")
-      .delete()
-      .eq("user_id", createdUser.user.id);
-
-    if (clearRolesError) {
-      await adminClient.auth.admin.deleteUser(createdUser.user.id);
-      throw new Error(`Role cleanup failed: ${clearRolesError.message}`);
-    }
-
-    const { error: insertRoleError } = await adminClient.from("user_roles").insert({
-      user_id: createdUser.user.id,
-      role: normalizedRole,
+    const newPassword = generatePassword();
+    const { error: resetError } = await adminClient.auth.admin.updateUserById(user_id, {
+      password: newPassword,
     });
 
-    if (insertRoleError) {
-      await adminClient.auth.admin.deleteUser(createdUser.user.id);
-      throw new Error(`Role insert failed: ${insertRoleError.message}`);
+    if (resetError) {
+      return new Response(JSON.stringify({ error: resetError.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(
       JSON.stringify({
-        id: createdUser.user.id,
-        email: createdUser.user.email,
-        password: generatedPassword,
-        role: normalizedRole,
+        ok: true,
+        email: userData.user.email ?? null,
+        password: newPassword,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

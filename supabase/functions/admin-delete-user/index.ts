@@ -7,13 +7,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function generatePassword(length = 14): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*";
-  const bytes = new Uint8Array(length);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -48,7 +41,6 @@ serve(async (req) => {
     if (roleError) {
       throw new Error(`Role check failed: ${roleError.message}`);
     }
-
     if (!roleRow) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
@@ -56,65 +48,31 @@ serve(async (req) => {
       });
     }
 
-    const { email, full_name, role } = await req.json();
-
-    if (!email || !full_name || !String(full_name).trim()) {
-      return new Response(JSON.stringify({ error: "email and full_name are required" }), {
+    const { user_id } = await req.json();
+    if (!user_id) {
+      return new Response(JSON.stringify({ error: "user_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (user_id === requester.id) {
+      return new Response(JSON.stringify({ error: "Нельзя удалить текущего пользователя" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const normalizedRole = role === "admin" ? "admin" : "user";
-    const generatedPassword = generatePassword();
-
-    const { data: createdUser, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      password: generatedPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: String(full_name).trim(),
-      },
-    });
-
-    if (createError || !createdUser.user) {
-      return new Response(JSON.stringify({ error: createError?.message ?? "Failed to create user" }), {
+    const { error: deleteError } = await adminClient.auth.admin.deleteUser(user_id);
+    if (deleteError) {
+      return new Response(JSON.stringify({ error: deleteError.message }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { error: clearRolesError } = await adminClient
-      .from("user_roles")
-      .delete()
-      .eq("user_id", createdUser.user.id);
-
-    if (clearRolesError) {
-      await adminClient.auth.admin.deleteUser(createdUser.user.id);
-      throw new Error(`Role cleanup failed: ${clearRolesError.message}`);
-    }
-
-    const { error: insertRoleError } = await adminClient.from("user_roles").insert({
-      user_id: createdUser.user.id,
-      role: normalizedRole,
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
-    if (insertRoleError) {
-      await adminClient.auth.admin.deleteUser(createdUser.user.id);
-      throw new Error(`Role insert failed: ${insertRoleError.message}`);
-    }
-
-    return new Response(
-      JSON.stringify({
-        id: createdUser.user.id,
-        email: createdUser.user.email,
-        password: generatedPassword,
-        role: normalizedRole,
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return new Response(JSON.stringify({ error: message }), {
