@@ -73,7 +73,7 @@ export default function BotChainDetail() {
       displayTitle: `Бот — Сообщение ${msg.step_order}: ${msg.title}`,
       lane: "claude",
       targetUrl: `/bot-chains/${chainId}/messages/${msg.id}`,
-      taskType: "content",
+      taskType: "bot_message",
     });
     queryClient.invalidateQueries({ queryKey: ["bot_chain_messages", chainId] });
   };
@@ -86,7 +86,7 @@ export default function BotChainDetail() {
       displayTitle: `Бот — Картинка для сообщения ${msg.step_order}`,
       lane: "openrouter",
       targetUrl: `/bot-chains/${chainId}/messages/${msg.id}`,
-      taskType: "content",
+      taskType: "bot_message",
     });
   };
 

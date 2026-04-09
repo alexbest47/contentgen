@@ -1,5 +1,11 @@
 project_id = "mclszzrjwhrhfqtonuiw"
 
+[functions.refine-email-letter]
+verify_jwt = false
+
+[functions.refine-post-image]
+verify_jwt = false
+
 [functions.generate-lead-magnets]
 verify_jwt = false
 

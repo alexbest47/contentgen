@@ -6,10 +6,16 @@ import { useTaskQueue } from "@/hooks/useTaskQueue";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, RefreshCw, Loader2, Image, Layers, Copy } from "lucide-react";
+import { ArrowLeft, RefreshCw, Loader2, Image, Layers, Copy, Wand2 } from "lucide-react";
 import PipelineResultView from "@/components/project/PipelineResultView";
 import { toast } from "sonner";
 import { usePromptInfo } from "@/hooks/usePromptInfo";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const DEFAULT_REFINE_IMAGE_SYSTEM_PROMPT = `Ты редактируешь существующее брендовое изображение. Сохрани общую композицию, стиль, палитру, типографику и брендовый язык оригинала. Внеси ТОЛЬКО те правки, которые просит пользователь. Не перерисовывай изображение заново, не меняй соотношение сторон и визуальную идентичность.`;
 
 const channelDisplayNames: Record<string, string> = {
   instagram: "Instagram",
@@ -35,6 +41,12 @@ export default function ContentDetail() {
   const [carouselProgress, setCarouselProgress] = useState<{ current: number; total: number } | null>(null);
   const abortRef = useRef(false);
   const copyHtmlRef = useRef<(() => void) | null>(null);
+
+  const [refineDialogOpen, setRefineDialogOpen] = useState(false);
+  const [refineSystemPrompt, setRefineSystemPrompt] = useState(DEFAULT_REFINE_IMAGE_SYSTEM_PROMPT);
+  const [refineInstructions, setRefineInstructions] = useState("");
+  const [refineSlide, setRefineSlide] = useState<string>("");
+  const [refining, setRefining] = useState(false);
 
   const formatSearch = typeof window !== "undefined" ? window.location.search : "";
   const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}${formatSearch}`;
@@ -188,6 +200,69 @@ export default function ContentDetail() {
 
   const isAnyImageGenerating = !!generatingImagesKey;
 
+  const isCarouselMode = supportsCarousel && !isEmail;
+  const canRefineImage = isEmail
+    ? !!bannerImage
+    : isCarouselMode
+      ? carouselImages.length > 0
+      : !!staticImage;
+
+  const submitRefine = async () => {
+    if (!refineInstructions.trim()) {
+      toast.error("Опишите правки");
+      return;
+    }
+    let mode: "static" | "carousel" | "banner";
+    let slide_number: number | undefined;
+    if (isEmail) {
+      mode = "banner";
+    } else if (isCarouselMode) {
+      mode = "carousel";
+      const n = parseInt(refineSlide);
+      if (!n) {
+        toast.error("Выберите номер слайда");
+        return;
+      }
+      slide_number = n;
+    } else {
+      mode = "static";
+    }
+
+    setRefining(true);
+    try {
+      const taskId = await enqueue({
+        functionName: "refine-post-image",
+        payload: {
+          mode,
+          project_id: projectId,
+          content_type: contentType,
+          slide_number,
+          user_instructions: refineInstructions,
+          system_prompt: refineSystemPrompt,
+        },
+        displayTitle: `Правка изображения${slide_number ? ` (слайд ${slide_number})` : ""}: ${contentType}`,
+        lane: "openrouter",
+        targetUrl: window.location.pathname + window.location.search,
+      });
+
+      // Poll for completion then refresh
+      const start = Date.now();
+      while (Date.now() - start < 300000) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const { data } = await supabase.from("task_queue").select("status").eq("id", taskId as any).single();
+        if (data?.status === "completed" || data?.status === "failed") break;
+      }
+      queryClient.invalidateQueries({ queryKey: ["content_pieces", projectId] });
+      toast.success("Изображение обновлено");
+      setRefineDialogOpen(false);
+      setRefineInstructions("");
+    } catch (e: any) {
+      toast.error(e.message || "Ошибка");
+    } finally {
+      setRefining(false);
+    }
+  };
+
   const carouselButtonLabel = carouselProgress
     ? `Генерация ${carouselProgress.current} из ${carouselProgress.total}...`
     : "Сгенерировать карусель";
@@ -223,6 +298,16 @@ export default function ContentDetail() {
           ) : (
             <><RefreshCw className="mr-1 h-3 w-3" />Обновить контент</>
           )}
+        </Button>
+
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setRefineDialogOpen(true)}
+          disabled={!canRefineImage || refining}
+        >
+          <Wand2 className="mr-1 h-3 w-3" />
+          Правка изображения
         </Button>
 
         {isEmail ? (
@@ -317,6 +402,66 @@ export default function ContentDetail() {
       ) : (
         <p className="text-muted-foreground text-sm">Контент не найден.</p>
       )}
+
+      <Dialog open={refineDialogOpen} onOpenChange={setRefineDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Правка изображения</DialogTitle>
+            <DialogDescription>
+              Опишите, что нужно изменить. Текущее изображение отправится в Gemini вместе с инструкциями.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {isCarouselMode && (
+              <div className="space-y-2">
+                <Label>Слайд карусели</Label>
+                <Select value={refineSlide} onValueChange={setRefineSlide}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите слайд" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {carouselImages.map((img) => (
+                      <SelectItem key={img.slideNumber} value={String(img.slideNumber)}>
+                        Слайд {img.slideNumber}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>System prompt (пресет)</Label>
+              <Textarea
+                rows={6}
+                className="font-mono text-xs"
+                value={refineSystemPrompt}
+                onChange={(e) => setRefineSystemPrompt(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Что изменить</Label>
+              <Textarea
+                rows={5}
+                placeholder="Например: замени фоновый цвет на тёплый беж, добавь иконку книги в левый верхний угол..."
+                value={refineInstructions}
+                onChange={(e) => setRefineInstructions(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setRefineSystemPrompt(DEFAULT_REFINE_IMAGE_SYSTEM_PROMPT)}
+              disabled={refining}
+            >
+              Сбросить промпт
+            </Button>
+            <Button onClick={submitRefine} disabled={refining}>
+              {refining ? (<><Loader2 className="mr-1 h-3 w-3 animate-spin" />Применяем...</>) : "Применить правки"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

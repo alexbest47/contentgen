@@ -59,6 +59,7 @@ const taskTypeLabels: Record<string, string> = {
   landing: "Лендинг",
   letter: "Письмо",
   content: "Контент",
+  bot_message: "Сообщение в бот",
 };
 
 const taskTypeColors: Record<string, string> = {
@@ -67,6 +68,7 @@ const taskTypeColors: Record<string, string> = {
   content: "bg-orange-100 text-orange-800",
   post: "bg-orange-100 text-orange-800",
   carousel: "bg-pink-100 text-pink-800",
+  bot_message: "bg-indigo-100 text-indigo-800",
 };
 
 function extractProjectId(targetUrl: string | null): string | null {
@@ -79,8 +81,12 @@ function getDisplayType(
   task: { task_type: string; display_title: string | null; target_url: string | null },
   projectFormats: Record<string, string | null>
 ): { key: string; label: string } {
+  if (task.task_type === "bot_message") {
+    return { key: "bot_message", label: "Сообщение в бот" };
+  }
   if (task.task_type === "content") {
     const t = task.display_title ?? "";
+    if (/^Бот/i.test(t)) return { key: "bot_message", label: "Сообщение в бот" };
     if (/карусел/i.test(t)) return { key: "carousel", label: "Карусель" };
     if (/\bпост/i.test(t)) return { key: "post", label: "Пост" };
     const pid = extractProjectId(task.target_url);

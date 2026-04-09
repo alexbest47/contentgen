@@ -305,7 +305,7 @@ process-queue self-chain (если еще pending задачи)
 
 ---
 
-## 8. Edge Functions (29 функций)
+## 8. Edge Functions (31 функция)
 
 ### Управление очередью
 
@@ -322,6 +322,7 @@ process-queue self-chain (если еще pending задачи)
 | generate-image | Генерация изображений проекта (карусель/пост/email) via OpenRouter | openrouter | Yes |
 | generate-pipeline | Генерация контента для канала (Instagram/Email/Telegram/VK) | claude | Yes |
 | generate-pipeline-images | Генерация карусельных/баннерных/статичных изображений для pipeline | openrouter | Yes |
+| refine-post-image | Правка существующего изображения (post/carousel/banner/bot_message): fetch текущего URL → base64 → OpenRouter Gemini мультимодально (text+image) → upload в `generated-images` → update `content_pieces` или `bot_chain_messages.image_url`. Режимы: static / carousel (+slide_number) / banner / bot_message | openrouter | Yes |
 | generate-lead-magnets | Генерация вариаций лид-магнитов (5 штук), маппинг content_type → prompt category | claude | Yes |
 | generate-project-name | Авто-генерация названия проекта (3-6 слов на русском) | claude | No |
 
@@ -331,6 +332,7 @@ process-queue self-chain (если еще pending задачи)
 |---------|-----------|------|----------|
 | generate-email-block | Генерация блока письма (HTML или изображение), два режима | claude | Yes |
 | generate-email-letter | Полная генерация письма: 35+ переменные шаблона (вкл. pre_list_*, mini_course_*, pdf_reg_*), авто-загрузка возражений для warming/closed_lead, retry-логика, JSON parsing с fallbacks | claude | Yes |
+| refine-email-letter | Правки сгенерированного письма через Claude: принимает текущий `generated_html` (без header/footer), редактируемый system_prompt + user instructions → обновляет `email_letters.generated_html`. Сохраняет структуру, таблицы, inline-стили, токены. Возвращает `{letter_html}` | claude | Yes |
 | send-test-email | Отправка тестового письма via Resend API с инъекцией preheader | — | No |
 
 ### Диагностики
@@ -1508,6 +1510,20 @@ Frontend:
   - `BOT_TEMPLATES` получил поле `kind: "webinar" | "warming"`. Новый шаблон `bot-warming-after-application` (7 сообщений на слаги `bot-warming-letter-1..7`, `channel='bot_warming'`).
   - Шаг 2 ветвится: для `kind==='webinar'` — прежний селектор вебинара, для `kind==='warming'` — селектор `paid_programs` (запрос `bot_warming_programs`).
   - `handleCreate`: для warming-шаблона `program_id = programId` напрямую, `webinar_offer_id = null`. Гейт «Далее» и сводка на шаге 4 также разветвлены по `isWarmingKind`. Остальные шаги (audience_segment / title / color scheme / image_style) одни и те же.
+
+### Изменения 2026-04-09 (image/email refine flow + Бренд-карточка style + bot_message task type)
+
+**Новый image style «Бренд-карточка»** (`image_styles`): добавлен стиль в духе edtech-брендов (бежевый фон, pill-лейблы, curvy doodles, rounded portraits, 3D-элементы). Все цвета тянутся из переменной `{{brand_style}}` — хардкод цветов запрещён. Доступен везде, где используется `{{image_style}}`.
+
+**Email refine — кнопка «Сделать правки»** в `EmailBuilderHeader` рядом с «Сгенерировать письмо». Диалог с редактируемым пресет system_prompt (запрет менять верстку, таблицы, inline-стили, токены цвета, структуру, padding, шрифты, border-radius; не трогать `<img src="{{placeholder_id}}">`) и полем user instructions. Задача идёт через `process-queue` (lane=claude, taskType=letter) → новая edge-функция `refine-email-letter` загружает `generated_html` (без header/footer — они добавляются `buildFullHtml()` в рантайме), шлёт в Claude Sonnet 4, парсит `{letter_html}`, обновляет `email_letters.generated_html`. Фронт поллит `task_queue` и перерисовывает письмо.
+
+**Image refine — кнопка «Правка изображения»** в `ContentDetail.tsx` (post / carousel / banner) и `BotMessageDetail.tsx` (картинка бот-сообщения). Для карусели сначала выбирается номер слайда через Select. Задача идёт через очередь (lane=openrouter) → новая edge-функция `refine-post-image`:
+- Режимы: `static` (→ `content_pieces.category = static_image_${ct}`), `carousel` (→ `carousel_${ct}_${N}`), `banner` (→ `banner_${ct}`), `bot_message` (→ `bot_chain_messages.image_url`).
+- Загружает текущий URL, fetch → base64 data URL, шлёт в OpenRouter `google/gemini-3-pro-image-preview` мультимодально (`content: [{type:"text"}, {type:"image_url"}]`) с редактируемым system_prompt + user edits.
+- Аплоадит результат в bucket `generated-images` (`${project_id}/${category}_refine_${Date.now()}.png` или `bot_messages/${id}_refine_*.png`), апдейтит соответствующую строку БД.
+- Полная интеграция с очередью: `_task_id` из body, `completeTask/failTask`, `verify_jwt=false` в `config.toml`.
+
+**Task Queue — лейбл «Сообщение в бот»**: в `TaskQueue.tsx` добавлены `taskTypeLabels.bot_message = "Сообщение в бот"` и соответствующий color. Во всех местах, где бот-сообщения enqueue'ятся (`BotMessageDetail`, `BotChainDetail`, `CreateBotChainWizard`), `taskType: "content"` заменён на `taskType: "bot_message"`. Добавлен fallback `getDisplayType` для легаси-задач с `task_type="content"` и `display_title` начинающимся на "Бот".
 
 **GitHub**: https://github.com/alexbest47/contentgen
 **Vercel**: https://contentgen-five.vercel.app

@@ -54,6 +54,7 @@ export default function EmailBuilder() {
   const [extraOfferIds, setExtraOfferIds] = useState<string[]>([]);
   const [audienceSegment, setAudienceSegment] = useState("");
   const [generatingLetter, setGeneratingLetter] = useState(false);
+  const [refiningLetter, setRefiningLetter] = useState(false);
   const [casePickerOpen, setCasePickerOpen] = useState(false);
   const [generatingPlaceholderIds, setGeneratingPlaceholderIds] = useState<Set<string>>(new Set());
   const [settingsMode, setSettingsMode] = useState(false);
@@ -480,6 +481,65 @@ export default function EmailBuilder() {
     }
   };
 
+  // Refine letter via Claude (in-place edits) — goes through task queue
+  const refineLetter = async (userInstructions: string, systemPrompt: string) => {
+    if (!letterId) return;
+    if (!generatedHtml) {
+      toast.error("Сначала сгенерируйте письмо");
+      return;
+    }
+    setRefiningLetter(true);
+    try {
+      const taskId = await enqueue({
+        functionName: "refine-email-letter",
+        payload: {
+          letter_id: letterId,
+          user_instructions: userInstructions,
+          system_prompt: systemPrompt,
+        },
+        displayTitle: `Правки письма: ${title || "Без названия"}`,
+        lane: "claude",
+        taskType: "letter",
+        targetUrl: `/email-builder/${letterId}`,
+      });
+      toast.success("Задача на правки добавлена в очередь");
+
+      if (taskId) {
+        const pollInterval = setInterval(async () => {
+          const { data: task } = await supabase
+            .from("task_queue")
+            .select("status, result, error_message")
+            .eq("id", taskId)
+            .single();
+          if (task?.status === "completed" || task?.status === "error") {
+            clearInterval(pollInterval);
+            setRefiningLetter(false);
+            if (task.status === "completed") {
+              const newHtml = (task.result as any)?.html;
+              if (newHtml) {
+                setGeneratedHtml(newHtml);
+                dirtyRef.current = false;
+              }
+              queryClient.invalidateQueries({ queryKey: ["email_letter", letterId] });
+              toast.success("Правки применены");
+            } else {
+              toast.error(task.error_message || "Не удалось применить правки");
+            }
+          }
+        }, 2000);
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setRefiningLetter(false);
+        }, 5 * 60 * 1000);
+      } else {
+        setRefiningLetter(false);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Не удалось поставить задачу");
+      setRefiningLetter(false);
+    }
+  };
+
   // Generate placeholder image
   const generatePlaceholderImage = async (placeholderId: string) => {
     const ph = imagePlaceholders.find((p) => p.id === placeholderId);
@@ -761,8 +821,11 @@ export default function EmailBuilder() {
         onSave={save}
         onChangeTheme={() => setThemeWizardOpen(true)}
         onGenerateLetter={generateLetter}
-        
+        onRefineLetter={refineLetter}
+
         generatingLetter={generatingLetter}
+        refiningLetter={refiningLetter}
+        canRefine={!!generatedHtml && !generatingLetter}
         canGenerate={
           (template as any)?.category === "content_email" ||
           ["Приглашение на вебинар: письмо 1", "Приглашение на вебинар: письмо 2", "С нуля", "Доверимся ИИ", "Мультиоффер"].includes(template?.name || "")

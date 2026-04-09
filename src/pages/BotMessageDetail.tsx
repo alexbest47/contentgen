@@ -6,8 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Loader2, ImagePlus, RefreshCw, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Loader2, ImagePlus, RefreshCw, Image as ImageIcon, Wand2 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+
+const DEFAULT_REFINE_IMAGE_SYSTEM_PROMPT = `Ты редактируешь существующее брендовое изображение. Сохрани общую композицию, стиль, палитру, типографику и брендовый язык оригинала. Внеси ТОЛЬКО те правки, которые просит пользователь. Не перерисовывай изображение заново, не меняй соотношение сторон и визуальную идентичность.`;
 
 function statusBadge(status: string) {
   switch (status) {
@@ -54,9 +60,55 @@ export default function BotMessageDetail() {
       displayTitle: `Бот — Картинка для сообщения ${msg.step_order}`,
       lane: "openrouter",
       targetUrl: `/bot-chains/${chainId}/messages/${msg.id}`,
-      taskType: "content",
+      taskType: "bot_message",
     });
     queryClient.invalidateQueries({ queryKey: ["bot_chain_message", messageId] });
+  };
+
+  const [refineDialogOpen, setRefineDialogOpen] = useState(false);
+  const [refineSystemPrompt, setRefineSystemPrompt] = useState(DEFAULT_REFINE_IMAGE_SYSTEM_PROMPT);
+  const [refineInstructions, setRefineInstructions] = useState("");
+  const [refining, setRefining] = useState(false);
+
+  const submitRefineImage = async () => {
+    if (!refineInstructions.trim()) {
+      toast.error("Опишите правки");
+      return;
+    }
+    if (!msg?.image_url) {
+      toast.error("Нет текущего изображения");
+      return;
+    }
+    setRefining(true);
+    try {
+      const taskId = await enqueue({
+        functionName: "refine-post-image",
+        payload: {
+          mode: "bot_message",
+          bot_message_id: msg.id,
+          user_instructions: refineInstructions,
+          system_prompt: refineSystemPrompt,
+        },
+        displayTitle: `Правка картинки (бот сообщение ${msg.step_order})`,
+        lane: "openrouter",
+        taskType: "bot_message",
+        targetUrl: `/bot-chains/${chainId}/messages/${msg.id}`,
+      });
+      const start = Date.now();
+      while (Date.now() - start < 300000) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const { data } = await supabase.from("task_queue").select("status").eq("id", taskId as any).single();
+        if (data?.status === "completed" || data?.status === "failed") break;
+      }
+      queryClient.invalidateQueries({ queryKey: ["bot_chain_message", messageId] });
+      toast.success("Изображение обновлено");
+      setRefineDialogOpen(false);
+      setRefineInstructions("");
+    } catch (e: any) {
+      toast.error(e.message || "Ошибка");
+    } finally {
+      setRefining(false);
+    }
   };
 
   const handleRegenerateText = async () => {
@@ -71,7 +123,7 @@ export default function BotMessageDetail() {
       displayTitle: `Бот — Сообщение ${msg.step_order}: ${msg.title}`,
       lane: "claude",
       targetUrl: `/bot-chains/${chainId}/messages/${msg.id}`,
-      taskType: "content",
+      taskType: "bot_message",
     });
     queryClient.invalidateQueries({ queryKey: ["bot_chain_message", messageId] });
   };
@@ -114,6 +166,11 @@ export default function BotMessageDetail() {
           {msg.imagen_prompt && (
             <Button size="sm" onClick={handleGenerateImage}>
               <ImagePlus className="h-3 w-3 mr-1" /> {msg.image_url ? "Перегенерировать" : "Сгенерировать"} изображение
+            </Button>
+          )}
+          {msg.image_url && (
+            <Button variant="secondary" size="sm" onClick={() => setRefineDialogOpen(true)}>
+              <Wand2 className="h-3 w-3 mr-1" /> Правка изображения
             </Button>
           )}
         </div>
@@ -263,6 +320,49 @@ export default function BotMessageDetail() {
           )}
         </div>
       </div>
+
+      <Dialog open={refineDialogOpen} onOpenChange={setRefineDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Правка изображения</DialogTitle>
+            <DialogDescription>
+              Текущее изображение отправится в Gemini вместе с инструкциями.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>System prompt (пресет)</Label>
+              <Textarea
+                rows={6}
+                className="font-mono text-xs"
+                value={refineSystemPrompt}
+                onChange={(e) => setRefineSystemPrompt(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Что изменить</Label>
+              <Textarea
+                rows={5}
+                placeholder="Например: замени фоновый цвет, добавь иконку..."
+                value={refineInstructions}
+                onChange={(e) => setRefineInstructions(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setRefineSystemPrompt(DEFAULT_REFINE_IMAGE_SYSTEM_PROMPT)}
+              disabled={refining}
+            >
+              Сбросить промпт
+            </Button>
+            <Button onClick={submitRefineImage} disabled={refining}>
+              {refining ? (<><Loader2 className="mr-1 h-3 w-3 animate-spin" />Применяем...</>) : "Применить правки"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

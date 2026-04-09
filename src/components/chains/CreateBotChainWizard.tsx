@@ -200,7 +200,7 @@ export default function CreateBotChainWizard({ open, onOpenChange }: Props) {
           displayTitle: `Бот «${chainTitle}» — Сообщение ${m.step_order}: ${m.title}`,
           lane: "claude",
           targetUrl: `/bot-chains/${chainId}/messages/${(msg as any).id}`,
-          taskType: "content",
+          taskType: "bot_message",
         });
       }
 

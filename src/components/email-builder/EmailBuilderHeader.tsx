@@ -5,7 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, Download, Loader2, Tag, Send } from "lucide-react";
+import { Sparkles, Download, Loader2, Tag, Send, Wand2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+
+const DEFAULT_REFINE_SYSTEM_PROMPT = `Ты — редактор email-писем. Тебе присылают уже сверстанный HTML письма (без хедера и футера — они добавляются отдельно) и комментарии пользователя с правками.
+
+ТВОЯ ЗАДАЧА:
+- Внести только те правки, о которых просит пользователь.
+- СОХРАНИТЬ принципы вёрстки: таблицы, inline-стили, ширины, цветовые токены, структуру блоков, отступы, шрифты, скругления, кнопки, табличную email-совместимую разметку. Ничего лишнего не трогай.
+- НЕ менять общую структуру письма без явной просьбы.
+- НЕ добавлять новые <html>, <head>, <body>, <style> блоки. Возвращай только тот же фрагмент, что прислали (без хедера/футера).
+- НЕ трогать теги <img> с src в виде {{placeholder_id}} — они подставляются системой.
+- Любые добавляемые кнопки/ссылки оформляй в том же стиле, что уже используется в письме (такие же цвета, радиусы, отступы, шрифт).
+- Если пользователь просит добавить ссылку — вставляй href аккуратно в соответствующий текст/кнопку.
+- Тон текста и голос бренда сохраняй как в исходнике.
+
+ФОРМАТ ОТВЕТА:
+Верни СТРОГО JSON вида {"letter_html": "...обновлённый HTML..."} — без пояснений, без markdown-блоков, без текста вокруг JSON.`;
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 import { useQuery } from "@tanstack/react-query";
@@ -27,22 +43,28 @@ interface Props {
   onSave: () => void;
   onChangeTheme: () => void;
   onGenerateLetter: () => void;
+  onRefineLetter: (userInstructions: string, systemPrompt: string) => Promise<void> | void;
   onTestEmail: (email: string) => void;
-  
+
   generatingLetter: boolean;
+  refiningLetter: boolean;
   canGenerate: boolean;
+  canRefine: boolean;
   testingEmail: boolean;
 }
 
 export default function EmailBuilderHeader({
   title, subject, preheader, colorSchemeId, letterThemeTitle, saveStatus,
   onChangeTitle, onChangeSubject, onChangePreheader, onChangeColorScheme,
-  onExportHtml, onSave, onChangeTheme, onGenerateLetter, onTestEmail,
-  generatingLetter, canGenerate, testingEmail,
+  onExportHtml, onSave, onChangeTheme, onGenerateLetter, onRefineLetter, onTestEmail,
+  generatingLetter, refiningLetter, canGenerate, canRefine, testingEmail,
 }: Props) {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [confirmExportOpen, setConfirmExportOpen] = useState(false);
+  const [refineDialogOpen, setRefineDialogOpen] = useState(false);
+  const [refineSystemPrompt, setRefineSystemPrompt] = useState(DEFAULT_REFINE_SYSTEM_PROMPT);
+  const [refineInstructions, setRefineInstructions] = useState("");
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
@@ -74,6 +96,16 @@ export default function EmailBuilderHeader({
           <Button size="sm" onClick={onGenerateLetter} disabled={generatingLetter || !canGenerate} className="gap-1.5">
             {generatingLetter ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             Сгенерировать письмо
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setRefineDialogOpen(true)}
+            disabled={refiningLetter || !canRefine}
+            className="gap-1.5"
+          >
+            {refiningLetter ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+            Сделать правки
           </Button>
         </div>
         <div className="flex items-center gap-2">
@@ -152,6 +184,61 @@ export default function EmailBuilderHeader({
             >
               {testingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
               Отправить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={refineDialogOpen} onOpenChange={setRefineDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Сделать правки в письме</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label className="text-xs">
+                Системный промпт (можно дополнить — правила, которые должен соблюдать редактор)
+              </Label>
+              <Textarea
+                value={refineSystemPrompt}
+                onChange={(e) => setRefineSystemPrompt(e.target.value)}
+                rows={10}
+                className="text-xs font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">
+                Что именно нужно поправить? Опишите правки своими словами
+              </Label>
+              <Textarea
+                value={refineInstructions}
+                onChange={(e) => setRefineInstructions(e.target.value)}
+                rows={5}
+                placeholder={'Например: "Добавь ссылку на программу в первый абзац", "Сделай дополнительную CTA-кнопку "Узнать подробнее" под первым блоком", "Замени заголовок на более короткий"'}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRefineSystemPrompt(DEFAULT_REFINE_SYSTEM_PROMPT);
+              }}
+            >
+              Сбросить промпт
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!refineInstructions.trim()) return;
+                await onRefineLetter(refineInstructions.trim(), refineSystemPrompt);
+                setRefineDialogOpen(false);
+                setRefineInstructions("");
+              }}
+              disabled={!refineInstructions.trim() || refiningLetter}
+              className="gap-1.5"
+            >
+              {refiningLetter ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+              Применить правки
             </Button>
           </DialogFooter>
         </DialogContent>
