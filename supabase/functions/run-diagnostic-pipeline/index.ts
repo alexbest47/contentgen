@@ -108,7 +108,19 @@ serve(async (req) => {
     const prompt1 = prompts.find((p: any) => p.name.includes("теста")) || prompts[0];
     const prompt2 = prompts.find((p: any) => p.name.includes("карт")) || (prompts.length > 1 ? prompts[1] : null);
 
-    const { data: program } = await supabase.from("paid_programs").select("title, description, audience_description, program_doc_url").eq("id", program_id).single();
+    const { data: program } = await supabase.from("paid_programs").select("title, description, audience_description, audience_doc_url, program_doc_url").eq("id", program_id).single();
+
+    // Always fetch fresh audience description from URL, fallback to cached
+    let audienceDescription = "";
+    if (program?.audience_doc_url) {
+      try {
+        audienceDescription = await fetchDocContent(program.audience_doc_url);
+        if (audienceDescription) {
+          await supabase.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
+        }
+      } catch (e) { console.error("Error fetching audience doc:", e); }
+    }
+    if (!audienceDescription) audienceDescription = program?.audience_description || "";
 
     let programDocDescription = "";
     if (program?.program_doc_url) {
@@ -116,7 +128,7 @@ serve(async (req) => {
     }
 
     const templateVars: Record<string, string> = {
-      program_title: program?.title || "", program_description: program?.description || "", audience_description: program?.audience_description || "",
+      program_title: program?.title || "", program_description: program?.description || "", audience_description: audienceDescription,
       offer_title: name || "", offer_value: description || "", offer_description: diagnosticDocDescription, offer_image: "", program_doc_description: programDocDescription, test_description: diagnosticDocDescription,
     };
 

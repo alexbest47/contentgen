@@ -9,6 +9,7 @@ import { ChevronRight, ArrowLeft, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { getOfferTypeLabel } from "@/lib/offerTypes";
+import { useContentFormat, appendFormat } from "@/lib/contentFormat";
 
 const statusLabels: Record<string, string> = {
   draft: "Черновик",
@@ -29,6 +30,7 @@ export default function OfferTypeDetail() {
   const { programId, offerType } = useParams();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { format, suffix } = useContentFormat();
 
   const isDiagnosticType = offerType === "diagnostic";
   const isPdfType = offerType === "download_pdf";
@@ -121,7 +123,7 @@ export default function OfferTypeDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate(`/programs/${programId}`)}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(`/programs/${programId}${suffix}`)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
@@ -147,7 +149,7 @@ export default function OfferTypeDetail() {
                 className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => {
                   if (d.offer_id) {
-                    navigate(`/programs/${programId}/offers/diagnostic/${d.offer_id}`);
+                    navigate(appendFormat(`/programs/${programId}/offers/diagnostic/${d.offer_id}`, format));
                   } else {
                     toast.error("У этой диагностики нет привязанного оффера");
                   }
@@ -192,7 +194,7 @@ export default function OfferTypeDetail() {
                 className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => {
                   if (m.offer_id) {
-                    navigate(`/programs/${programId}/offers/download_pdf/${m.offer_id}`);
+                    navigate(appendFormat(`/programs/${programId}/offers/download_pdf/${m.offer_id}`, format));
                   } else {
                     toast.error("У этого PDF нет привязанного оффера. Пересоздайте материал.");
                   }
@@ -226,7 +228,7 @@ export default function OfferTypeDetail() {
               <div
                 key={o.id}
                 className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => navigate(`/programs/${programId}/offers/${offerType}/${o.id}`)}
+                onClick={() => navigate(appendFormat(`/programs/${programId}/offers/${offerType}/${o.id}`, format))}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   {o.image_url && (

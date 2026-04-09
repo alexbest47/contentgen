@@ -7,6 +7,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function fetchDocContent(url: string): Promise<string> {
+  try {
+    if (!url) return "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resp = await fetch(`${supabaseUrl}/functions/v1/fetch-google-doc`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ url }),
+    });
+    if (!resp.ok) {
+      console.error(`fetch-google-doc error: ${resp.status} for ${url}`);
+      return "";
+    }
+    const data = await resp.json();
+    return data.text || "";
+  } catch (e) {
+    console.error("Error fetching doc content:", url, e);
+  }
+  return "";
+}
+
 const OFFER_TYPE_LABELS: Record<string, string> = {
   mini_course: "Мини-курс", diagnostic: "Диагностика", webinar: "Вебинар",
   pre_list: "Предсписок", new_stream: "Старт нового потока", spot_available: "Освободилось место",
@@ -64,18 +89,31 @@ serve(async (req) => {
 
     const offer = project.offers;
     if (!offer) throw new Error("Project has no associated offer");
-    const program = offer.paid_programs;
+    let program = offer.paid_programs;
+    if (project.program_id) {
+      const { data: projProgram } = await supabase.from("paid_programs").select("*").eq("id", project.program_id).single();
+      if (projProgram) program = projProgram;
+    }
+    if (!program) throw new Error("Project has no associated paid program");
     const selectedLead = project.lead_magnets?.find((lm: any) => lm.is_selected);
     if (!selectedLead) throw new Error("Не выбран лид-магнит");
 
-    let audienceDescription = program.audience_description || "";
-    if (program.audience_doc_url && !audienceDescription) {
-      try { const docMatch = program.audience_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/); if (docMatch) { const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`; const docResponse = await fetch(exportUrl); if (docResponse.ok) { audienceDescription = await docResponse.text(); await supabase.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id); } } } catch (docErr) { console.error("Error fetching Google Doc:", docErr); }
+    let audienceDescription = "";
+    if (program.audience_doc_url) {
+      try {
+        audienceDescription = await fetchDocContent(program.audience_doc_url);
+        if (audienceDescription) {
+          await supabase.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
+        }
+      } catch (docErr) { console.error("Error fetching audience doc:", docErr); }
     }
+    if (!audienceDescription) audienceDescription = program.audience_description || "";
 
     let offerDescription = "";
     if (offer.doc_url) {
-      try { const docMatch = offer.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/); if (docMatch) { const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`; const docResponse = await fetch(exportUrl); if (docResponse.ok) offerDescription = await docResponse.text(); } } catch (docErr) { console.error("Error fetching offer Google Doc:", docErr); }
+      try {
+        offerDescription = await fetchDocContent(offer.doc_url);
+      } catch (docErr) { console.error("Error fetching offer Google Doc:", docErr); }
     }
 
     const projectContentType = project.content_type || "lead_magnet";

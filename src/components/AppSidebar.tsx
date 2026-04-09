@@ -8,14 +8,19 @@ import {
 import {
   GraduationCap, Tag, TableProperties,
   MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion, MailPlus, TreePine, FileText, FilePlus2,
-  BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown, ListOrdered, ImageIcon, Link2, Layers,
+  BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown, ListOrdered, ImageIcon, Link2, Layers, Layout, FileImage, GalleryHorizontal,
 } from "lucide-react";
 
-const mainNav = [
+const topNav = [
   { title: "Очередь задач", url: "/queue", icon: ListOrdered },
-  { title: "Создание контента", url: "/programs", icon: GraduationCap },
+];
+
+const contentCreationNav = [
+  { title: "Создание поста", url: "/post", icon: FileImage },
+  { title: "Создание карусели", url: "/carousel", icon: GalleryHorizontal },
   { title: "Конструктор писем", url: "/email-builder", icon: MailPlus },
   { title: "Конструктор цепочек", url: "/email-chains", icon: Link2 },
+  { title: "Конструктор лендингов", url: "/landings", icon: Layout },
 ];
 
 const offerPrepNav = [
@@ -67,13 +72,30 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Основное</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNav.map((item) => (
+              {topNav.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
-                    isActive={location.pathname === item.url}
+                    isActive={(location.pathname + location.search) === item.url || location.pathname === item.url}
+                    onClick={() => navigate(item.url)}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Создание контента</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {contentCreationNav.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton
+                    isActive={(location.pathname + location.search) === item.url || location.pathname === item.url}
                     onClick={() => navigate(item.url)}
                   >
                     <item.icon className="h-4 w-4" />
@@ -92,7 +114,7 @@ export function AppSidebar() {
                 {offerPrepNav.map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
-                      isActive={location.pathname === item.url}
+                      isActive={(location.pathname + location.search) === item.url || location.pathname === item.url}
                       onClick={() => navigate(item.url)}
                     >
                       <item.icon className="h-4 w-4" />
@@ -112,7 +134,7 @@ export function AppSidebar() {
                 {contentPrepNav.map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
-                      isActive={location.pathname === item.url}
+                      isActive={(location.pathname + location.search) === item.url || location.pathname === item.url}
                       onClick={() => navigate(item.url)}
                     >
                       <item.icon className="h-4 w-4" />
@@ -132,7 +154,7 @@ export function AppSidebar() {
                 {adminNav.map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
-                      isActive={location.pathname === item.url}
+                      isActive={(location.pathname + location.search) === item.url || location.pathname === item.url}
                       onClick={() => navigate(item.url)}
                     >
                       <item.icon className="h-4 w-4" />
@@ -152,7 +174,7 @@ export function AppSidebar() {
                 {emailSettingsNav.map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
-                      isActive={location.pathname === item.url}
+                      isActive={(location.pathname + location.search) === item.url || location.pathname === item.url}
                       onClick={() => navigate(item.url)}
                     >
                       <item.icon className="h-4 w-4" />

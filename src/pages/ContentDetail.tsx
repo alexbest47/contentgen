@@ -11,11 +11,16 @@ import PipelineResultView from "@/components/project/PipelineResultView";
 import { toast } from "sonner";
 import { usePromptInfo } from "@/hooks/usePromptInfo";
 
-const contentTypeLabels: Record<string, string> = {
-  instagram: "Пост в Instagram",
-  telegram: "Пост в Telegram",
-  vk: "Пост в ВКонтакте",
-  email: "Email-рассылка",
+const channelDisplayNames: Record<string, string> = {
+  instagram: "Instagram",
+  telegram: "Telegram",
+  vk: "ВКонтакте",
+};
+
+const contentTypeLabel = (ct: string, format: "post" | "carousel" | null | undefined) => {
+  if (ct === "email") return "Email-рассылка";
+  const name = channelDisplayNames[ct] ?? ct;
+  return `${format === "carousel" ? "Карусель" : "Пост"} в ${name}`;
 };
 
 const isEmailType = (ct: string) => ct === "email";
@@ -31,7 +36,8 @@ export default function ContentDetail() {
   const abortRef = useRef(false);
   const copyHtmlRef = useRef<(() => void) | null>(null);
 
-  const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`;
+  const formatSearch = typeof window !== "undefined" ? window.location.search : "";
+  const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}${formatSearch}`;
   const isEmail = isEmailType(contentType!);
 
   const { data: project } = useQuery({
@@ -39,7 +45,7 @@ export default function ContentDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("content_type")
+        .select("content_type, content_format")
         .eq("id", projectId!)
         .single();
       if (error) throw error;
@@ -47,11 +53,15 @@ export default function ContentDetail() {
     },
   });
 
-  const supportsCarousel = !["expert_content", "provocative_content", "testimonial_content", "myth_busting", "objection_handling"].includes(project?.content_type ?? "");
-  const supportsStaticImage = !["list_content"].includes(project?.content_type ?? "");
+  const projectFormat = (project as any)?.content_format as ("post" | "carousel" | null | undefined);
+  const baseSupportsCarousel = !["expert_content", "provocative_content", "testimonial_content", "myth_busting", "objection_handling"].includes(project?.content_type ?? "");
+  const baseSupportsStaticImage = !["list_content"].includes(project?.content_type ?? "");
+  const supportsCarousel = projectFormat ? projectFormat === "carousel" : baseSupportsCarousel;
+  const supportsStaticImage = projectFormat ? projectFormat === "post" : baseSupportsStaticImage;
 
   const { data: promptInfo } = usePromptInfo({
     content_type: contentType,
+    sub_type: projectFormat ?? undefined,
     enabled: !!contentType,
   });
 
@@ -89,10 +99,10 @@ export default function ContentDetail() {
       setGeneratingKey("pipeline");
       await enqueue({
         functionName: "generate-pipeline",
-        payload: { project_id: projectId, content_type: contentType },
-        displayTitle: `Перегенерация контента: ${contentType}`,
+        payload: { project_id: projectId, content_type: contentType, content_format: projectFormat ?? undefined },
+        displayTitle: `Перегенерация ${projectFormat === "carousel" ? "карусели" : "поста"}: ${contentType}`,
         lane: "claude",
-        targetUrl: window.location.pathname,
+        targetUrl: window.location.pathname + window.location.search,
       });
     },
     onSuccess: () => {
@@ -190,7 +200,7 @@ export default function ContentDetail() {
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">
-            {contentTypeLabels[contentType!] ?? contentType}
+            {contentTypeLabel(contentType!, projectFormat)}
           </h1>
           {promptInfo?.[0] && (
             <p className="text-xs text-muted-foreground">
@@ -286,6 +296,7 @@ export default function ContentDetail() {
           isEmail={isEmail}
           contentType={contentType}
           projectContentType={project?.content_type}
+          projectFormat={projectFormat}
           carouselImages={carouselImages}
           staticImage={staticImage}
           bannerImage={bannerImage}

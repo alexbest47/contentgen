@@ -145,8 +145,13 @@ function SlotEditor({
   const { data: offers } = useQuery({
     queryKey: ["offers_for_slot", slot.program_id, slot.offer_type],
     queryFn: async () => {
-      let q = supabase.from("offers").select("id, title").eq("program_id", slot.program_id).eq("is_archived", false);
-      if (slot.offer_type) q = q.eq("offer_type", slot.offer_type);
+      let q = supabase.from("offers").select("id, title").eq("is_archived", false);
+      if (slot.offer_type === "spot_available") {
+        q = q.eq("offer_type", "spot_available");
+      } else {
+        q = q.eq("program_id", slot.program_id);
+        if (slot.offer_type) q = q.eq("offer_type", slot.offer_type);
+      }
       const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
     },

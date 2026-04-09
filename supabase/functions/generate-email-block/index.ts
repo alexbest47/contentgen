@@ -12,14 +12,28 @@ const OFFER_TYPE_LABELS: Record<string, string> = {
   discount: "Промокод", download_pdf: "Скачай PDF",
 };
 
-async function fetchGoogleDoc(url: string): Promise<string> {
+async function fetchDocContent(url: string): Promise<string> {
   try {
-    const match = url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
-    if (!match) return "";
-    const exportUrl = `https://docs.google.com/document/d/${match[1]}/export?format=txt`;
-    const resp = await fetch(exportUrl);
-    if (resp.ok) return await resp.text();
-  } catch (e) { console.error("Error fetching Google Doc:", e); }
+    if (!url) return "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resp = await fetch(`${supabaseUrl}/functions/v1/fetch-google-doc`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ url }),
+    });
+    if (!resp.ok) {
+      console.error(`fetch-google-doc error: ${resp.status} for ${url}`);
+      return "";
+    }
+    const data = await resp.json();
+    return data.text || "";
+  } catch (e) {
+    console.error("Error fetching doc content:", url, e);
+  }
   return "";
 }
 
@@ -133,7 +147,7 @@ serve(async (req) => {
         offerTitle = offer.title;
         offerValue = offer.description || "";
         offerImageUrl = offer.image_url || "";
-        offerDesc = offer.doc_url ? await fetchGoogleDoc(offer.doc_url) : "";
+        offerDesc = offer.doc_url ? await fetchDocContent(offer.doc_url) : "";
         offerType = OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type;
       }
     }
@@ -165,19 +179,22 @@ serve(async (req) => {
       return text.substring(0, max) + "\n...[обрезано]";
     }
 
-    // Fetch audience description
-    let audienceDescription = program?.audience_description || "";
-    if (program?.audience_doc_url && !audienceDescription) {
-      audienceDescription = await fetchGoogleDoc(program.audience_doc_url);
-      if (audienceDescription) {
-        await sb.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
-      }
+    // Fetch audience description — always fresh from URL, fallback to cached
+    let audienceDescription = "";
+    if (program?.audience_doc_url) {
+      try {
+        audienceDescription = await fetchDocContent(program.audience_doc_url);
+        if (audienceDescription) {
+          await sb.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
+        }
+      } catch (docErr) { console.error("Error fetching audience doc:", docErr); }
     }
+    if (!audienceDescription) audienceDescription = program?.audience_description || "";
 
     // Fetch program doc description
     let programDocDescription = "";
     if (program?.program_doc_url) {
-      programDocDescription = await fetchGoogleDoc(program.program_doc_url);
+      programDocDescription = await fetchDocContent(program.program_doc_url);
     }
 
     // Truncate heavy fields

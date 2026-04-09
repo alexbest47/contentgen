@@ -398,6 +398,7 @@ export type Database = {
       }
       email_chain_templates: {
         Row: {
+          chain_type: string
           created_at: string
           description: string
           id: string
@@ -407,6 +408,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          chain_type?: string
           created_at?: string
           description?: string
           id?: string
@@ -416,6 +418,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          chain_type?: string
           created_at?: string
           description?: string
           id?: string
@@ -435,6 +438,7 @@ export type Database = {
           image_style_id: string | null
           mini_course_offer_id: string | null
           pdf_material_id: string | null
+          pre_list_offer_id: string | null
           program_id: string | null
           selected_color_scheme_id: string | null
           status: string
@@ -450,6 +454,7 @@ export type Database = {
           image_style_id?: string | null
           mini_course_offer_id?: string | null
           pdf_material_id?: string | null
+          pre_list_offer_id?: string | null
           program_id?: string | null
           selected_color_scheme_id?: string | null
           status?: string
@@ -465,6 +470,7 @@ export type Database = {
           image_style_id?: string | null
           mini_course_offer_id?: string | null
           pdf_material_id?: string | null
+          pre_list_offer_id?: string | null
           program_id?: string | null
           selected_color_scheme_id?: string | null
           status?: string
@@ -502,6 +508,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "email_chains_pre_list_offer_id_fkey"
+            columns: ["pre_list_offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "email_chains_program_id_fkey"
             columns: ["program_id"]
             isOneToOne: false
@@ -533,36 +546,36 @@ export type Database = {
       }
       email_letter_blocks: {
         Row: {
-          banner_image_prompt: string
-          banner_image_url: string
+          banner_image_prompt: string | null
+          banner_image_url: string | null
           block_type: string
           config: Json
           created_at: string
-          generated_html: string
+          generated_html: string | null
           id: string
           letter_id: string
           sort_order: number
           updated_at: string
         }
         Insert: {
-          banner_image_prompt?: string
-          banner_image_url?: string
+          banner_image_prompt?: string | null
+          banner_image_url?: string | null
           block_type: string
           config?: Json
           created_at?: string
-          generated_html?: string
+          generated_html?: string | null
           id?: string
           letter_id: string
           sort_order?: number
           updated_at?: string
         }
         Update: {
-          banner_image_prompt?: string
-          banner_image_url?: string
+          banner_image_prompt?: string | null
+          banner_image_url?: string | null
           block_type?: string
           config?: Json
           created_at?: string
-          generated_html?: string
+          generated_html?: string | null
           id?: string
           letter_id?: string
           sort_order?: number
@@ -578,10 +591,52 @@ export type Database = {
           },
         ]
       }
+      email_letter_lead_magnets: {
+        Row: {
+          content_type: string
+          created_at: string
+          id: string
+          letter_id: string
+          payload: Json
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          id?: string
+          letter_id: string
+          payload?: Json
+          sort_order?: number
+          title?: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          id?: string
+          letter_id?: string
+          payload?: Json
+          sort_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_letter_lead_magnets_letter_id_fkey"
+            columns: ["letter_id"]
+            isOneToOne: false
+            referencedRelation: "email_letters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_letters: {
         Row: {
           audience_segment: string
           case_id: string | null
+          content_options_status: string | null
+          content_source_id: string | null
+          content_topic_mode: string | null
+          content_type: string | null
           created_at: string
           created_by: string
           extra_offer_ids: string[]
@@ -591,8 +646,11 @@ export type Database = {
           image_style_id: string | null
           letter_theme_description: string
           letter_theme_title: string
+          mini_course_offer_id: string | null
           offer_id: string | null
           offer_type: string
+          pdf_material_id: string | null
+          pre_list_offer_id: string | null
           preheader: string
           program_id: string | null
           selected_color_scheme_id: string | null
@@ -602,10 +660,15 @@ export type Database = {
           template_id: string | null
           title: string
           updated_at: string
+          user_topic: string | null
         }
         Insert: {
           audience_segment?: string
           case_id?: string | null
+          content_options_status?: string | null
+          content_source_id?: string | null
+          content_topic_mode?: string | null
+          content_type?: string | null
           created_at?: string
           created_by: string
           extra_offer_ids?: string[]
@@ -615,8 +678,11 @@ export type Database = {
           image_style_id?: string | null
           letter_theme_description?: string
           letter_theme_title?: string
+          mini_course_offer_id?: string | null
           offer_id?: string | null
           offer_type?: string
+          pdf_material_id?: string | null
+          pre_list_offer_id?: string | null
           preheader?: string
           program_id?: string | null
           selected_color_scheme_id?: string | null
@@ -626,10 +692,15 @@ export type Database = {
           template_id?: string | null
           title?: string
           updated_at?: string
+          user_topic?: string | null
         }
         Update: {
           audience_segment?: string
           case_id?: string | null
+          content_options_status?: string | null
+          content_source_id?: string | null
+          content_topic_mode?: string | null
+          content_type?: string | null
           created_at?: string
           created_by?: string
           extra_offer_ids?: string[]
@@ -639,8 +710,11 @@ export type Database = {
           image_style_id?: string | null
           letter_theme_description?: string
           letter_theme_title?: string
+          mini_course_offer_id?: string | null
           offer_id?: string | null
           offer_type?: string
+          pdf_material_id?: string | null
+          pre_list_offer_id?: string | null
           preheader?: string
           program_id?: string | null
           selected_color_scheme_id?: string | null
@@ -650,6 +724,7 @@ export type Database = {
           template_id?: string | null
           title?: string
           updated_at?: string
+          user_topic?: string | null
         }
         Relationships: [
           {
@@ -667,8 +742,29 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "email_letters_mini_course_offer_id_fkey"
+            columns: ["mini_course_offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "email_letters_offer_id_fkey"
             columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_letters_pdf_material_id_fkey"
+            columns: ["pdf_material_id"]
+            isOneToOne: false
+            referencedRelation: "pdf_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_letters_pre_list_offer_id_fkey"
+            columns: ["pre_list_offer_id"]
             isOneToOne: false
             referencedRelation: "offers"
             referencedColumns: ["id"]
@@ -721,6 +817,7 @@ export type Database = {
         Row: {
           blocks: Json
           category: string
+          content_type: string | null
           created_at: string
           description: string
           id: string
@@ -730,6 +827,7 @@ export type Database = {
         Insert: {
           blocks?: Json
           category?: string
+          content_type?: string | null
           created_at?: string
           description?: string
           id?: string
@@ -739,6 +837,7 @@ export type Database = {
         Update: {
           blocks?: Json
           category?: string
+          content_type?: string | null
           created_at?: string
           description?: string
           id?: string
@@ -824,6 +923,240 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      landing_block_definitions: {
+        Row: {
+          block_type: string
+          category: string
+          created_at: string
+          default_content: Json | null
+          default_settings: Json
+          description: string | null
+          editable_fields: Json
+          html_template: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          thumbnail_url: string | null
+        }
+        Insert: {
+          block_type: string
+          category: string
+          created_at?: string
+          default_content?: Json | null
+          default_settings?: Json
+          description?: string | null
+          editable_fields?: Json
+          html_template?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          thumbnail_url?: string | null
+        }
+        Update: {
+          block_type?: string
+          category?: string
+          created_at?: string
+          default_content?: Json | null
+          default_settings?: Json
+          description?: string | null
+          editable_fields?: Json
+          html_template?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          thumbnail_url?: string | null
+        }
+        Relationships: []
+      }
+      landing_blocks: {
+        Row: {
+          block_definition_id: string
+          content_overrides: Json
+          created_at: string
+          custom_css: string | null
+          id: string
+          is_visible: boolean
+          landing_id: string
+          settings: Json
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          block_definition_id: string
+          content_overrides?: Json
+          created_at?: string
+          custom_css?: string | null
+          id?: string
+          is_visible?: boolean
+          landing_id: string
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          block_definition_id?: string
+          content_overrides?: Json
+          created_at?: string
+          custom_css?: string | null
+          id?: string
+          is_visible?: boolean
+          landing_id?: string
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_blocks_block_definition_id_fkey"
+            columns: ["block_definition_id"]
+            isOneToOne: false
+            referencedRelation: "landing_block_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landing_blocks_landing_id_fkey"
+            columns: ["landing_id"]
+            isOneToOne: false
+            referencedRelation: "landings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      landing_template_blocks: {
+        Row: {
+          block_definition_id: string
+          created_at: string
+          default_content: Json
+          default_settings: Json
+          id: string
+          sort_order: number
+          template_id: string
+        }
+        Insert: {
+          block_definition_id: string
+          created_at?: string
+          default_content?: Json
+          default_settings?: Json
+          id?: string
+          sort_order?: number
+          template_id: string
+        }
+        Update: {
+          block_definition_id?: string
+          created_at?: string
+          default_content?: Json
+          default_settings?: Json
+          id?: string
+          sort_order?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_template_blocks_block_definition_id_fkey"
+            columns: ["block_definition_id"]
+            isOneToOne: false
+            referencedRelation: "landing_block_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landing_template_blocks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "landing_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      landing_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          preview_image_url: string | null
+          slug: string
+          template_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          preview_image_url?: string | null
+          slug: string
+          template_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          preview_image_url?: string | null
+          slug?: string
+          template_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      landings: {
+        Row: {
+          accent_color: string | null
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          program_id: string | null
+          status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          program_id?: string | null
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          program_id?: string | null
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landings_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "paid_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landings_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "landing_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lead_magnets: {
         Row: {
@@ -1199,6 +1532,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          content_format: string | null
           content_type: string
           created_at: string
           created_by: string
@@ -1212,6 +1546,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          content_format?: string | null
           content_type?: string
           created_at?: string
           created_by: string
@@ -1225,6 +1560,7 @@ export type Database = {
           title: string
         }
         Update: {
+          content_format?: string | null
           content_type?: string
           created_at?: string
           created_by?: string
@@ -1446,6 +1782,7 @@ export type Database = {
           started_at: string | null
           status: string
           target_url: string | null
+          task_type: string
         }
         Insert: {
           completed_at?: string | null
@@ -1462,6 +1799,7 @@ export type Database = {
           started_at?: string | null
           status?: string
           target_url?: string | null
+          task_type?: string
         }
         Update: {
           completed_at?: string | null
@@ -1478,6 +1816,7 @@ export type Database = {
           started_at?: string | null
           status?: string
           target_url?: string | null
+          task_type?: string
         }
         Relationships: []
       }
@@ -1545,31 +1884,59 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      claim_next_task: {
-        Args: { p_lane: string }
-        Returns: {
-          completed_at: string | null
-          created_at: string
-          created_by: string
-          display_title: string
-          error_message: string | null
-          function_name: string
-          id: string
-          lane: string
-          payload: Json
-          priority: number
-          result: Json | null
-          started_at: string | null
-          status: string
-          target_url: string | null
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "task_queue"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
+      claim_next_task:
+        | {
+            Args: { p_lane: string }
+            Returns: {
+              completed_at: string | null
+              created_at: string
+              created_by: string
+              display_title: string
+              error_message: string | null
+              function_name: string
+              id: string
+              lane: string
+              payload: Json
+              priority: number
+              result: Json | null
+              started_at: string | null
+              status: string
+              target_url: string | null
+              task_type: string
+            }[]
+            SetofOptions: {
+              from: "*"
+              to: "task_queue"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+        | {
+            Args: { p_lane: string; p_max_concurrent?: number }
+            Returns: {
+              completed_at: string | null
+              created_at: string
+              created_by: string
+              display_title: string
+              error_message: string | null
+              function_name: string
+              id: string
+              lane: string
+              payload: Json
+              priority: number
+              result: Json | null
+              started_at: string | null
+              status: string
+              target_url: string | null
+              task_type: string
+            }[]
+            SetofOptions: {
+              from: "*"
+              to: "task_queue"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1617,7 +1984,12 @@ export type Database = {
         | "myth_busting"
         | "objection_handling"
         | "email_builder"
+        | "bot_builder"
         | "pdf_generation"
+        | "landing_block_content"
+        | "landing_block_teachers"
+        | "landing_block_curriculum"
+        | "landing_block_faq"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1785,7 +2157,12 @@ export const Constants = {
         "myth_busting",
         "objection_handling",
         "email_builder",
+        "bot_builder",
         "pdf_generation",
+        "landing_block_content",
+        "landing_block_teachers",
+        "landing_block_curriculum",
+        "landing_block_faq",
       ],
     },
   },

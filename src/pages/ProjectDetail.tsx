@@ -92,6 +92,19 @@ interface ContentType {
   isEmail: boolean;
 }
 
+const channelNames: Record<string, string> = {
+  instagram: "Instagram",
+  telegram: "Telegram",
+  vk: "ВКонтакте",
+};
+
+const formatLabel = (channel: string, format: "post" | "carousel" | null | undefined) => {
+  const name = channelNames[channel];
+  if (format === "carousel") return `Карусель в ${name}`;
+  if (format === "post") return `Пост в ${name}`;
+  return `Пост в ${name}`;
+};
+
 const contentTypes: ContentType[] = [
   { key: "instagram", label: "Пост в Instagram", description: "Текст, карусель и изображения", icon: <Image className="h-5 w-5" />, isEmail: false },
   { key: "telegram", label: "Пост в Telegram", description: "Текст, карусель и изображения", icon: <Send className="h-5 w-5" />, isEmail: false },
@@ -116,7 +129,6 @@ export default function ProjectDetail() {
   const [filterTag, setFilterTag] = useState<string>("__all__");
   const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(null);
 
-  const backUrl = `/programs/${programId}/offers/${offerType}/${offerId}`;
 
   const { data: allPromptInfo } = usePromptInfo({
     enabled: true,
@@ -154,14 +166,18 @@ export default function ProjectDetail() {
     enabled: project?.status === "lead_selected" || project?.status === "completed",
   });
 
+  const projectContentFormat = (project as any)?.content_format as ("post" | "carousel" | null | undefined);
+
   const { data: pipelineCounts } = useQuery({
-    queryKey: ["pipeline_counts"],
+    queryKey: ["pipeline_counts", projectContentFormat ?? null],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("prompts")
-        .select("channel, id")
+        .select("channel, id, sub_type")
         .eq("is_active", true)
         .not("channel", "is", null);
+      if (projectContentFormat) q = q.eq("sub_type", projectContentFormat);
+      const { data, error } = await q;
       if (error) throw error;
       const counts: Record<string, number> = {};
       data?.forEach((p: any) => {
@@ -404,8 +420,8 @@ export default function ProjectDetail() {
       setGeneratingKey(contentType);
       await enqueue({
         functionName: "generate-pipeline",
-        payload: { project_id: projectId, content_type: contentType },
-        displayTitle: `Генерация контента: ${contentType}`,
+        payload: { project_id: projectId, content_type: contentType, content_format: projectFormat ?? undefined },
+        displayTitle: `Генерация ${projectFormat === "carousel" ? "карусели" : "поста"}: ${contentType}`,
         lane: "claude",
         targetUrl: window.location.pathname,
       });
@@ -423,6 +439,12 @@ export default function ProjectDetail() {
   const getPipelineJson = (contentType: string) =>
     contentPieces?.find((cp) => cp.category === `pipeline_json_${contentType}`);
 
+  const projectFormat = projectContentFormat;
+  const formatSuffix = projectFormat ? `?format=${projectFormat}` : "";
+  const visibleContentTypes = projectFormat
+    ? contentTypes.filter((ct) => !ct.isEmail)
+    : contentTypes;
+  const backUrl = projectFormat === "carousel" ? "/carousel" : projectFormat === "post" ? "/post" : `/programs/${programId}/offers/${offerType}/${offerId}${formatSuffix}`;
   const isLeadSelected = project?.status === "lead_selected" || project?.status === "completed";
   const visibleLeadMagnets = isLeadSelected
     ? leadMagnets?.filter(lm => lm.is_selected)
@@ -822,11 +844,11 @@ export default function ProjectDetail() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Создание контента</h2>
           <div className="grid gap-4 md:grid-cols-2">
-            {contentTypes.map((ct) => {
+            {visibleContentTypes.map((ct) => {
               const isGenerating = generatingKey === ct.key;
               const hasContent = !!getPipelineJson(ct.key);
               const stepCount = pipelineCounts?.[ct.key] || 0;
-              const contentUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}/content/${ct.key}`;
+              const contentUrl = `/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}/content/${ct.key}${formatSuffix}`;
 
               return (
                 <Card
@@ -839,7 +861,7 @@ export default function ProjectDetail() {
                       <div className="text-muted-foreground">{ct.icon}</div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <CardTitle className="text-base">{ct.label}</CardTitle>
+                          <CardTitle className="text-base">{ct.isEmail ? ct.label : formatLabel(ct.key, projectFormat)}</CardTitle>
                           {hasContent && (
                             <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
                               Готово
@@ -872,7 +894,7 @@ export default function ProjectDetail() {
                     </Button>
                     {stepCount === 0 && <p className="text-xs text-destructive mt-1 text-center">Нет промптов</p>}
                     {stepCount > 0 && (() => {
-                      const prompt = allPromptInfo?.find(p => p.channel === ct.key);
+                      const prompt = allPromptInfo?.find(p => p.channel === ct.key && (!projectFormat || (p as any).sub_type === projectFormat));
                       return prompt ? (
                         <p className="text-xs text-muted-foreground mt-1 text-center">
                           Промпт: «{prompt.name}»

@@ -156,11 +156,31 @@ function applyContentOverrides(
   }
 
   // Apply universal image overrides (_image_overrides map)
+  // Also replace alternative format variants (jpg↔webp↔png) so <picture> <source> tags get updated too
   const imageOverrides: Record<string, string> = overrides._image_overrides || {};
+  const IMG_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".svg", ".gif"];
   for (const [oldPath, newUrl] of Object.entries(imageOverrides)) {
     if (typeof newUrl === "string" && newUrl) {
-      // Replace both the raw relative path and the absolutified version
       html = html.split(oldPath).join(newUrl);
+      // Also replace sibling format variants (e.g. if overriding .jpg, also replace .webp version)
+      const extMatch = oldPath.match(/\.(jpg|jpeg|png|webp|svg|gif)$/i);
+      if (extMatch) {
+        const basePath = oldPath.slice(0, -extMatch[0].length);
+        for (const ext of IMG_EXTS) {
+          const variant = basePath + ext;
+          if (variant !== oldPath && html.includes(variant)) {
+            html = html.split(variant).join(newUrl);
+          }
+        }
+      }
+    }
+  }
+
+  // Apply video/iframe URL overrides
+  const videoOverrides: Record<string, string> = overrides._video_overrides || {};
+  for (const [oldUrl, newUrl] of Object.entries(videoOverrides)) {
+    if (typeof newUrl === "string" && newUrl) {
+      html = html.split(oldUrl).join(newUrl);
     }
   }
 

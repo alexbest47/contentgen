@@ -5,6 +5,7 @@ import UserBlockSettings from "./UserBlockSettings";
 import OfferCollectionSettings from "./OfferCollectionSettings";
 import PaidProgramsCollectionSettings from "./PaidProgramsCollectionSettings";
 import FreeCoursesGridSettings from "./FreeCoursesGridSettings";
+import DiagnosticsGridSettings from "./DiagnosticsGridSettings";
 import CardBlockSettings from "./CardBlockSettings";
 
 interface Props {
@@ -43,6 +44,12 @@ export default function BlockSettingsPanel({
         />
       ) : block.block_type === "free_courses_grid" ? (
         <FreeCoursesGridSettings
+          block={block}
+          colorSchemeId={colorSchemeId}
+          onUpdateConfig={(config) => onUpdateConfig(block.id, config)}
+        />
+      ) : block.block_type === "diagnostics_grid" ? (
+        <DiagnosticsGridSettings
           block={block}
           colorSchemeId={colorSchemeId}
           onUpdateConfig={(config) => onUpdateConfig(block.id, config)}

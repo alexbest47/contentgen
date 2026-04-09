@@ -14,6 +14,14 @@ import {
   Pencil, Trash2, Check, X, Loader2,
 } from "lucide-react";
 
+type Direction = "psychology" | "nutrition" | "coaching";
+
+const DIRECTIONS: { value: Direction; label: string }[] = [
+  { value: "psychology", label: "Психология" },
+  { value: "nutrition", label: "Нутрициология" },
+  { value: "coaching", label: "Коучинг" },
+];
+
 interface TopicRow {
   id: string;
   parent_id: string | null;
@@ -22,6 +30,7 @@ interface TopicRow {
   tags: string[];
   sort_order: number;
   created_by: string;
+  direction: Direction;
 }
 
 interface TreeNode extends TopicRow {
@@ -141,6 +150,7 @@ export default function TopicTree() {
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [direction, setDirection] = useState<Direction>("psychology");
   const [search, setSearch] = useState("");
   const [editDialog, setEditDialog] = useState(false);
   const [editNode, setEditNode] = useState<Partial<TopicRow> | null>(null);
@@ -149,9 +159,9 @@ export default function TopicTree() {
   const [importing, setImporting] = useState(false);
 
   const { data: rows, isLoading } = useQuery({
-    queryKey: ["topic_tree"],
+    queryKey: ["topic_tree", direction],
     queryFn: async () => {
-      const { data, error } = await supabase.from("topic_tree").select("*").order("sort_order");
+      const { data, error } = await supabase.from("topic_tree").select("*").eq("direction", direction).order("sort_order");
       if (error) throw error;
       return data as TopicRow[];
     },
@@ -188,7 +198,8 @@ export default function TopicTree() {
           tags: editNode.tags || [],
           sort_order: maxOrder,
           created_by: user!.id,
-        });
+          direction,
+        } as any);
       }
       queryClient.invalidateQueries({ queryKey: ["topic_tree"] });
       setEditDialog(false);
@@ -230,8 +241,7 @@ export default function TopicTree() {
     setImporting(true);
     try {
       if (mode === "replace") {
-        const ids = (rows ?? []).map((r) => r.id);
-        if (ids.length) await supabase.from("topic_tree").delete().in("id", ids);
+        await supabase.from("topic_tree").delete().eq("direction", direction);
       }
 
       let count = 0;
@@ -244,7 +254,8 @@ export default function TopicTree() {
           tags: item.tags || [],
           sort_order: startOrder + i,
           created_by: user!.id,
-        }));
+          direction,
+        })) as any[];
         const { data, error } = await supabase
           .from("topic_tree")
           .insert(toInsert)
@@ -295,6 +306,22 @@ export default function TopicTree() {
             <Plus className="h-4 w-4" /> Добавить тему
           </Button>
         </div>
+      </div>
+
+      <div className="flex items-center gap-1 border-b">
+        {DIRECTIONS.map((d) => (
+          <button
+            key={d.value}
+            onClick={() => setDirection(d.value)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              direction === d.value
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {d.label}
+          </button>
+        ))}
       </div>
 
       <div className="relative max-w-sm">

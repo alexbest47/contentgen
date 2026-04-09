@@ -2,11 +2,14 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export type TaskType = "landing" | "letter" | "content";
+
 interface EnqueueOptions {
   functionName: string;
   payload: Record<string, any>;
   displayTitle: string;
   lane: "claude" | "openrouter";
+  taskType?: TaskType;
   targetUrl?: string;
 }
 
@@ -19,6 +22,7 @@ export function useTaskQueue() {
           payload: options.payload,
           display_title: options.displayTitle,
           lane: options.lane,
+          task_type: options.taskType || "content",
           target_url: options.targetUrl,
         },
       });

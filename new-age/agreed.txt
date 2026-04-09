@@ -1,0 +1,26 @@
+<noindex>
+        <div class="agreed__block agreed footer-agreed">
+        <input type="checkbox" name="form_agreed" required class="agreed__checkbox checkbox-required" id="user_confirmed_94931183363179">
+        <label class="agreed_label error-check checkbox-off" for="user_confirmed_94931183363179"></label>
+
+        <div class="agreed_message">
+            <span class="agreed__text">
+                Отправляя данную форму, вы соглашаетесь с условиями <a class="agreed__link" href="https://talentsy.ru/legal/oferta/">оферты</a> и <a class="agreed__link" href="https://talentsy.ru/legal/policy/">политики обработки персональных данных</a>. Я даю свое согласие на <a class="agreed__link" href="https://talentsy.ru/legal/pd-agreement/">обработку персональных данных</a>.
+            </span>
+            <div class="error_agreed agreed__text">Вам нужно принять политику конфиденциальности</div>
+        </div>
+    </div>
+
+    <div class="agreed__block agreed footer-agreed">
+        <input type="hidden" name="form_agreed_2" value="nosms">
+        <input type="checkbox" name="form_agreed_2" class="agreed__checkbox" value="sms" id="user_confirmed_12965939715344">
+        <label class="agreed_label unreq checkbox-off" for="user_confirmed_12965939715344"></label>
+
+        <div class="agreed_message">
+            <span class="agreed__text">
+                Я даю свое <a href="https://talentsy.ru/legal/mailing-agreement/" class="agreed__link">согласие</a> на получение рекламных и информационных рассылок.
+            </span>
+            <div class="error_agreed agreed__text" style="display: none;">Вам нужно выдать согласие</div>
+        </div>
+    </div>
+</noindex>

@@ -184,10 +184,17 @@ function preprocessHtmlWithPlaceholders(
     }
   );
 
-  return result;
+  // Inject CSS reset to ensure email tables render correctly inside contentEditable
+  const emailCssReset = `<style>
+    table { table-layout: auto !important; border-collapse: collapse; max-width: 100% !important; }
+    td, th { word-break: normal !important; overflow-wrap: normal !important; }
+    img { max-width: 100%; height: auto; }
+  </style>`;
+
+  return emailCssReset + result;
 }
 
-const USER_BLOCK_TYPES = ["text", "image", "cta", "divider", "card", "paid_programs_collection", "free_courses_grid"];
+const USER_BLOCK_TYPES = ["text", "image", "cta", "divider", "card", "paid_programs_collection", "free_courses_grid", "diagnostics_grid"];
 
 export default function BlockCanvas({
   blocks, selectedBlockId, headerHtml, footerHtml, colorSchemeId,
@@ -358,7 +365,7 @@ export default function BlockCanvas({
             contentEditable
             suppressContentEditableWarning
             className="outline-none focus:ring-2 focus:ring-primary/20 rounded"
-            style={{ maxWidth: "100%", overflow: "hidden", wordBreak: "break-word" }}
+            style={{ maxWidth: "100%", overflow: "hidden" }}
             dangerouslySetInnerHTML={{ __html: processedHtml }}
             onClick={(e) => {
               // Detect click on <a> elements for link editing

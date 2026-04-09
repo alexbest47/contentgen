@@ -30,7 +30,7 @@ serve(async (req) => {
       });
     }
 
-    const { function_name, payload, display_title, lane, target_url } = await req.json();
+    const { function_name, payload, display_title, lane, target_url, task_type } = await req.json();
 
     if (!function_name || !lane) {
       return new Response(JSON.stringify({ error: "function_name and lane are required" }), {
@@ -38,6 +38,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Validate task_type if provided
+    const validTypes = ["landing", "letter", "content"];
+    const resolvedTaskType = task_type && validTypes.includes(task_type) ? task_type : "content";
 
     // Insert task into queue
     const { data: task, error: insertError } = await supabase
@@ -50,6 +54,7 @@ serve(async (req) => {
         lane,
         status: "pending",
         target_url: target_url || null,
+        task_type: resolvedTaskType,
       })
       .select("id")
       .single();

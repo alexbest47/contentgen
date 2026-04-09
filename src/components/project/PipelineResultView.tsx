@@ -38,6 +38,7 @@ interface Props {
   onSave?: (updatedJson: string) => void;
   copyHtmlRef?: React.MutableRefObject<(() => void) | null>;
   projectContentType?: string;
+  projectFormat?: "post" | "carousel" | null;
 }
 
 const slideTypeLabels: Record<string, string> = {
@@ -172,7 +173,7 @@ function ImagePreviewDialog({
   );
 }
 
-export default function PipelineResultView({ jsonContent, isEmail, contentType, carouselImages, staticImage, bannerImage, onSave, copyHtmlRef, projectContentType }: Props) {
+export default function PipelineResultView({ jsonContent, isEmail, contentType, carouselImages, staticImage, bannerImage, onSave, copyHtmlRef, projectContentType, projectFormat }: Props) {
   let parsed: SocialJson | EmailJson;
   try {
     parsed = JSON.parse(jsonContent);
@@ -190,7 +191,7 @@ export default function PipelineResultView({ jsonContent, isEmail, contentType, 
     return <EmailView data={parsed as EmailJson} bannerImage={bannerImage} onSave={onSave} copyHtmlRef={copyHtmlRef} />;
   }
 
-  return <SocialView data={parsed as SocialJson} carouselImages={carouselImages} staticImage={staticImage} onSave={onSave} contentType={contentType} projectContentType={projectContentType} />;
+  return <SocialView data={parsed as SocialJson} carouselImages={carouselImages} staticImage={staticImage} onSave={onSave} contentType={contentType} projectContentType={projectContentType} projectFormat={projectFormat} />;
 }
 
 function useEmailSettings() {
@@ -379,6 +380,7 @@ function SocialView({
   onSave,
   contentType,
   projectContentType,
+  projectFormat,
 }: {
   data: SocialJson;
   carouselImages?: { slideNumber: number; url: string }[];
@@ -386,6 +388,7 @@ function SocialView({
   onSave?: (json: string) => void;
   contentType?: string;
   projectContentType?: string;
+  projectFormat?: "post" | "carousel" | null;
 }) {
   const hasSplitTexts = !!(data.post_text_single || data.post_text_carousel);
   const [postText, setPostText] = useState(data.post_text || "");
@@ -424,7 +427,7 @@ function SocialView({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Carousel Post Card */}
-      {data.carousel_prompts?.length > 0 && (
+      {data.carousel_prompts?.length > 0 && projectFormat !== "post" && (
         <PostCard
           title="Пост с каруселью"
           icon={<Layers className="h-4 w-4" />}
@@ -463,7 +466,7 @@ function SocialView({
       )}
 
       {/* Single Image Post Card */}
-      {projectContentType !== "list_content" && (
+      {projectContentType !== "list_content" && projectFormat !== "carousel" && (
         <PostCard
           title="Пост с изображением"
           icon={<Image className="h-4 w-4" />}

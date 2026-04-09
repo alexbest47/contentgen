@@ -1,0 +1,20 @@
+<div class="breadcrumbs-light">
+    <div class="container-main">
+        <nav class="breadcrumbs">
+            <ul class="breadcrumb-items">
+                <li class="breadcrumb-item">
+                    <a href="/" class="breadcrumb-link">Главная</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="/courses/" class="breadcrumb-link">Курсы</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="https://talentsy.ru/courses/psychology/" class="breadcrumb-link">Курсы психологии</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <span>Личное: TEST NA</span>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>

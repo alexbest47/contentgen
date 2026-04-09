@@ -29,11 +29,11 @@ serve(async (req) => {
     const { diagnostic_id, program_id, name, description, audience_tags, prompt_id } =
       await req.json();
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     if (!ANTHROPIC_API_KEY) {
       throw new Error("ANTHROPIC_API_KEY not configured");
@@ -64,11 +64,23 @@ serve(async (req) => {
     // Load program title
     const { data: program } = await supabase
       .from("paid_programs")
-      .select("title, description, audience_description, program_doc_url")
+      .select("title, description, audience_description, audience_doc_url, program_doc_url")
       .eq("id", program_id)
       .single();
 
     const programTitle = program?.title || "";
+
+    // Always fetch fresh audience description from URL, fallback to cached
+    let audienceDescription = "";
+    if (program?.audience_doc_url) {
+      try {
+        audienceDescription = await fetchDocContent(program.audience_doc_url);
+        if (audienceDescription) {
+          await supabase.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
+        }
+      } catch (e) { console.error("Error fetching audience doc:", e); }
+    }
+    if (!audienceDescription) audienceDescription = program?.audience_description || "";
 
     // Fetch program description (supports Google Docs and Talentsy KB)
     let programDocDescription = "";
@@ -80,7 +92,7 @@ serve(async (req) => {
     let userPrompt = (prompt.user_prompt_template || "")
       .replace(/\{\{program_title\}\}/g, programTitle)
       .replace(/\{\{program_description\}\}/g, program?.description || "")
-      .replace(/\{\{audience_description\}\}/g, program?.audience_description || "")
+      .replace(/\{\{audience_description\}\}/g, audienceDescription)
       .replace(/\{\{test_name\}\}/g, name || "")
       .replace(/\{\{test_description\}\}/g, diagnosticDocDescription || description || "")
       .replace(/\{\{audience_tags\}\}/g, (audience_tags || []).join(", "))

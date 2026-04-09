@@ -5,12 +5,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Eye, Download, Save, Loader2, Columns2, LayoutList } from "lucide-react";
+import { ArrowLeft, Download, Save, Loader2, Columns2, LayoutList, Settings, Palette } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import LandingBlockLibrary from "@/components/landing-builder/LandingBlockLibrary";
 import LandingBlockCanvas from "@/components/landing-builder/LandingBlockCanvas";
 import LandingBlockSettingsPanel from "@/components/landing-builder/LandingBlockSettingsPanel";
 import LandingInlinePreview from "@/components/landing-builder/LandingInlinePreview";
+import BlockLibraryModal from "@/components/landing-builder/BlockLibraryModal";
+import { buildPreviewHtml, useInlinedCSS, useBlockDefsMap } from "@/hooks/useLandingPreviewHtml";
+import { exportLandingAsZip } from "@/utils/exportLandingZip";
 
 export type LandingBlock = {
   id: string;
@@ -43,12 +48,36 @@ export default function LandingEditor() {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [viewMode, setViewMode] = useState<"canvas" | "preview">("preview");
+  const [exporting, setExporting] = useState(false);
+  const [showExportSettings, setShowExportSettings] = useState(false);
+  const inlinedCSS = useInlinedCSS();
+  const blockDefsMap = useBlockDefsMap();
   const [focusFieldRequest, setFocusFieldRequest] = useState<{
     blockId: string;
     field: string;
     index?: number;
     subfield?: string;
   } | null>(null);
+
+  // Block library modal state
+  const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [blockModalInsertIndex, setBlockModalInsertIndex] = useState<number | null>(null);
+
+  // Accent color state (global landing theme color)
+  const [accentColor, setAccentColor] = useState<string | null>(null);
+  const [showAccentPicker, setShowAccentPicker] = useState(false);
+
+  const ACCENT_PRESETS = [
+    { color: "#7835FF", label: "Фиолетовый" },
+    { color: "#2563EB", label: "Синий" },
+    { color: "#0891B2", label: "Бирюзовый" },
+    { color: "#059669", label: "Зелёный" },
+    { color: "#D97706", label: "Оранжевый" },
+    { color: "#DC2626", label: "Красный" },
+    { color: "#DB2777", label: "Розовый" },
+    { color: "#4F46E5", label: "Индиго" },
+  ];
+
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const blocksRef = useRef<LandingBlock[]>(blocks);
 
@@ -94,6 +123,25 @@ export default function LandingEditor() {
   useEffect(() => {
     if (fetchedBlocks) setBlocks(fetchedBlocks);
   }, [fetchedBlocks]);
+
+  // Init accent color from DB
+  useEffect(() => {
+    if (landing?.accent_color !== undefined) {
+      setAccentColor(landing.accent_color);
+    }
+  }, [landing?.accent_color]);
+
+  // Save accent color to DB
+  const saveAccentColor = useCallback(async (color: string | null) => {
+    setAccentColor(color);
+    const { error } = await supabase
+      .from("landings")
+      .update({ accent_color: color } as any)
+      .eq("id", landingId!);
+    if (error) {
+      toast.error("Ошибка сохранения цвета");
+    }
+  }, [landingId]);
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || null;
 
@@ -173,7 +221,11 @@ export default function LandingEditor() {
     triggerSave();
   }, [triggerSave]);
 
-  const addBlock = useCallback(async (blockDefinitionId: string) => {
+  /**
+   * Add block at a specific position (insertIndex = index among visible blocks).
+   * Uses default_content from the block definition as content_overrides.
+   */
+  const addBlockAtIndex = useCallback(async (blockDefinitionId: string, insertIndex: number | null) => {
     // Fetch the block definition to get default_content
     const { data: defData } = await supabase
       .from("landing_block_definitions")
@@ -182,25 +234,77 @@ export default function LandingEditor() {
       .single();
     const defaultContent = defData?.default_content as Record<string, any> || {};
 
-    const maxSort = blocks.length > 0 ? Math.max(...blocks.map((b) => b.sort_order)) : 0;
+    // Determine sort_order for the new block
+    let newSortOrder: number;
+    if (insertIndex === null || insertIndex >= blocks.length) {
+      // Add at the end
+      newSortOrder = blocks.length > 0 ? Math.max(...blocks.map((b) => b.sort_order)) + 1 : 1;
+    } else if (insertIndex <= 0) {
+      // Add at the beginning
+      newSortOrder = blocks.length > 0 ? Math.min(...blocks.map((b) => b.sort_order)) : 1;
+    } else {
+      // Insert between blocks[insertIndex-1] and blocks[insertIndex]
+      // We'll use blocks[insertIndex].sort_order and shift everything after
+      newSortOrder = blocks[insertIndex]?.sort_order ?? blocks.length + 1;
+    }
+
+    // Shift sort_order of blocks at or after the insertion point
+    const blocksToShift = blocks.filter((b) => b.sort_order >= newSortOrder);
+    if (blocksToShift.length > 0) {
+      // Update in DB
+      for (const b of blocksToShift) {
+        await supabase
+          .from("landing_blocks")
+          .update({ sort_order: b.sort_order + 1 })
+          .eq("id", b.id);
+      }
+    }
+
     const { data, error } = await supabase
       .from("landing_blocks")
       .insert({
         landing_id: landingId!,
         block_definition_id: blockDefinitionId,
-        sort_order: maxSort + 1,
+        sort_order: newSortOrder,
         is_visible: true,
         settings: {},
         content_overrides: defaultContent,
       })
       .select("*, landing_block_definitions(id, block_type, name, category, html_template, editable_fields, default_settings, default_content)")
       .single();
+
     if (error) { toast.error("Ошибка добавления блока"); return; }
     const newBlock = { ...(data as any), block_definition: (data as any).landing_block_definitions } as LandingBlock;
-    setBlocks((prev) => [...prev, newBlock]);
+
+    // Update local state: insert at position and recalculate sort_orders
+    setBlocks((prev) => {
+      const updated = [...prev];
+      // Shift sort_orders
+      for (let i = 0; i < updated.length; i++) {
+        if (updated[i].sort_order >= newSortOrder) {
+          updated[i] = { ...updated[i], sort_order: updated[i].sort_order + 1 };
+        }
+      }
+      // Insert new block at the right position
+      const insertPos = insertIndex !== null ? Math.min(insertIndex, updated.length) : updated.length;
+      updated.splice(insertPos, 0, newBlock);
+      return updated;
+    });
+
     setSelectedBlockId(newBlock.id);
     toast.success("Блок добавлен");
   }, [blocks, landingId]);
+
+  // Called from inline preview "+" button
+  const handleAddBlockAtIndex = useCallback((insertIndex: number) => {
+    setBlockModalInsertIndex(insertIndex);
+    setBlockModalOpen(true);
+  }, []);
+
+  // Called when user picks a block in the modal
+  const handleBlockSelected = useCallback((blockDefinitionId: string) => {
+    addBlockAtIndex(blockDefinitionId, blockModalInsertIndex);
+  }, [addBlockAtIndex, blockModalInsertIndex]);
 
   // Handle focus-field from inline preview click
   const handleFocusField = useCallback((blockId: string, field: string, index?: number, subfield?: string) => {
@@ -234,6 +338,23 @@ export default function LandingEditor() {
     triggerSave();
     toast.success("Блок дублирован");
   }, [blocks, landingId, triggerSave]);
+
+  const updateLandingMeta = useMutation({
+    mutationFn: async (fields: { breadcrumb_slug?: string; breadcrumb_title?: string }) => {
+      const { error } = await supabase
+        .from("landings")
+        .update(fields)
+        .eq("id", landingId!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["landing", landingId] });
+      toast.success("Настройки сохранены");
+    },
+    onError: () => {
+      toast.error("Ошибка сохранения настроек");
+    },
+  });
 
   if (landingLoading || blocksLoading) {
     return (
@@ -287,8 +408,150 @@ export default function LandingEditor() {
               <Columns2 className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={() => navigate(`/landings/${landingId}/preview`)}>
-            <Eye className="mr-2 h-4 w-4" /> Превью
+          <Popover open={showAccentPicker} onOpenChange={setShowAccentPicker}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" title="Акцентный цвет лендинга" className="gap-1.5">
+                <div
+                  className="w-4 h-4 rounded-full border border-border shrink-0"
+                  style={{ backgroundColor: accentColor || "#7835FF" }}
+                />
+                <Palette className="h-3.5 w-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64" align="end">
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm">Акцентный цвет</h4>
+                <div className="flex flex-wrap gap-2">
+                  {ACCENT_PRESETS.map((p) => (
+                    <button
+                      key={p.color}
+                      title={p.label}
+                      className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${
+                        accentColor === p.color ? "border-foreground scale-110 ring-2 ring-offset-1 ring-foreground/20" : "border-transparent"
+                      }`}
+                      style={{ backgroundColor: p.color }}
+                      onClick={() => {
+                        saveAccentColor(p.color);
+                      }}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={accentColor || "#7835FF"}
+                    onChange={(e) => saveAccentColor(e.target.value)}
+                    className="w-8 h-8 rounded cursor-pointer border border-border"
+                    title="Выбрать произвольный цвет"
+                  />
+                  <Input
+                    value={accentColor || ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                        saveAccentColor(v);
+                      } else {
+                        setAccentColor(v);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const v = e.target.value;
+                      if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                        saveAccentColor(v);
+                      }
+                    }}
+                    placeholder="#7835FF"
+                    className="h-8 text-sm font-mono flex-1"
+                  />
+                  {accentColor && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => saveAccentColor(null)}
+                      title="Сбросить на стандартный"
+                    >
+                      Сброс
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Popover open={showExportSettings} onOpenChange={setShowExportSettings}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" title="Настройки WP-экспорта">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm">Настройки WP-экспорта</h4>
+                {landing?.wp_template_name && (
+                  <div className="text-xs text-muted-foreground">
+                    Шаблон: {landing.wp_template_name}
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <Label className="text-xs">Slug категории (breadcrumbs)</Label>
+                  <Input
+                    defaultValue={landing?.breadcrumb_slug || "psychology"}
+                    onBlur={(e) => updateLandingMeta.mutate({ breadcrumb_slug: e.target.value })}
+                    className="h-8 text-sm"
+                    placeholder="psychology"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Название категории (breadcrumbs)</Label>
+                  <Input
+                    defaultValue={landing?.breadcrumb_title || "Курсы психологии"}
+                    onBlur={(e) => updateLandingMeta.mutate({ breadcrumb_title: e.target.value })}
+                    className="h-8 text-sm"
+                    placeholder="Курсы психологии"
+                  />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={exporting}
+            onClick={async () => {
+              if (!inlinedCSS) {
+                toast.error("CSS ещё загружается, попробуйте через секунду");
+                return;
+              }
+              setExporting(true);
+              try {
+                const { rawBlockHtmls } = buildPreviewHtml(
+                  blocks,
+                  inlinedCSS,
+                  landing?.name || "landing",
+                  blockDefsMap || undefined,
+                  false, // no editable markers for export
+                  {
+                    breadcrumbSlug: landing?.breadcrumb_slug || "psychology",
+                    breadcrumbTitle: landing?.breadcrumb_title || "Курсы психологии",
+                  },
+                  accentColor,
+                );
+                if (rawBlockHtmls.length === 0) {
+                  toast.error("Нет блоков для экспорта");
+                  return;
+                }
+                await exportLandingAsZip(rawBlockHtmls, landing?.name || "landing");
+                toast.success("ZIP-архив скачан");
+              } catch (err) {
+                console.error("Export error:", err);
+                toast.error("Ошибка при экспорте ZIP");
+              } finally {
+                setExporting(false);
+              }
+            }}
+          >
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
+            Скачать ZIP
           </Button>
           <Button variant="outline" size="sm" onClick={saveAllBlocks}>
             <Save className="mr-2 h-4 w-4" /> Сохранить
@@ -296,13 +559,9 @@ export default function LandingEditor() {
         </div>
       </div>
 
-      {/* 3-panel editor */}
+      {/* 2-panel editor: Preview/Canvas + Settings */}
       <ResizablePanelGroup direction="horizontal" className="flex-1">
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-          <LandingBlockLibrary onAddBlock={addBlock} />
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={50} minSize={30}>
+        <ResizablePanel defaultSize={65} minSize={40}>
           {viewMode === "canvas" ? (
             <LandingBlockCanvas
               blocks={blocks}
@@ -317,14 +576,20 @@ export default function LandingEditor() {
             <LandingInlinePreview
               blocks={blocks}
               landingName={landing?.name || "Лендинг"}
+              accentColor={accentColor}
               onSelectBlock={setSelectedBlockId}
               onFocusField={handleFocusField}
+              onAddBlockAtIndex={handleAddBlockAtIndex}
+              onMoveBlock={moveBlock}
+              onDuplicateBlock={duplicateBlock}
+              onRemoveBlock={removeBlock}
             />
           )}
         </ResizablePanel>
         <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={30} minSize={20} maxSize={40}>
+        <ResizablePanel defaultSize={35} minSize={20} maxSize={50}>
           <LandingBlockSettingsPanel
+            key={selectedBlock?.id || "__none__"}
             block={selectedBlock}
             onUpdateBlock={updateBlock}
             landingId={landingId!}
@@ -341,6 +606,16 @@ export default function LandingEditor() {
           />
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      {/* Block library modal */}
+      <BlockLibraryModal
+        open={blockModalOpen}
+        onClose={() => {
+          setBlockModalOpen(false);
+          setBlockModalInsertIndex(null);
+        }}
+        onSelectBlock={handleBlockSelected}
+      />
     </div>
   );
 }

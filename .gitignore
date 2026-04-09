@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment
+.env
+.env.*
+
+# Temp files
+*.timestamp-*
+supabase/.temp/

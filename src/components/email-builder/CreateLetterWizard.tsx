@@ -15,8 +15,13 @@ import { blockTypeLabels } from "./BlockLibrary";
 import { OFFER_TYPES } from "@/lib/offerTypes";
 import { toast } from "sonner";
 import {
-  ChevronRight, ChevronDown, Search, Check, Loader2, Plus, X,
+  ChevronRight, ChevronDown, Search, Check, Loader2, Plus, X, Sparkles, Edit3,
 } from "lucide-react";
+import { useTaskQueue } from "@/hooks/useTaskQueue";
+import TopicTreePicker, { TopicTreeSelection } from "@/components/TopicTreePicker";
+import ObjectionPicker from "@/components/ObjectionPicker";
+import CasePickerDialog from "./CasePickerDialog";
+import { ListTree } from "lucide-react";
 
 interface TopicRow {
   id: string;
@@ -126,6 +131,7 @@ interface Props {
 export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, onThemeChanged }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { enqueue } = useTaskQueue();
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(themeOnlyMode ? 2 : 1);
   const [selectedTopic, setSelectedTopic] = useState<TreeNode | null>(null);
@@ -143,12 +149,21 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const [extraOffers, setExtraOffers] = useState<Array<{offerType: string, offerId: string}>>([]);
   const [creating, setCreating] = useState(false);
   const [freeFormDescription, setFreeFormDescription] = useState("");
+  const [contentTopicMode, setContentTopicMode] = useState<"auto" | "manual" | "tree">("auto");
+  const [contentUserTopic, setContentUserTopic] = useState("");
+  const [contentTreeTopic, setContentTreeTopic] = useState<TopicTreeSelection | null>(null);
+  const [caseId, setCaseId] = useState<string | null>(null);
+  const [casePickerOpen, setCasePickerOpen] = useState(false);
+  const [objectionIds, setObjectionIds] = useState<string[]>([]);
 
-  // Load topics
+  // Letter-theme picker direction tab (psychology/nutrition/coaching)
+  const [themeDirection, setThemeDirection] = useState<"psychology" | "nutrition" | "coaching">("psychology");
+
+  // Load topics (for the letter-theme picker step)
   const { data: topicRows } = useQuery({
-    queryKey: ["topic_tree"],
+    queryKey: ["topic_tree_letter_wizard", themeDirection],
     queryFn: async () => {
-      const { data } = await supabase.from("topic_tree").select("*").order("sort_order");
+      const { data } = await supabase.from("topic_tree").select("*").eq("direction", themeDirection).order("sort_order");
       return (data ?? []) as TopicRow[];
     },
     enabled: open,
@@ -176,11 +191,31 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   const isFreeForm = selectedTemplateName === "С нуля";
   const isAiDriven = selectedTemplateName === "Доверимся ИИ";
   const isMultiOffer = selectedTemplateName === "Мультиоффер";
+  const isService = selectedTemplateCategory === "service";
+  const isContentEmail = selectedTemplateCategory === "content_email";
+  const selectedTemplateContentType = (selectedTemplate as any)?.content_type || "";
+  const isTestimonialTemplate = selectedTemplateContentType === "testimonial_content";
+  const isObjectionTemplate = selectedTemplateContentType === "objection_handling";
+
+  // Selected case info (for testimonial template display)
+  const { data: selectedCaseInfo } = useQuery({
+    queryKey: ["letter_wizard_case", caseId],
+    queryFn: async () => {
+      if (!caseId) return null;
+      const { data } = await supabase
+        .from("case_classifications")
+        .select("id, file_name, classification_json")
+        .eq("id", caseId)
+        .single();
+      return data;
+    },
+    enabled: !!caseId,
+  });
   const is3StepFlow = isDirectOffer || isWebinar || isAiDriven || isMultiOffer;
-  const totalSteps = isFreeForm ? 4 : (is3StepFlow ? 3 : 4);
+  const totalSteps = isService ? 1 : (isContentEmail ? 4 : (isFreeForm ? 4 : (is3StepFlow ? 3 : 4)));
 
   // Load audience variable descriptions — needed on audience step
-  const audienceStepNum = is3StepFlow ? 2 : (isFreeForm ? 2 : 3);
+  const audienceStepNum = (is3StepFlow || isContentEmail) ? 2 : (isFreeForm ? 2 : 3);
   const { data: audienceVars } = useQuery({
     queryKey: ["audience_global_vars"],
     queryFn: async () => {
@@ -196,7 +231,7 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   });
 
   // Load color schemes — needed on settings step
-  const settingsStepNum = is3StepFlow ? 3 : (isFreeForm ? 3 : 4);
+  const settingsStepNum = (is3StepFlow || isContentEmail) ? 3 : (isFreeForm ? 3 : 4);
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
@@ -231,8 +266,13 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     queryKey: ["offers_wizard", programId, offerType],
     queryFn: async () => {
       if (!programId) return [];
-      let q = supabase.from("offers").select("id, title").eq("program_id", programId).eq("is_archived", false);
-      if (offerType) q = q.eq("offer_type", offerType as any);
+      let q = supabase.from("offers").select("id, title").eq("is_archived", false);
+      if (offerType === "spot_available") {
+        q = q.eq("offer_type", "spot_available" as any);
+      } else {
+        q = q.eq("program_id", programId);
+        if (offerType) q = q.eq("offer_type", offerType as any);
+      }
       const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -248,8 +288,13 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     queryKey: ["offers_wizard_extra", programId, extraType0],
     queryFn: async () => {
       if (!programId) return [];
-      let q = supabase.from("offers").select("id, title").eq("program_id", programId).eq("is_archived", false);
-      if (extraType0) q = q.eq("offer_type", extraType0 as any);
+      let q = supabase.from("offers").select("id, title").eq("is_archived", false);
+      if (extraType0 === "spot_available") {
+        q = q.eq("offer_type", "spot_available" as any);
+      } else {
+        q = q.eq("program_id", programId);
+        if (extraType0) q = q.eq("offer_type", extraType0 as any);
+      }
       const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -260,8 +305,13 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     queryKey: ["offers_wizard_extra", programId, extraType1],
     queryFn: async () => {
       if (!programId) return [];
-      let q = supabase.from("offers").select("id, title").eq("program_id", programId).eq("is_archived", false);
-      if (extraType1) q = q.eq("offer_type", extraType1 as any);
+      let q = supabase.from("offers").select("id, title").eq("is_archived", false);
+      if (extraType1 === "spot_available") {
+        q = q.eq("offer_type", "spot_available" as any);
+      } else {
+        q = q.eq("program_id", programId);
+        if (extraType1) q = q.eq("offer_type", extraType1 as any);
+      }
       const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -313,6 +363,45 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     setStep(3);
   };
 
+  const handleCreateService = async () => {
+    if (!user || !selectedTemplateId) return;
+    setCreating(true);
+    try {
+      const template = templates?.find((t) => t.id === selectedTemplateId);
+      const { data: letter, error } = await supabase
+        .from("email_letters")
+        .insert({
+          created_by: user.id,
+          title: selectedTemplateName,
+          template_id: selectedTemplateId,
+          letter_theme_title: "",
+          letter_theme_description: "",
+          audience_segment: "",
+        } as any)
+        .select("id")
+        .single();
+      if (error) throw error;
+
+      const blocks = (template?.blocks as any[]) || [];
+      if (blocks.length > 0) {
+        const insertBlocks = blocks.map((b: any, i: number) => ({
+          letter_id: letter.id,
+          block_type: b.block_type,
+          sort_order: i,
+          config: { mode: b.mode || "text_only", label: b.label },
+        }));
+        await supabase.from("email_letter_blocks").insert(insertBlocks);
+      }
+
+      onOpenChange(false);
+      navigate(`/email-builder/${letter.id}`);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const handleCreate = async () => {
     if (!user) return;
     setCreating(true);
@@ -359,6 +448,65 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     }
   };
 
+  const handleCreateContentEmail = async () => {
+    if (!user || !selectedTemplateId) return;
+    setCreating(true);
+    try {
+      const { data: letter, error } = await supabase
+        .from("email_letters")
+        .insert({
+          created_by: user.id,
+          title: letterTitle,
+          template_id: selectedTemplateId,
+          program_id: programId,
+          offer_type: offerType,
+          offer_id: offerId,
+          selected_color_scheme_id: colorSchemeId,
+          image_style_id: imageStyleId,
+          audience_segment: audienceSegment || "",
+          content_type: selectedTemplateContentType,
+          content_topic_mode: contentTopicMode,
+          user_topic: (contentTopicMode === "manual" ? contentUserTopic : contentTopicMode === "tree" ? (contentTreeTopic?.title || "") : ""),
+          content_options_status: "pending",
+          letter_theme_title: (contentTopicMode === "manual" ? contentUserTopic : contentTopicMode === "tree" ? (contentTreeTopic?.title || "") : ""),
+          letter_theme_description: "",
+          ...(isTestimonialTemplate && caseId ? { case_id: caseId } : {}),
+          ...(isObjectionTemplate && objectionIds.length > 0 ? { selected_objection_ids: objectionIds, content_options_status: "ready" } : {}),
+        } as any)
+        .select("id")
+        .single();
+      if (error) throw error;
+
+      if (isObjectionTemplate) {
+        // Objection flow skips the angles/variants step — go straight to editor
+        onOpenChange(false);
+        navigate(`/email-builder/${letter.id}`);
+      } else {
+        // Enqueue lead-magnet generation in letter mode
+        await enqueue({
+          functionName: "generate-lead-magnets",
+          payload: {
+            letter_id: letter.id,
+            content_type: selectedTemplateContentType,
+            user_topic: (contentTopicMode === "manual" ? contentUserTopic : contentTopicMode === "tree" ? (contentTreeTopic?.title || "") : ""),
+            ...(isTestimonialTemplate && caseId ? { case_classification_id: caseId } : {}),
+          },
+          displayTitle: `Варианты для письма: ${letterTitle || "Без названия"}`,
+          lane: "claude",
+          taskType: "letter",
+          targetUrl: `/email-builder/select-content/${letter.id}`,
+        });
+
+        onOpenChange(false);
+        navigate(`/email-builder/select-content/${letter.id}`);
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const resetState = () => {
     setStep(themeOnlyMode ? 2 : 1);
     setSelectedTopic(null);
@@ -375,6 +523,12 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
     setOfferId(null);
     setExtraOffers([]);
     setFreeFormDescription("");
+    setContentTopicMode("auto");
+    setContentUserTopic("");
+    setContentTreeTopic(null);
+    setCaseId(null);
+    setCasePickerOpen(false);
+    setObjectionIds([]);
   };
 
   const offerTypes = OFFER_TYPES.map((t) => [t.key, t.label] as const);
@@ -382,6 +536,16 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   // ─── Step titles ───
   const getStepTitle = () => {
     if (themeOnlyMode) return "Выбор темы письма";
+
+    if (isService) return "Выберите шаблон письма";
+
+    if (isContentEmail) {
+      if (step === 1) return "Шаг 1 из 4 — Выберите шаблон";
+      if (step === 2) return "Шаг 2 из 4 — Для кого это письмо?";
+      if (step === 3) return "Шаг 3 из 4 — Настройки";
+      if (step === 4) return "Шаг 4 из 4 — Тема для генерации";
+      return "";
+    }
 
     if (isFreeForm) {
       if (step === 1) return "Шаг 1 из 4 — Как построить письмо?";
@@ -414,10 +578,11 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
   // Direct offer / Webinar: step 1 = template, step 2 = audience (+webinar picker), step 3 = settings
   // Default:                step 1 = template, step 2 = topic,    step 3 = audience, step 4 = settings
   const showTemplateStep = step === 1;
-  const showTopicStep = !(is3StepFlow || isFreeForm) && step === 2;
-  const showAudienceStep = (is3StepFlow || isFreeForm) ? step === 2 : step === 3;
-  const showSettingsStep = (is3StepFlow || isFreeForm) ? step === 3 : step === 4;
+  const showTopicStep = !(is3StepFlow || isFreeForm || isContentEmail) && step === 2;
+  const showAudienceStep = (is3StepFlow || isFreeForm || isContentEmail) ? step === 2 : step === 3;
+  const showSettingsStep = (is3StepFlow || isFreeForm || isContentEmail) ? step === 3 : step === 4;
   const showFreeFormStep = isFreeForm && step === 4;
+  const showContentTopicStep = isContentEmail && step === 4;
 
   return (
     <Dialog
@@ -470,6 +635,20 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           {/* Step: Topic (only for non-direct-offer) */}
           {showTopicStep && (
             <div className="space-y-4">
+              <div className="flex items-center gap-1 border-b">
+                {(["psychology","nutrition","coaching"] as const).map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setThemeDirection(d)}
+                    className={`px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors ${
+                      themeDirection === d ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {d === "psychology" ? "Психология" : d === "nutrition" ? "Нутрициология" : "Коучинг"}
+                  </button>
+                ))}
+              </div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -794,6 +973,102 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           )}
 
           {/* Step: Free form description (only for «С нуля») */}
+          {showContentTopicStep && isTestimonialTemplate && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Выберите конкретный отзыв из библиотеки кейсов — на его основе сгенерируются углы подачи для письма.</p>
+              {selectedCaseInfo ? (
+                <div className="rounded-xl border p-4 bg-muted/30">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">
+                        {(selectedCaseInfo as any).classification_json?.student_name || selectedCaseInfo.file_name}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">{selectedCaseInfo.file_name}</div>
+                      {(selectedCaseInfo as any).classification_json?.summary && (
+                        <p className="text-xs text-muted-foreground mt-2 line-clamp-3">
+                          {(selectedCaseInfo as any).classification_json.summary}
+                        </p>
+                      )}
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setCasePickerOpen(true)}>
+                      Изменить
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" className="w-full" onClick={() => setCasePickerOpen(true)}>
+                  Выбрать кейс из библиотеки
+                </Button>
+              )}
+            </div>
+          )}
+
+          {showContentTopicStep && isObjectionTemplate && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Выберите одно или несколько возражений, которые письмо будет отрабатывать.</p>
+              <ObjectionPicker
+                programId={programId || ""}
+                mode="multi"
+                value={objectionIds}
+                onChange={setObjectionIds}
+              />
+            </div>
+          )}
+
+          {showContentTopicStep && !isTestimonialTemplate && !isObjectionTemplate && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Как выбрать тему для письма?</p>
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setContentTopicMode("auto")}
+                  className={`text-left rounded-xl border p-4 transition ${contentTopicMode === "auto" ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted/50"}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="font-medium">Автоматически придумать тему</span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Система сгенерирует 5 вариантов и предложит выбрать.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContentTopicMode("manual")}
+                  className={`text-left rounded-xl border p-4 transition ${contentTopicMode === "manual" ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted/50"}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Edit3 className="h-4 w-4 text-primary" />
+                    <span className="font-medium">Задать тему вручную</span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Опишите тему — система предложит 5 вариантов вокруг неё.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContentTopicMode("tree")}
+                  className={`text-left rounded-xl border p-4 transition ${contentTopicMode === "tree" ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted/50"}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <ListTree className="h-4 w-4 text-primary" />
+                    <span className="font-medium">Выбрать из дерева тем</span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Выберите направление, поднаправление и конкретную тему.</p>
+                </button>
+              </div>
+              {contentTopicMode === "manual" && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Тема</Label>
+                  <Input
+                    value={contentUserTopic}
+                    onChange={(e) => setContentUserTopic(e.target.value)}
+                    placeholder="Например: как выбрать первого клиента в коучинге"
+                  />
+                </div>
+              )}
+              {contentTopicMode === "tree" && (
+                <TopicTreePicker value={contentTreeTopic} onChange={setContentTreeTopic} />
+              )}
+            </div>
+          )}
+
           {showFreeFormStep && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Напишите свободно — чем подробнее, тем точнее получится письмо</p>
@@ -818,17 +1093,24 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
             </Button>
           )}
 
-          {/* Step 1 → next */}
+          {/* Step 1 → next (or instant create for service templates) */}
           {step === 1 && !themeOnlyMode && (
-            <Button onClick={() => setStep(2)} disabled={!canNext3}>
-              Далее
-            </Button>
+            isService ? (
+              <Button onClick={handleCreateService} disabled={!canNext3 || creating}>
+                {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+                Создать письмо
+              </Button>
+            ) : (
+              <Button onClick={() => setStep(2)} disabled={!canNext3}>
+                Далее
+              </Button>
+            )
           )}
 
           {/* Step 2 */}
           {step === 2 && (
             <>
-              {(is3StepFlow || isFreeForm) ? (
+              {(is3StepFlow || isFreeForm || isContentEmail) ? (
                 /* Direct offer / Webinar / Free form: step 2 = audience → step 3 */
                 <Button onClick={() => setStep(3)} disabled={!canNextWebinarAudience}>
                   Далее
@@ -845,7 +1127,11 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
           {/* Step 3 */}
           {step === 3 && (
             <>
-              {is3StepFlow ? (
+              {isContentEmail ? (
+                <Button onClick={() => setStep(4)} disabled={!letterTitle.trim() || !programId || !offerType || !offerId || !colorSchemeId}>
+                  Далее
+                </Button>
+              ) : is3StepFlow ? (
                 /* Direct offer / Webinar: step 3 = settings → create */
                 <Button onClick={handleCreate} disabled={!canCreate || creating}>
                   {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
@@ -867,13 +1153,29 @@ export default function CreateLetterWizard({ open, onOpenChange, themeOnlyMode, 
 
           {/* Step 4 */}
           {step === 4 && (
-            <Button onClick={handleCreate} disabled={!canCreate || creating}>
-              {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-              Создать письмо
-            </Button>
+            isContentEmail ? (
+              <Button
+                onClick={handleCreateContentEmail}
+                disabled={creating || (isTestimonialTemplate ? !caseId : isObjectionTemplate ? objectionIds.length === 0 : ((contentTopicMode === "manual" && !contentUserTopic.trim()) || (contentTopicMode === "tree" && !contentTreeTopic)))}
+              >
+                {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+                Сгенерировать варианты
+              </Button>
+            ) : (
+              <Button onClick={handleCreate} disabled={!canCreate || creating}>
+                {creating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+                Создать письмо
+              </Button>
+            )
           )}
         </DialogFooter>
       </DialogContent>
+      <CasePickerDialog
+        open={casePickerOpen}
+        onOpenChange={setCasePickerOpen}
+        selectedCaseId={caseId}
+        onSelect={(id) => setCaseId(id)}
+      />
     </Dialog>
   );
 }

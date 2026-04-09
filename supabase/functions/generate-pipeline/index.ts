@@ -6,6 +6,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function fetchDocContent(url: string): Promise<string> {
+  try {
+    if (!url) return "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resp = await fetch(`${supabaseUrl}/functions/v1/fetch-google-doc`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ url }),
+    });
+    if (!resp.ok) {
+      console.error(`fetch-google-doc error: ${resp.status} for ${url}`);
+      return "";
+    }
+    const data = await resp.json();
+    return data.text || "";
+  } catch (e) {
+    console.error("Error fetching doc content:", url, e);
+  }
+  return "";
+}
+
 const OFFER_TYPE_LABELS: Record<string, string> = {
   mini_course: "Мини-курс", diagnostic: "Диагностика", webinar: "Вебинар",
   pre_list: "Предсписок", new_stream: "Старт нового потока", spot_available: "Освободилось место",
@@ -38,7 +63,7 @@ serve(async (req) => {
   try {
     const body = await req.json();
     taskId = body._task_id || null;
-    const { project_id, content_type } = body;
+    const { project_id, content_type, content_format: bodyFormat } = body;
     if (!project_id || !content_type) throw new Error("project_id and content_type are required");
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -70,83 +95,88 @@ serve(async (req) => {
 
     const offer = project.offers;
     if (!offer) throw new Error("Project has no associated offer");
-    const program = offer.paid_programs;
+    let program = offer.paid_programs;
+    if (project.program_id) {
+      const { data: projProgram } = await supabase.from("paid_programs").select("*").eq("id", project.program_id).single();
+      if (projProgram) program = projProgram;
+    }
+    if (!program) throw new Error("Project has no associated paid program");
     const selectedLead = project.lead_magnets?.find((lm: any) => lm.is_selected);
-    if (!selectedLead) throw new Error("Не выбран лид-магнит");
+    // Objection-handling carousel skips the angles step and has no lead_magnet
+    const projectContentType = project.content_type || "lead_magnet";
+    const isFromScratch = projectContentType === "from_scratch";
+    const isTrustAi = projectContentType === "trust_ai";
+    const isWebinarInvite = projectContentType === "webinar_invite" || projectContentType === "webinar_invite_2";
+    const isDirectOffer = projectContentType === "direct_offer";
+    const isMultiOffer = projectContentType === "multi_offer";
+    const isTransformationStory = projectContentType === "transformation_story";
+    const skipLeadRequirement = (projectContentType === "objection_handling" && project.content_format === "carousel") || isFromScratch || isTrustAi || isWebinarInvite || isDirectOffer || isMultiOffer || isTransformationStory;
+    if (!selectedLead && !skipLeadRequirement) throw new Error("Не выбран лид-магнит");
 
-    // Get audience description
-    let audienceDescription = program.audience_description || "";
-    if (program.audience_doc_url && !audienceDescription) {
-      try {
-        const docMatch = program.audience_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
-        if (docMatch) {
-          const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`;
-          const docResponse = await fetch(exportUrl);
-          if (docResponse.ok) {
-            audienceDescription = await docResponse.text();
+    // Get audience description — always fetch fresh from URL, fallback to cached, or use segment override
+    let audienceDescription = "";
+    const audienceSegment = project?.audience_segment || "";
+    if (audienceSegment && gv[audienceSegment]) {
+      audienceDescription = gv[audienceSegment];
+    } else {
+      if (program.audience_doc_url) {
+        try {
+          audienceDescription = await fetchDocContent(program.audience_doc_url);
+          if (audienceDescription) {
             await supabase.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
           }
-        }
-      } catch (e) { console.error("Error fetching audience doc:", e); }
+        } catch (docErr) { console.error("Error fetching audience doc:", docErr); }
+      }
+      if (!audienceDescription) audienceDescription = program.audience_description || "";
     }
 
     // Fetch program description from Google Doc if available
     let programDocDescription = "";
     if (program.program_doc_url) {
-      try {
-        const docMatch = program.program_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
-        if (docMatch) {
-          const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`;
-          const docResponse = await fetch(exportUrl);
-          if (docResponse.ok) programDocDescription = await docResponse.text();
-        }
-      } catch (e) { console.error("Error fetching program doc:", e); }
+      programDocDescription = await fetchDocContent(program.program_doc_url);
     }
 
     // Get offer full description from Google Doc
     let offerDescription = "";
     if (offer.doc_url) {
-      try {
-        const docMatch = offer.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
-        if (docMatch) {
-          const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`;
-          const docResponse = await fetch(exportUrl);
-          if (docResponse.ok) offerDescription = await docResponse.text();
-        }
-      } catch (e) { console.error("Error fetching offer doc:", e); }
+      offerDescription = await fetchDocContent(offer.doc_url);
     }
 
     // Get active prompt for this pipeline, filtered by project's content_type
-    const projectContentType = project.content_type || "lead_magnet";
-    const { data: pipelineSteps, error: stepsErr } = await supabase
+    const contentFormat: string | null = bodyFormat || project.content_format || null;
+    let stepsQuery = supabase
       .from("prompts")
       .select("*")
       .eq("channel", content_type)
       .eq("content_type", projectContentType)
-      .eq("is_active", true)
+      .eq("is_active", true);
+    if (contentFormat) stepsQuery = stepsQuery.eq("sub_type", contentFormat);
+    const { data: pipelineSteps, error: stepsErr } = await stepsQuery
       .order("step_order", { ascending: true })
       .limit(1);
     if (stepsErr) throw stepsErr;
     if (!pipelineSteps || pipelineSteps.length === 0) {
-      throw new Error(`Нет активных промптов для "${content_type}". Создайте их в разделе «Управление промптами».`);
+      throw new Error(`Нет активных промптов для "${content_type}"${contentFormat ? ` (${contentFormat})` : ""}. Создайте их в разделе «Управление промптами».`);
     }
 
     const prompt = pipelineSteps[0];
 
-    const leadMagnetContext = `Выбранный лид-магнит:\n- Название: ${selectedLead.title}\n- Визуальный формат: ${selectedLead.visual_format || ""}\n- Визуальный контент: ${selectedLead.visual_content || ""}\n- Мгновенная ценность: ${selectedLead.instant_value || ""}\n- Переход к курсу: ${selectedLead.transition_to_course || ""}`;
-    const expertContext = `Выбранная тема экспертного поста:\n- Название: ${selectedLead.title}\n- Категория: ${selectedLead.visual_format || ""}\n- Угол подачи: ${selectedLead.visual_content || ""}\n- Крючок: ${selectedLead.instant_value || ""}\n- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
+    const _sl: any = selectedLead || {};
+    const leadMagnetContext = `Выбранный лид-магнит:\n- Название: ${_sl.title || ""}\n- Визуальный формат: ${_sl.visual_format || ""}\n- Визуальный контент: ${_sl.visual_content || ""}\n- Мгновенная ценность: ${_sl.instant_value || ""}\n- Переход к курсу: ${_sl.transition_to_course || ""}`;
+    const expertContext = `Выбранная тема экспертного поста:\n- Название: ${_sl.title || ""}\n- Категория: ${_sl.visual_format || ""}\n- Угол подачи: ${_sl.visual_content || ""}\n- Крючок: ${_sl.instant_value || ""}\n- Переход к офферу: ${_sl.transition_to_course || ""}`;
 
     let mythHarm = "", mythTruth = "";
-    try { const parsed = JSON.parse(selectedLead.save_reason || "{}"); mythHarm = parsed.harm || ""; mythTruth = parsed.truth || ""; } catch {}
-    const mythContext = `Выбранная тема разбора мифа:\n- Формулировка мифа: ${selectedLead.title}\n- Категория: ${selectedLead.visual_format || ""}\n- Почему миф вреден: ${selectedLead.visual_content || ""}\n- Крючок: ${selectedLead.instant_value || ""}\n- Вред мифа: ${mythHarm}\n- Правда: ${mythTruth}\n- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
-    const provocativeContext = `Выбранная тема провокационного поста:\n- Название: ${selectedLead.title}\n- Категория: ${selectedLead.visual_format || ""}\n- Угол подачи: ${selectedLead.visual_content || ""}\n- Крючок: ${selectedLead.instant_value || ""}\n- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
-    const listContext = JSON.stringify({ id: selectedLead.id, subtype: selectedLead.visual_format || "", list_title: selectedLead.title, hook: selectedLead.instant_value || "", items: (() => { try { return JSON.parse(selectedLead.visual_content || "[]"); } catch { return []; } })(), transition_to_offer: selectedLead.transition_to_course || "" });
+    try { const parsed = JSON.parse(_sl.save_reason || "{}"); mythHarm = parsed.harm || ""; mythTruth = parsed.truth || ""; } catch {}
+    const mythContext = `Выбранная тема разбора мифа:\n- Формулировка мифа: ${_sl.title || ""}\n- Категория: ${_sl.visual_format || ""}\n- Почему миф вреден: ${_sl.visual_content || ""}\n- Крючок: ${_sl.instant_value || ""}\n- Вред мифа: ${mythHarm}\n- Правда: ${mythTruth}\n- Переход к офферу: ${_sl.transition_to_course || ""}`;
+    const provocativeContext = `Выбранная тема провокационного поста:\n- Название: ${_sl.title || ""}\n- Категория: ${_sl.visual_format || ""}\n- Угол подачи: ${_sl.visual_content || ""}\n- Крючок: ${_sl.instant_value || ""}\n- Переход к офферу: ${_sl.transition_to_course || ""}`;
+    const listContext = JSON.stringify({ id: _sl.id || "", subtype: _sl.visual_format || "", list_title: _sl.title || "", hook: _sl.instant_value || "", items: (() => { try { return JSON.parse(_sl.visual_content || "[]"); } catch { return []; } })(), transition_to_offer: _sl.transition_to_course || "" });
 
     let userPrompt = prompt.user_prompt_template
       .replace(/\{\{program_title\}\}/g, program.title)
       .replace(/\{\{offer_type\}\}/g, OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type)
       .replace(/\{\{offer_title\}\}/g, offer.title)
       .replace(/\{\{audience_description\}\}/g, audienceDescription)
+      .replace(/\{\{audience_segment\}\}/g, audienceSegment || "")
       .replace(/\{\{offer_value\}\}/g, offer.description || "")
       .replace(/\{\{offer_description\}\}/g, offerDescription)
       .replace(/\{\{lead_magnet\}\}/g, leadMagnetContext)
@@ -160,8 +190,38 @@ serve(async (req) => {
       .replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "")
       .replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "")
       .replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "")
+      .replace(/\{\{talentsy\}\}/g, gv["talentsy"] || "")
+      .replace(/\{\{topic_description\}\}/g, (project as any).topic_description || "")
+      .replace(/\{\{slide_count\}\}/g, (project as any).slide_count != null ? String((project as any).slide_count) : "")
+      .replace(/\{\{letter_theme_title\}\}/g, (project as any).topic_description || "")
+      .replace(/\{\{webinar_data\}\}/g, JSON.stringify({
+        date: offer.webinar_date || null,
+        time: null,
+        is_auto: !!offer.is_autowebinar,
+        landing_url: offer.landing_url || "",
+      }))
       .replace(/\{\{objection_data\}\}/g, "")
       .replace(/\{\{objection_angle\}\}/g, "");
+
+    // Inject offers_data for multi_offer projects
+    if (isMultiOffer) {
+      const extraIds: string[] = Array.isArray((project as any).extra_offer_ids) ? (project as any).extra_offer_ids : [];
+      const allOfferIds = [offer.id, ...extraIds].filter(Boolean);
+      const { data: multiOffers } = await supabase
+        .from("offers")
+        .select("id, title, offer_type, description, landing_url, doc_url")
+        .in("id", allOfferIds);
+      const ordered = allOfferIds.map((id) => (multiOffers || []).find((o: any) => o.id === id)).filter(Boolean);
+      const parts = await Promise.all(ordered.map(async (o: any, i: number) => {
+        let desc = o.description || "";
+        if (o.doc_url) {
+          try { const docText = await fetchDocContent(o.doc_url); if (docText) desc = docText; } catch {}
+        }
+        const typeLabel = OFFER_TYPE_LABELS[o.offer_type] || o.offer_type;
+        return `ОФФЕР ${i + 1}:\nТип: ${typeLabel}\nНазвание: ${o.title}\nОписание: ${desc || "—"}\nСсылка: ${o.landing_url || ""}`;
+      }));
+      userPrompt = userPrompt.replace(/\{\{offers_data\}\}/g, parts.join("\n\n"));
+    }
 
     // Inject case_data for testimonial_content projects
     if (project.selected_case_id) {
@@ -179,9 +239,15 @@ serve(async (req) => {
 
     // Inject objection_data and objection_angle for objection_handling
     if (projectContentType === "objection_handling") {
-      if (project.selected_objection_id) {
-        const { data: objData } = await supabase.from("objections").select("id, objection_text, tags").eq("id", project.selected_objection_id).single();
-        if (objData) userPrompt = userPrompt.replace(/\{\{objection_data\}\}/g, JSON.stringify(objData, null, 2));
+      const ids: string[] = Array.isArray((project as any).selected_objection_ids) && (project as any).selected_objection_ids.length > 0
+        ? (project as any).selected_objection_ids
+        : (project.selected_objection_id ? [project.selected_objection_id] : []);
+      if (ids.length > 0) {
+        const { data: objList } = await supabase.from("objections").select("id, objection_text, tags").in("id", ids);
+        // Preserve order from ids[]
+        const ordered = ids.map((id) => (objList || []).find((o: any) => o.id === id)).filter(Boolean);
+        const formatted = ordered.map((o: any, i: number) => `${i + 1}. ${o.objection_text}${o.tags && o.tags.length ? ` [теги: ${o.tags.join(", ")}]` : ""}`).join("\n");
+        userPrompt = userPrompt.replace(/\{\{objection_data\}\}/g, formatted);
       }
       if (selectedLead) {
         const objAngleContext = JSON.stringify({ angle_type: selectedLead.visual_format || "", angle_title: selectedLead.title || "", description: selectedLead.visual_content || "", hook: selectedLead.instant_value || "", transition_to_offer: selectedLead.transition_to_course || "" }, null, 2);
@@ -224,7 +290,7 @@ serve(async (req) => {
 
     await freshSb.from("generation_runs").insert({
       project_id, prompt_id: prompt.id, type: prompt.category, status: "completed",
-      input_data: { content_type, program_title: program.title, offer_title: offer.title, lead_magnet_title: selectedLead.title },
+      input_data: { content_type, program_title: program.title, offer_title: offer.title, lead_magnet_title: _sl.title || null },
       output_data: { content: jsonContent }, completed_at: new Date().toISOString(),
     });
 

@@ -56,7 +56,8 @@ function tiptapToText(node: any): string {
 // ---------------------------------------------------------------------------
 type UrlType =
   | { kind: "google_docs"; docId: string }
-  | { kind: "talentsy_kb"; token: string };
+  | { kind: "talentsy_kb"; token: string }
+  | { kind: "generic"; url: string };
 
 function detectUrl(url: string): UrlType {
   // Google Docs: https://docs.google.com/document/d/{id}/...
@@ -64,29 +65,46 @@ function detectUrl(url: string): UrlType {
   if (gdocMatch) return { kind: "google_docs", docId: gdocMatch[1] };
 
   // Talentsy KB: any domain + /share/tk_{token}
-  // Works with: talentsy-kb.vercel.app, kb.talentsy.ru, etc.
   const kbMatch = url.match(/\/share\/(tk_[a-zA-Z0-9_]+)/);
   if (kbMatch) return { kind: "talentsy_kb", token: kbMatch[1] };
 
-  throw new Error(
-    "Unsupported URL format. Supported: Google Docs (docs.google.com/document/d/...) and Talentsy KB (.../share/tk_...)"
-  );
+  // Fallback: generic URL
+  return { kind: "generic", url };
 }
 
 // ---------------------------------------------------------------------------
-// Fetch from Google Docs
+// Fetch Google Doc as plain text
 // ---------------------------------------------------------------------------
-async function fetchGoogleDoc(docId: string): Promise<string> {
+async function fetchGoogleDocText(docId: string): Promise<string> {
   const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
-  const response = await fetch(exportUrl);
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error("Google Docs fetch error:", response.status, errText);
-    throw new Error(
-      `Failed to fetch Google Doc (status ${response.status}). Make sure the document is shared publicly.`
-    );
+  const resp = await fetch(exportUrl);
+  if (!resp.ok) throw new Error(`Google Doc export failed: ${resp.status}`);
+  return await resp.text();
+}
+
+// ---------------------------------------------------------------------------
+// Fetch generic URL and extract text
+// ---------------------------------------------------------------------------
+async function fetchGenericUrl(url: string): Promise<string> {
+  const resp = await fetch(url, { headers: { "Accept": "text/html, text/plain, */*" } });
+  if (!resp.ok) throw new Error(`Fetch failed: ${resp.status} for ${url}`);
+  const contentType = resp.headers.get("content-type") || "";
+  const body = await resp.text();
+  if (contentType.includes("text/plain") || contentType.includes("application/json")) return body;
+  if (contentType.includes("text/html")) {
+    let text = body
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<nav[\s\S]*?<\/nav>/gi, "")
+      .replace(/<header[\s\S]*?<\/header>/gi, "")
+      .replace(/<footer[\s\S]*?<\/footer>/gi, "");
+    text = text.replace(/<\/(p|div|h[1-6]|li|tr|br|hr)[^>]*>/gi, "\n").replace(/<br\s*\/?>/gi, "\n");
+    text = text.replace(/<[^>]+>/g, " ");
+    text = text.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    text = text.replace(/[ \t]+/g, " ").replace(/\n\s*\n/g, "\n\n").trim();
+    return text;
   }
-  return response.text();
+  return body;
 }
 
 // ---------------------------------------------------------------------------
@@ -150,11 +168,15 @@ serve(async (req) => {
     switch (parsed.kind) {
       case "google_docs":
         console.log("Fetching Google Doc:", parsed.docId);
-        text = await fetchGoogleDoc(parsed.docId);
+        text = await fetchGoogleDocText(parsed.docId);
         break;
       case "talentsy_kb":
         console.log("Fetching Talentsy KB:", parsed.token);
         text = await fetchTalentsyKB(parsed.token);
+        break;
+      case "generic":
+        console.log("Fetching generic URL:", url);
+        text = await fetchGenericUrl(url);
         break;
     }
 

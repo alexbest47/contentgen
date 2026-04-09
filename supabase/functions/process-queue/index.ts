@@ -7,37 +7,61 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function processLane(supabase: any, supabaseUrl: string, serviceKey: string, lane: string): Promise<boolean> {
-  // Atomically claim next pending task (returns empty array if lane busy or no tasks)
-  const { data: tasks, error: rpcError } = await supabase.rpc("claim_next_task", { p_lane: lane });
+// Concurrency limits per lane
+const LANE_CONCURRENCY: Record<string, number> = {
+  claude: 3,
+  openrouter: 5,
+};
 
-  if (rpcError) {
-    console.error(`RPC claim_next_task error for lane ${lane}:`, rpcError.message);
-    return false;
+// Timeout in minutes
+const TASK_TIMEOUT_MINUTES = 3;
+
+async function processLane(
+  supabase: any,
+  supabaseUrl: string,
+  serviceKey: string,
+  lane: string,
+  maxConcurrent: number
+): Promise<number> {
+  let dispatched = 0;
+
+  // Try to claim up to maxConcurrent tasks (claim_next_task checks active count)
+  for (let i = 0; i < maxConcurrent; i++) {
+    const { data: tasks, error: rpcError } = await supabase.rpc("claim_next_task", {
+      p_lane: lane,
+      p_max_concurrent: maxConcurrent,
+    });
+
+    if (rpcError) {
+      console.error(`RPC claim_next_task error for lane ${lane}:`, rpcError.message);
+      break;
+    }
+
+    if (!tasks || tasks.length === 0) {
+      break; // No more tasks or lane at capacity
+    }
+
+    const task = tasks[0];
+    console.log(`Dispatching task ${task.id}: ${task.function_name} (lane: ${lane})`);
+
+    // Fire-and-forget: call the target function with _task_id in payload
+    const payloadWithTaskId = { ...task.payload, _task_id: task.id };
+
+    fetch(`${supabaseUrl}/functions/v1/${task.function_name}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify(payloadWithTaskId),
+    }).catch((err) => {
+      console.error(`Failed to dispatch task ${task.id}:`, err.message);
+    });
+
+    dispatched++;
   }
 
-  if (!tasks || tasks.length === 0) {
-    return false;
-  }
-
-  const task = tasks[0];
-  console.log(`Dispatching task ${task.id}: ${task.function_name} (lane: ${lane})`);
-
-  // Fire-and-forget: call the target function with _task_id in payload
-  const payloadWithTaskId = { ...task.payload, _task_id: task.id };
-
-  fetch(`${supabaseUrl}/functions/v1/${task.function_name}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${serviceKey}`,
-    },
-    body: JSON.stringify(payloadWithTaskId),
-  }).catch((err) => {
-    console.error(`Failed to dispatch task ${task.id}:`, err.message);
-  });
-
-  return true;
+  return dispatched;
 }
 
 serve(async (req) => {
@@ -50,24 +74,30 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Watchdog: reset stuck tasks (processing > 10 min)
-    const threeMinAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+    // Watchdog: reset stuck tasks (processing > 3 min)
+    const timeoutAgo = new Date(Date.now() - TASK_TIMEOUT_MINUTES * 60 * 1000).toISOString();
     await supabase
       .from("task_queue")
       .update({
         status: "error",
         completed_at: new Date().toISOString(),
-        error_message: "Timeout: задача выполнялась более 3 минут",
+        error_message: `Timeout: задача выполнялась более ${TASK_TIMEOUT_MINUTES} минут`,
       })
       .eq("status", "processing")
-      .lt("started_at", threeMinAgo);
+      .lt("started_at", timeoutAgo);
 
-    const lanes = ["claude", "openrouter"];
-    const results: Record<string, boolean> = {};
+    const lanes = Object.keys(LANE_CONCURRENCY);
+    const results: Record<string, number> = {};
 
-    // Process one task per lane in parallel
+    // Process lanes in parallel, each may dispatch multiple tasks
     const promises = lanes.map(async (lane) => {
-      results[lane] = await processLane(supabase, supabaseUrl, serviceKey, lane);
+      results[lane] = await processLane(
+        supabase,
+        supabaseUrl,
+        serviceKey,
+        lane,
+        LANE_CONCURRENCY[lane]
+      );
     });
     await Promise.all(promises);
 
@@ -93,7 +123,7 @@ serve(async (req) => {
       }, 1000);
     }
 
-    return new Response(JSON.stringify({ processed: results }), {
+    return new Response(JSON.stringify({ dispatched: results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {

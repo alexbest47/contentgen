@@ -29,9 +29,11 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
   // Selections
   const [templateId, setTemplateId] = useState<string>("");
   const [webinarOfferId, setWebinarOfferId] = useState<string>("");
+  const [programId, setProgramId] = useState<string>("");
   const [pdfMaterialId, setPdfMaterialId] = useState<string>("");
   const [caseId, setCaseId] = useState<string>("");
   const [miniCourseOfferId, setMiniCourseOfferId] = useState<string>("");
+  const [preListOfferId, setPreListOfferId] = useState<string>("");
   const [chainTitle, setChainTitle] = useState("");
   const [colorSchemeId, setColorSchemeId] = useState<string>("");
   const [imageStyleId, setImageStyleId] = useState<string>("");
@@ -54,6 +56,23 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
     },
     enabled: open,
   });
+
+  const { data: programs } = useQuery({
+    queryKey: ["paid_programs_list"],
+    queryFn: async () => {
+      const { data } = await supabase.from("paid_programs").select("id, title").order("title");
+      return (data || []) as any[];
+    },
+    enabled: open,
+  });
+
+  // Derived state — must be computed before useQuery hooks that reference them
+  const selectedTemplate = templates?.find((t: any) => t.id === templateId);
+  const isWarming = selectedTemplate?.chain_type === "warming";
+  const isClosedLead = selectedTemplate?.chain_type === "closed_lead";
+  const isProgramBased = isWarming || isClosedLead;
+  const selectedWebinar = webinars?.find((w: any) => w.id === webinarOfferId);
+  const selectedProgram = programs?.find((p: any) => p.id === programId);
 
   const { data: pdfMaterials } = useQuery({
     queryKey: ["pdf_materials_ready"],
@@ -82,6 +101,15 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
     enabled: open && step >= 3,
   });
 
+  const { data: preListOffers } = useQuery({
+    queryKey: ["pre_list_offers", programId],
+    queryFn: async () => {
+      const { data } = await supabase.from("offers").select("id, title, landing_url").eq("offer_type", "pre_list").eq("program_id", programId).eq("is_archived", false).order("created_at", { ascending: false });
+      return (data || []) as any[];
+    },
+    enabled: open && step >= 3 && isClosedLead && !!programId,
+  });
+
   const { data: colorSchemes } = useQuery({
     queryKey: ["color_schemes_active"],
     queryFn: async () => {
@@ -100,16 +128,15 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
     enabled: open && step >= 4,
   });
 
-  const selectedTemplate = templates?.find((t: any) => t.id === templateId);
-  const selectedWebinar = webinars?.find((w: any) => w.id === webinarOfferId);
-
   const reset = () => {
     setStep(1);
     setTemplateId("");
     setWebinarOfferId("");
+    setProgramId("");
     setPdfMaterialId("");
     setCaseId("");
     setMiniCourseOfferId("");
+    setPreListOfferId("");
     setChainTitle("");
     setColorSchemeId("");
     setImageStyleId("");
@@ -117,7 +144,9 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
   };
 
   const handleCreate = async () => {
-    if (!user || !templateId || !webinarOfferId || !chainTitle.trim() || !colorSchemeId || !imageStyleId) return;
+    const hasRequiredStep2 = isProgramBased ? !!programId : !!webinarOfferId;
+    const hasPreList = isClosedLead ? !!preListOfferId : true;
+    if (!user || !templateId || !hasRequiredStep2 || !hasPreList || !chainTitle.trim() || !colorSchemeId || !imageStyleId) return;
 
     // Validate that selected IDs actually exist in loaded data
     const validStyle = imageStyles?.find((s: any) => s.id === imageStyleId);
@@ -134,7 +163,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
     setCreating(true);
 
     try {
-      const programId = selectedWebinar?.program_id || null;
+      const resolvedProgramId = isProgramBased ? programId : (selectedWebinar?.program_id || null);
       const lettersConfig: any[] = selectedTemplate?.letters_config || [];
 
       // 1. Create chain
@@ -143,13 +172,14 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
         .insert({
           title: chainTitle.trim(),
           template_id: templateId,
-          webinar_offer_id: webinarOfferId,
-          program_id: programId,
+          webinar_offer_id: isProgramBased ? null : webinarOfferId,
+          program_id: resolvedProgramId,
           selected_color_scheme_id: colorSchemeId || null,
           image_style_id: imageStyleId || null,
           pdf_material_id: pdfMaterialId || null,
           case_id: caseId || null,
           mini_course_offer_id: miniCourseOfferId || null,
+          pre_list_offer_id: preListOfferId || null,
           created_by: user.id,
         } as any)
         .select("id")
@@ -165,14 +195,15 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
           .insert({
             created_by: user.id,
             title: `${chainTitle} — Письмо ${lc.number}: ${lc.title}`,
-            program_id: programId,
-            offer_id: webinarOfferId,
-            offer_type: "webinar",
+            program_id: resolvedProgramId,
+            offer_id: isProgramBased ? null : webinarOfferId,
+            offer_type: isProgramBased ? "" : "webinar",
             selected_color_scheme_id: colorSchemeId || null,
             image_style_id: imageStyleId || null,
             case_id: caseId || null,
             pdf_material_id: pdfMaterialId || null,
             mini_course_offer_id: miniCourseOfferId || null,
+            pre_list_offer_id: preListOfferId || null,
             status: "draft",
           })
           .select("id")
@@ -197,6 +228,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
           displayTitle: `Цепочка «${chainTitle}» — Письмо ${lc.number}: ${lc.title}`,
           lane: "claude",
           targetUrl: `/email-builder/${letter.id}`,
+          taskType: "letter",
         });
       }
 
@@ -240,7 +272,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
           </div>
         )}
 
-        {step === 2 && (
+        {step === 2 && !isProgramBased && (
           <div className="space-y-4">
             <Label>Вебинар</Label>
             <Select value={webinarOfferId} onValueChange={setWebinarOfferId}>
@@ -262,12 +294,31 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
           </div>
         )}
 
+        {step === 2 && isProgramBased && (
+          <div className="space-y-4">
+            <Label>Платная программа</Label>
+            <Select value={programId} onValueChange={setProgramId}>
+              <SelectTrigger><SelectValue placeholder="Выберите программу" /></SelectTrigger>
+              <SelectContent>
+                {programs?.map((p: any) => (
+                  <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedProgram && (
+              <p className="text-sm text-muted-foreground">
+                Цепочка будет создана для программы «{selectedProgram.title}»
+              </p>
+            )}
+          </div>
+        )}
+
         {step === 3 && (
           <div className="space-y-5">
             <p className="text-sm text-muted-foreground">Все поля необязательные — можно пропустить</p>
 
             <div className="space-y-2">
-              <Label>PDF при регистрации (письма 1, 10)</Label>
+              <Label>{isClosedLead ? "PDF в подарок (письмо 1)" : isWarming ? "PDF-материал (письмо 4)" : "PDF при регистрации (письма 1, 10)"}</Label>
               <Select value={pdfMaterialId} onValueChange={setPdfMaterialId}>
                 <SelectTrigger><SelectValue placeholder="Пропустить" /></SelectTrigger>
                 <SelectContent>
@@ -280,7 +331,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label>Кейс студента (письма 4, 11, 15)</Label>
+              <Label>{isClosedLead ? "Кейс студента (письмо 2)" : isWarming ? "Кейс студента (письмо 3)" : "Кейс студента (письма 4, 11, 15)"}</Label>
               <Select value={caseId} onValueChange={setCaseId}>
                 <SelectTrigger><SelectValue placeholder="Пропустить" /></SelectTrigger>
                 <SelectContent>
@@ -293,7 +344,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label>Мини-курс (письмо 13)</Label>
+              <Label>{isClosedLead ? "Мини-курс в подарок (письмо 2)" : isWarming ? "Мини-курс в подарок (письмо 7)" : "Мини-курс (письмо 13)"}</Label>
               <Select value={miniCourseOfferId} onValueChange={setMiniCourseOfferId}>
                 <SelectTrigger><SelectValue placeholder="Пропустить" /></SelectTrigger>
                 <SelectContent>
@@ -305,10 +356,33 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
               </Select>
             </div>
 
+            {isClosedLead && (
+              <div className="space-y-2">
+                <Label>Оффер «Предзапись» (письмо 4) <span className="text-destructive">*</span></Label>
+                <Select value={preListOfferId} onValueChange={setPreListOfferId}>
+                  <SelectTrigger className={isClosedLead && !preListOfferId ? "border-destructive/50" : ""}>
+                    <SelectValue placeholder="Выберите оффер предзаписи" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {preListOffers?.map((o: any) => (
+                      <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {preListOffers?.length === 0 && (
+                  <p className="text-xs text-destructive">Нет офферов типа «предзапись» для выбранной программы. Создайте оффер в разделе «Офферы».</p>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-2 items-start p-3 bg-muted rounded-md">
               <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
               <p className="text-xs text-muted-foreground">
-                Схему-инструмент, провокационный контент, отработку возражений и дедлайн система генерирует сама на основе данных вебинара и программы
+                {isClosedLead
+                  ? "Отработку возражений, ссылки на соцсети и обзор других программ система генерирует сама на основе данных программы"
+                  : isWarming
+                  ? "Экспертный контент, описание программы, отработку возражений и мотивацию система генерирует сама на основе данных программы"
+                  : "Схему-инструмент, провокационный контент, отработку возражений и дедлайн система генерирует сама на основе данных вебинара и программы"}
               </p>
             </div>
           </div>
@@ -321,7 +395,7 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
               <Input
                 value={chainTitle}
                 onChange={(e) => setChainTitle(e.target.value)}
-                placeholder="Например: Вебинар «Масштаб» — март 2026"
+                placeholder={isClosedLead ? "Например: Закрытые заявки — Психолог-консультант — апрель 2026" : isWarming ? "Например: Прогрев — Профессия стилист — апрель 2026" : "Например: Вебинар «Масштаб» — март 2026"}
               />
             </div>
 
@@ -370,11 +444,22 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
             <div className="rounded-md border bg-muted/50 p-3 space-y-1.5 text-sm">
               <p className="font-medium text-foreground">Сводка перед созданием</p>
               <p><span className="text-muted-foreground">Шаблон:</span> {selectedTemplate?.name || "—"}</p>
-              <p><span className="text-muted-foreground">Вебинар:</span> {selectedWebinar?.title || "—"}</p>
-              <p><span className="text-muted-foreground">Программа:</span> {selectedWebinar?.paid_programs?.title || "—"}</p>
+              {isProgramBased ? (
+                <p><span className="text-muted-foreground">Программа:</span> {selectedProgram?.title || "—"}</p>
+              ) : (
+                <>
+                  <p><span className="text-muted-foreground">Вебинар:</span> {selectedWebinar?.title || "—"}</p>
+                  <p><span className="text-muted-foreground">Программа:</span> {selectedWebinar?.paid_programs?.title || "—"}</p>
+                </>
+              )}
               <p><span className="text-muted-foreground">PDF:</span> {pdfMaterialId && pdfMaterialId !== "__skip__" ? pdfMaterials?.find((p: any) => p.id === pdfMaterialId)?.title : "Пропущено"}</p>
               <p><span className="text-muted-foreground">Кейс:</span> {caseId && caseId !== "__skip__" ? cases?.find((c: any) => c.id === caseId)?.file_name : "Пропущено"}</p>
               <p><span className="text-muted-foreground">Мини-курс:</span> {miniCourseOfferId && miniCourseOfferId !== "__skip__" ? miniCourses?.find((m: any) => m.id === miniCourseOfferId)?.title : "Пропущено"}</p>
+              {isClosedLead && (
+                <p className={!preListOfferId ? "text-destructive font-medium" : ""}>
+                  <span className="text-muted-foreground">Предзапись:</span> {preListOfferId ? preListOffers?.find((o: any) => o.id === preListOfferId)?.title : "⚠ Не выбрана"}
+                </p>
+              )}
               <p className={!colorSchemeId ? "text-destructive font-medium" : ""}>
                 <span className="text-muted-foreground">Цветовая гамма:</span> {colorSchemeId ? colorSchemes?.find((cs: any) => cs.id === colorSchemeId)?.name : "⚠ Не выбрана"}
               </p>
@@ -394,13 +479,13 @@ export default function CreateChainWizard({ open, onOpenChange }: Props) {
               onClick={() => setStep(step + 1)}
               disabled={
                 (step === 1 && !templateId) ||
-                (step === 2 && !webinarOfferId)
+                (step === 2 && (isProgramBased ? !programId : !webinarOfferId))
               }
             >
               Далее
             </Button>
           ) : (
-            <Button onClick={handleCreate} disabled={creating || !chainTitle.trim() || !colorSchemeId || !imageStyleId}>
+            <Button onClick={handleCreate} disabled={creating || !chainTitle.trim() || !colorSchemeId || !imageStyleId || (isClosedLead && !preListOfferId)}>
               {creating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Создать цепочку
             </Button>

@@ -17,6 +17,7 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { TopicChoiceDialog } from "@/components/offer/TopicChoiceDialog";
+import { useContentFormat, appendFormat } from "@/lib/contentFormat";
 
 const getStatusLabel = (status: string, contentType?: string): string => {
   if (contentType === "reference_material") {
@@ -90,6 +91,7 @@ export default function OfferDetail() {
   const { enqueue } = useTaskQueue();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { format, suffix } = useContentFormat();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [generatingType, setGeneratingType] = useState<string | null>(null);
   const [topicDialogType, setTopicDialogType] = useState<string | null>(null);
@@ -108,13 +110,15 @@ export default function OfferDetail() {
   });
 
   const { data: projects, isLoading } = useQuery({
-    queryKey: ["projects_by_offer", offerId],
+    queryKey: ["projects_by_offer", offerId, format],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("projects")
         .select("*")
         .eq("offer_id", offerId!)
         .order("created_at", { ascending: false });
+      if (format) q = q.eq("content_format", format);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
@@ -148,7 +152,7 @@ export default function OfferDetail() {
 
       const { data: project, error: projError } = await supabase
         .from("projects")
-        .insert({ offer_id: offerId!, title: nameData.name, created_by: user!.id, content_type: contentType } as any)
+        .insert({ offer_id: offerId!, title: nameData.name, created_by: user!.id, content_type: contentType, content_format: format } as any)
         .select("id")
         .single();
       if (projError) throw projError;
@@ -165,7 +169,7 @@ export default function OfferDetail() {
         payload,
         displayTitle: `Генерация ${label}: ${nameData.name}`,
         lane: "claude",
-        targetUrl: `/programs/${programId}/offers/${offerType}/${offerId}/projects/${project.id}`,
+        targetUrl: appendFormat(`/programs/${programId}/offers/${offerType}/${offerId}/projects/${project.id}`, format),
       });
 
       return { projectId: project.id, label };
@@ -174,7 +178,7 @@ export default function OfferDetail() {
       toast.success(`Генерация ${label} завершена!`);
       setGeneratingType(null);
       queryClient.invalidateQueries({ queryKey: ["projects_by_offer", offerId] });
-      navigate(`/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`);
+      navigate(appendFormat(`/programs/${programId}/offers/${offerType}/${offerId}/projects/${projectId}`, format));
     },
     onError: (e: Error) => {
       toast.error(e.message);
@@ -206,7 +210,7 @@ export default function OfferDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate(`/programs/${programId}/offers/${offerType}`)}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(`/programs/${programId}/offers/${offerType}${suffix}`)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
@@ -231,7 +235,7 @@ export default function OfferDetail() {
             <div
               key={p.id}
               className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => navigate(`/programs/${programId}/offers/${offerType}/${offerId}/projects/${p.id}`)}
+              onClick={() => navigate(appendFormat(`/programs/${programId}/offers/${offerType}/${offerId}/projects/${p.id}`, format))}
             >
               <div className="min-w-0 flex-1 flex items-center gap-2">
                 <div className="font-medium">{p.title}</div>

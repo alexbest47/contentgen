@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Loader2, Save, Check, Plus, Pencil, Trash2 } from "lucide-react";
 
 const GLOBAL_VARS = [
+  { key: "talentsy", name: "{{talentsy}}", description: "Описание компании Talentsy" },
   { key: "offer_rules", name: "{{offer_rules}}", description: "Адаптация под тип оффера" },
   { key: "antiAI_rules", name: "{{antiAI_rules}}", description: "Требования к тексту — антиAI" },
   { key: "brand_voice", name: "{{brand_voice}}", description: "Голос бренда Talentsy" },
@@ -195,10 +196,10 @@ function GlobalVariablesCard() {
 
   const handleSave = async (key: string) => {
     setSaving(key);
+    const label = GLOBAL_VARS.find((v) => v.key === key)?.description || key;
     const { error } = await supabase
       .from("prompt_global_variables")
-      .update({ value: values[key] ?? "" })
-      .eq("key", key);
+      .upsert({ key, value: values[key] ?? "", label }, { onConflict: "key" });
     setSaving(null);
     if (error) {
       toast.error("Не удалось сохранить: " + error.message);

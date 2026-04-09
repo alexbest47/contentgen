@@ -11,8 +11,10 @@ const GROUP_LABELS: Record<string, string> = {
   before: "До вебинара",
   webinar_day: "День вебинара",
   after: "После вебинара",
+  warming: "Прогрев после заявки",
+  closed: "Письма после закрытой заявки",
 };
-const GROUP_ORDER = ["before", "webinar_day", "after"];
+const GROUP_ORDER = ["before", "webinar_day", "after", "warming", "closed"];
 
 function statusBadge(status: string) {
   switch (status) {
@@ -68,6 +70,7 @@ export default function EmailChainDetail() {
       displayTitle: `Цепочка: ${cl.group_name} — Письмо ${cl.letter_number}`,
       lane: "claude",
       targetUrl: `/email-builder/${cl.letter_id}`,
+      taskType: "letter",
     });
     queryClient.invalidateQueries({ queryKey: ["email_chain_letters", chainId] });
   };

@@ -1,14 +1,14 @@
 import { Button } from "@/components/ui/button";
 import {
   MessageSquareQuote, Type, ImageIcon, MousePointerClick,
-  GraduationCap, BookOpen, ShieldQuestion, Square,
+  GraduationCap, BookOpen, ShieldQuestion, Square, ClipboardCheck,
 } from "lucide-react";
 
 export type EmailBlockType =
   | "lead_magnet" | "reference_material" | "expert_content" | "provocative_content"
   | "list_content" | "testimonial_content" | "myth_busting" | "objection_handling"
   | "offer_collection"
-  | "paid_programs_collection" | "free_courses_grid"
+  | "paid_programs_collection" | "free_courses_grid" | "diagnostics_grid"
   | "card"
   | "text" | "image" | "cta" | "divider";
 
@@ -30,6 +30,7 @@ const generatedBlocksDirectOffer: BlockDef[] = [
 const readyBlocks: BlockDef[] = [
   { type: "paid_programs_collection", label: "Курсы на которые идёт набор", icon: GraduationCap },
   { type: "free_courses_grid", label: "Подборка бесплатных курсов", icon: BookOpen },
+  { type: "diagnostics_grid", label: "Подборка диагностик", icon: ClipboardCheck },
 ];
 
 const elementBlocks: BlockDef[] = [
@@ -124,6 +125,7 @@ export const blockTypeLabels: Record<string, string> = {
   objection_handling: "Возражение",
   paid_programs_collection: "Курсы на которые идёт набор",
   free_courses_grid: "Подборка бесплатных курсов",
+  diagnostics_grid: "Подборка диагностик",
   offer_collection: "Подборка офферов",
   card: "Карточка",
   text: "Текстовый блок",

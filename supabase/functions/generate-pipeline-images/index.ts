@@ -94,6 +94,12 @@ serve(async (req) => {
       if (slidesToGenerate.length === 0) throw new Error(`Слайд ${slide_number} не найден в carousel_prompts`);
 
       for (const slide of slidesToGenerate) {
+        // Skip slides marked as video placeholder (e.g. Instagram transformation_story / testimonial_content pre-last slide)
+        const rawPrompt = typeof slide.prompt === "string" ? slide.prompt.trim() : "";
+        if (rawPrompt === "VIDEO_PLACEHOLDER" || rawPrompt === "" || /^video_?placeholder$/i.test(rawPrompt)) {
+          console.log(`[generate-pipeline-images] Skipping slide ${slide.slide_number}: video placeholder`);
+          continue;
+        }
         const imageData = await generateImage(slide.prompt, OPENROUTER_API_KEY);
         const fileName = `${project_id}/${content_type}_carousel_${slide.slide_number}_${Date.now()}.png`;
         const { error: uploadErr } = await supabase.storage.from("generated-images").upload(fileName, imageData, { contentType: "image/png", upsert: true });

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2 } from "lucide-react";
+import TopicTreePicker, { TopicTreeSelection } from "@/components/TopicTreePicker";
 
 const PLACEHOLDERS: Record<string, string> = {
   lead_magnet: "Например: 5 признаков эмоционального выгорания, которые вы не замечаете",
@@ -37,17 +38,21 @@ interface TopicChoiceDialogProps {
 export function TopicChoiceDialog({
   open, onOpenChange, contentType, onConfirm, disabled,
 }: TopicChoiceDialogProps) {
-  const [mode, setMode] = useState<"auto" | "manual">("auto");
+  const [mode, setMode] = useState<"auto" | "manual" | "tree">("auto");
   const [topic, setTopic] = useState("");
+  const [treeTopic, setTreeTopic] = useState<TopicTreeSelection | null>(null);
 
   const handleConfirm = () => {
-    onConfirm(mode === "manual" && topic.trim() ? topic.trim() : null);
+    if (mode === "manual" && topic.trim()) onConfirm(topic.trim());
+    else if (mode === "tree" && treeTopic) onConfirm(treeTopic.title);
+    else onConfirm(null);
   };
 
   const handleOpenChange = (v: boolean) => {
     if (!v) {
       setMode("auto");
       setTopic("");
+      setTreeTopic(null);
     }
     onOpenChange(v);
   };
@@ -63,7 +68,7 @@ export function TopicChoiceDialog({
 
         <RadioGroup
           value={mode}
-          onValueChange={(v) => setMode(v as "auto" | "manual")}
+          onValueChange={(v) => setMode(v as "auto" | "manual" | "tree")}
           className="gap-3"
         >
           <div className="flex items-start gap-3 rounded-lg border p-3">
@@ -85,6 +90,16 @@ export function TopicChoiceDialog({
               </div>
             </Label>
           </div>
+
+          <div className="flex items-start gap-3 rounded-lg border p-3">
+            <RadioGroupItem value="tree" id="mode-tree" className="mt-0.5" />
+            <Label htmlFor="mode-tree" className="cursor-pointer">
+              <div className="font-medium">Выбрать из дерева тем</div>
+              <div className="text-sm text-muted-foreground">
+                Направление → поднаправление → конкретная тема
+              </div>
+            </Label>
+          </div>
         </RadioGroup>
 
         {mode === "manual" && (
@@ -97,8 +112,15 @@ export function TopicChoiceDialog({
           />
         )}
 
+        {mode === "tree" && (
+          <TopicTreePicker value={treeTopic} onChange={setTreeTopic} />
+        )}
+
         <DialogFooter>
-          <Button onClick={handleConfirm} disabled={disabled || (mode === "manual" && !topic.trim())}>
+          <Button
+            onClick={handleConfirm}
+            disabled={disabled || (mode === "manual" && !topic.trim()) || (mode === "tree" && !treeTopic)}
+          >
             {disabled ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (

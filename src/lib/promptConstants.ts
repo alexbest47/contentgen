@@ -22,12 +22,24 @@ export const categoryLabels: Record<PromptCategory, string> = {
   myth_busting: "Разбор мифа",
   objection_handling: "Отработка возражения",
   email_builder: "Конструктор email",
+  bot_builder: "Конструктор ботов",
   pdf_generation: "Генерация PDF",
+  landing_block_content: "Конструктор лендингов",
+  landing_block_teachers: "Лендинг: преподаватели",
+  landing_block_curriculum: "Лендинг: программа обучения",
+  landing_block_faq: "Лендинг: часто задаваемые вопросы",
 };
 
 export const categories = Object.keys(categoryLabels) as PromptCategory[];
 
 export const contentTypeLabels: Record<string, string> = {
+  from_scratch: "С нуля",
+  trust_ai: "Доверимся ИИ",
+  webinar_invite: "Приглашение на вебинар",
+  direct_offer: "Прямой оффер",
+  multi_offer: "Мультиоффер",
+  transformation_story: "История трансформации",
+  webinar_invite_2: "Приглашение на вебинар — Письмо 2",
   lead_magnet: "Лидмагнит",
   reference_material: "Справочный материал",
   diagnostic: "Диагностика",
@@ -40,6 +52,7 @@ export const contentTypeLabels: Record<string, string> = {
   objection_handling: "Отработка возражения",
   email_builder: "Конструктор email",
   pdf_material: "PDF-материал",
+  landing_block_content: "Конструктор лендингов",
 };
 
 export const contentTypeKeys = Object.keys(contentTypeLabels);
@@ -64,7 +77,9 @@ export const deriveCategory = (contentType: string, channel?: string): PromptCat
   if (contentType === "myth_busting") return "myth_busting";
   if (contentType === "objection_handling") return "objection_handling";
   if (contentType === "email_builder") return "email_builder";
+  if (contentType === "bot_builder") return "bot_builder";
   if (contentType === "pdf_material") return "pdf_generation";
+  if (contentType === "landing_block_content") return "landing_block_content";
   if (channel) {
     const mapping: Record<string, PromptCategory> = {
       instagram: "text_instagram",

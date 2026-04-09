@@ -71,8 +71,13 @@ export default function GeneratedBlockSettings({
     queryKey: ["offers_for_program", config.program_id, config.offer_type],
     queryFn: async () => {
       if (!config.program_id) return [];
-      let q = supabase.from("offers").select("id, title").eq("program_id", config.program_id).eq("is_archived", false);
-      if (config.offer_type) q = q.eq("offer_type", config.offer_type);
+      let q = supabase.from("offers").select("id, title").eq("is_archived", false);
+      if (config.offer_type === "spot_available") {
+        q = q.eq("offer_type", "spot_available");
+      } else {
+        q = q.eq("program_id", config.program_id);
+        if (config.offer_type) q = q.eq("offer_type", config.offer_type);
+      }
       const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
     },

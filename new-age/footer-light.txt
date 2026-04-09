@@ -1,0 +1,118 @@
+<button class="scroll-to-top" aria-label="Наверх">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 19V5M12 5L5 12M12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</button>
+
+<footer class="footer footer_light">
+    <div class="container-main">
+        <div class="footer-navigation">
+            <div class="footer-column footer-column_address">
+                <div class="footer-navigation__address">
+                    <address>
+                        <a href="tel:88007753768" class="footer-phone">8 800 775-37-68</a>
+						<div class="footer-street">107140, г. Москва, Леснорядский пер., 18 С19А, оф. 309</div>
+                    </address>
+                </div>
+            </div>
+            <div class="footer-column-end">
+                <div class="footer-block">
+                    <div class="footer-participants">
+                        <a href=" https://sk.ru/" rel="nofollow" class="footer-participants__item" target="_blank">
+                            <img src="https://talentsy.ru/wp-content/uploads/2024/08/sk.svg" alt="">
+                        </a>
+                        <a href=" https://islod.obrnadzor.gov.ru/rlic/details/6fe5bf26-59b9-9ba3-c6bb-1c51f27dacd7/" rel="nofollow" class="footer-participants__item"
+                           target="_blank">
+                            <img src="https://talentsy.ru/wp-content/uploads/2024/08/footer-gos.svg" alt="">
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="installment">
+            <div class="footer-head">Рассрочка через банки – партнеры</div>
+            <div class="installment-items">
+                                    <div class="installment-item">
+                        <div class="installment-item__content">
+                            <div class="installment-head">Т-Банк</div>
+                            <div class="installment-value"><p>Лицензия ЦБ РФ № 2673 от 24.03.2015</p>
+                            </div>
+                        </div>
+                        <div class="installment-item__icon">
+                            <img src="https://talentsy.ru/wp-content/uploads/2024/08/bank-1.svg" alt="">
+                        </div>
+                    </div>
+                                        <div class="installment-item">
+                        <div class="installment-item__content">
+                            <div class="installment-head">Сбер</div>
+                            <div class="installment-value"><p>Лицензия ЦБ РФ №1481 от 11.08.2015</p>
+                                </div>
+                        </div>
+                        <div class="installment-item__icon">
+                            <img src="https://talentsy.ru/wp-content/uploads/2024/08/bank-2.svg" alt="">
+                        </div>
+                    </div>
+                                        <div class="installment-item">
+                        <div class="installment-item__content">
+                            <div class="installment-head">Альфа-Банк</div>
+                            <div class="installment-value"><div class="installment-value">Лицензия ЦБ РФ № 1326 от 16.01.2015</div>
+                            </div>
+                        </div>
+                        <div class="installment-item__icon">
+                            <img src="https://talentsy.ru/wp-content/uploads/2024/08/bank-3.svg" alt="">
+                        </div>
+                    </div>
+                                        <div class="installment-item">
+                        <div class="installment-item__content">
+                            <div class="installment-head">Почта банк</div>
+                            <div class="installment-value"><div class="installment-value">Лицензия ЦБ РФ № 650 от 25.03.2016</div>
+                            </div>
+                        </div>
+                        <div class="installment-item__icon">
+                            <img src="https://talentsy.ru/wp-content/uploads/2024/08/bank-4.svg" alt="">
+                        </div>
+                    </div>
+                                </div>
+            <div class="footer-bottom">
+                <div class="footer-logo-container">
+                    <a href="https://talentsy.ru" class="footer-logo">
+                        <img src="https://talentsy.ru/wp-content/themes/talentsy/img/main-page/footer-logo.svg" alt="">
+                    </a>
+                    <div class="footer-copy">
+                        2026 © Talentsy — онлайн-университет помогающих профессий                    </div>
+                </div>
+            <div class="footer-bottom__links-column">
+            <a href="https://talentsy.ru/legal/policy/" rel="nofollow" class="footer-bottom__link">Политика конфиденциальности</a>
+            <a href="https://talentsy.ru/legal/oferta/" rel="nofollow" class="footer-bottom__link">Договор оферты</a>
+            <a href="https://talentsy.ru/legal/mailing-agreement/" rel="nofollow" class="footer-bottom__link">Согласие на рассылку</a>
+            <a href="https://talentsy.ru/legal/pd-agreement/" rel="nofollow" class="footer-bottom__link">Согласие на обработку</a>
+            </div>
+            <div class="footer-bottom__links-column">
+            <a href="https://talentsy.ru/info/main/" rel="nofollow" class="footer-bottom__link">Сведения об образовательной организации</a>
+            <a href="https://talentsy.ru/legal/pay/" rel="nofollow" class="footer-bottom__link">Реквизиты и оплата</a>
+            <a href="https://minobrnauki.gov.ru/" rel="nofollow" class="footer-bottom__link">Сайт Минобрнауки России</a>
+            <a href="https://edu.gov.ru/" rel="nofollow" class="footer-bottom__link">Сайт Минпросвещения России</a>
+            </div>
+            </div>
+        </div>
+    </div>
+</footer>
+</div>
+<script type="text/javascript" src="https://talentsy.ru/wp-content/themes/talentsy/js/custom/getReview.js?ver=3.6.3" id="get_review-js" async="async" data-wp-strategy="async"></script>
+<script type="text/javascript" src="https://talentsy.ru/wp-content/themes/talentsy/js/custom/sombra.js?ver=3.6.3" id="js-sombra-js"></script>
+<script type="text/javascript" src="https://talentsy.ru/wp-content/themes/talentsy/js/landing.min.js?ver=3.6.3" id="landings-js"></script>
+<script type="text/javascript" id="bvi-script-js-extra">
+/* <![CDATA[ */
+var wp_bvi = {"option":{"theme":"white","font":"arial","fontSize":16,"letterSpacing":"normal","lineHeight":"normal","images":true,"reload":false,"speech":true,"builtElements":true,"panelHide":false,"panelFixed":true,"lang":"ru-RU"}};
+//# sourceURL=bvi-script-js-extra
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://talentsy.ru/wp-content/plugins/button-visually-impaired/assets/js/bvi.min.js?ver=2.3.0" id="bvi-script-js"></script>
+<script type="text/javascript" id="bvi-script-js-after">
+/* <![CDATA[ */
+var Bvi = new isvek.Bvi(wp_bvi.option);
+//# sourceURL=bvi-script-js-after
+/* ]]> */
+</script>
+</body>
+</html>

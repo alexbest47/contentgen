@@ -493,7 +493,10 @@ export default function CaseManagement() {
                     </TableHeader>
                     <TableBody>
                       {classifications.map((c) => {
-                        const j = c.classification_json || {};
+                        let j: any = c.classification_json || {};
+                        if (typeof j === "string") {
+                          try { j = JSON.parse(j); } catch { j = {}; }
+                        }
                         return (
                           <TableRow key={c.id}>
                             <TableCell>

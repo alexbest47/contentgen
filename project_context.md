@@ -11,6 +11,7 @@
 - Генерировать диагностические квизы с изображениями
 - Транскрибировать и классифицировать кейсы клиентов
 - Создавать PDF-материалы и баннеры
+- Собирать лендинги в визуальном конструкторе из готовых HTML-блоков с AI-генерацией контента и экспортом в ZIP
 - Управлять промптами с версионированием и глобальными переменными
 
 ---
@@ -24,12 +25,12 @@
 | Состояние | TanStack React Query v5, React Context (Auth) |
 | Формы | React Hook Form + Zod |
 | UI-компоненты | shadcn/ui (Radix UI), Lucide Icons, Sonner (тосты) |
-| Backend | Supabase (PostgreSQL 17, Auth, Storage, 25 Edge Functions на Deno) |
+| Backend | Supabase (PostgreSQL 17, Auth, Storage, 29 Edge Functions на Deno) |
 | AI-генерация текста | Anthropic Claude (claude-sonnet-4-20250514) |
 | AI-генерация изображений | OpenRouter → Google Gemini 3 Pro Image Preview |
 | Транскрибация | Deepgram (модель nova-2, язык: ru, async webhook) |
 | Отправка писем | Resend API |
-| Внешние сервисы | Yandex Disk (публичные папки для кейсов), Google Docs, Talentsy KB (TipTap JSON via Supabase cross-project query) |
+| Внешние сервисы | Yandex Disk (публичные папки для кейсов), Google Docs, Talentsy KB (TipTap JSON via Supabase cross-project query), Generic URLs |
 
 ### Ключевые зависимости
 
@@ -70,21 +71,22 @@ src/
 │   ├── NavLink.tsx                  # Компонент навигационной ссылки
 │   ├── banners/                     # AddBannerDialog, EditBannerDialog, BannerPickerDialog
 │   ├── case/                        # ElapsedTime
-│   ├── chains/                      # CreateChainWizard (5 шагов)
+│   ├── chains/                      # CreateChainWizard (4 шага)
 │   ├── email-builder/               # 15+ компонентов блочного конструктора писем
 │   ├── offer/                       # ImageUploadField, TopicChoiceDialog
+│   ├── landing-builder/              # 8 компонентов конструктора лендингов (+ ImagePositionControl, ImageScaleControl)
 │   ├── pdf/                         # CreatePdfWizard
 │   ├── project/                     # PipelineResultView
 │   ├── prompts/                     # PromptFormDialog, PromptStepCard, PipelineGroup, и др.
 │   └── ui/                          # shadcn/ui компоненты (40+)
-├── pages/                           # 34 страницы
+├── pages/                           # 38 страниц
 └── integrations/supabase/
     ├── client.ts                    # Supabase клиент (авто-генерация)
     └── types.ts                     # TypeScript типы БД (авто-генерация)
 
 supabase/
 ├── config.toml                      # Конфигурация проекта (verify_jwt = false)
-└── functions/                       # 25 Edge Functions (Deno)
+└── functions/                       # 29 Edge Functions (Deno)
 ```
 
 ---
@@ -101,16 +103,16 @@ supabase/
 │       └── Проект (projects)
 │           ├── Лид-магниты (lead_magnets) — 163 записи
 │           └── Контентные части (content_pieces) — 70 записей
-├── Промпты (prompts) — 67 записей
+├── Промпты (prompts) — 72 записи
 │   ├── Версии промптов (prompt_versions) — 92 записи
 │   └── Глобальные переменные (prompt_global_variables) — 9 переменных
 ├── Диагностики (diagnostics) — 27 записей
 ├── Email-письма (email_letters) — 61 письмо
 │   ├── Блоки писем (email_letter_blocks) — 9 блоков
-│   └── Шаблоны писем (email_templates) — 7 шаблонов
+│   └── Шаблоны писем (email_templates) — 8 шаблонов (вкл. service: «Мы до вас не дозвонились»)
 ├── Email-цепочки (email_chains)
-│   ├── Письма в цепочке (email_chain_letters) — 17 связей
-│   └── Шаблоны цепочек (email_chain_templates) — 1 шаблон
+│   ├── Письма в цепочке (email_chain_letters) — связь цепочка→письмо (slug, group_name)
+│   └── Шаблоны цепочек (email_chain_templates) — 3 шаблона (вебинарная + прогрев + закрытая заявка)
 ├── PDF-материалы (pdf_materials) — 8 материалов
 ├── Баннеры (banners) — 4 баннера
 ├── Кейсы (case_files) — 228 файлов
@@ -119,6 +121,12 @@ supabase/
 ├── Цвет-схемы (color_schemes) — 14 схем
 ├── Стили изображений (image_styles) — 3 стиля
 └── Структура тем (topic_tree) — 329 записей
+
+Лендинги (landings)
+├── Блоки лендинга (landing_blocks) — связь лендинг→определение блока
+├── Шаблоны лендингов (landing_templates)
+│   └── Блоки шаблонов (landing_template_blocks)
+└── Определения блоков (landing_block_definitions) — библиотека HTML-блоков
 
 Очередь задач (task_queue) — 37 задач
 ```
@@ -139,10 +147,12 @@ supabase/
 | `/programs/:programId/offers/:offerType/:offerId` | OfferDetail | Детали оффера, выбор топиков/лидов |
 | `/programs/:programId/offers/:offerType/:offerId/projects/:projectId` | ProjectDetail | Детали проекта с генерацией контента |
 | `/programs/:programId/offers/:offerType/:offerId/projects/:projectId/content/:contentType` | ContentDetail | Просмотр контента (карусель/статичные изображения) |
+| `/landings` | LandingList | Список лендингов (конструктор) |
+| `/landings/:landingId` | LandingEditor | Визуальный редактор лендинга |
 | `/email-builder` | EmailBuilderList | Список email-писем |
 | `/email-builder/:letterId` | EmailBuilder | 3-панельный конструктор писем |
 | `/email-chains` | EmailChainList | Список email-цепочек |
-| `/email-chains/:chainId` | EmailChainDetail | Цепочка с письмами (до/во время/после вебинара) |
+| `/email-chains/:chainId` | EmailChainDetail | Цепочка с письмами (вебинарная: до/день/после; прогрев: 7 писем; закрытая заявка: 4 письма) |
 
 ### Admin-only маршруты
 
@@ -165,6 +175,7 @@ supabase/
 | `/email-settings` | EmailSettings | Заголовок и футер писем |
 | `/chain-templates` | ChainTemplates | Шаблоны цепочек |
 | `/prompts` | Prompts | CRUD промптов, версионирование |
+| `/diagnostics` | Diagnostics | Список диагностик с инлайн-редактированием |
 | `/prompt-variables` | PromptVariables | Глобальные переменные промптов |
 | `/tags` | Tags | Теги аудитории |
 | `/descriptions` | Descriptions | Описания программ/аудиторий |
@@ -173,11 +184,47 @@ supabase/
 
 ---
 
-## 6. Навигационный Сайдбар (5 групп)
+## Post/Carousel split (апрель 2026)
+
+Создание контента разделено на два независимых флоу: «Создание поста» (`/post`) и «Создание карусели» (`/carousel`). У каждого — своя страница со списком проектов и wizard для создания (по аналогии с Email конструктором). Формат проекта сохраняется в `projects.content_format` и пробрасывается в UI/edge-функции через `sub_type` промптов.
+
+### Данные
+- `projects.content_format text` (`'post' | 'carousel' | null`) — задаётся при создании проекта в wizard.
+- `prompts.sub_type` (`'post' | 'carousel'`) — discriminator канальных промптов.
+
+### Промпты по формату
+- **post+carousel пары** (3 семьи × 3 канала = 18 пар):
+  - `ref-material-{ig,tg,vk}-{post,carousel}` — различаются JSON-схемой (`static_image_prompt` vs `carousel_prompts`).
+  - `text-{ig,tg,vk}-announcement-{post,carousel}` (lead_magnet) — секции CAROUSEL/STATIC и POST_TEXT_* вырезаны под формат.
+  - `expert-content-{ig,tg,vk}-{post,carousel}` — добавлены через `INSERT...SELECT` с regex-трансформацией ФОРМАТ КАРТОЧКИ → 3-слайдовая карусель (cover/content/cta) и заменой JSON-схемы на `post_text_carousel + carousel_prompts`.
+- **post-only** (12): `provocative/testimonial/myth-busting/objection-handling-{ig,tg,vk}-post`.
+- **carousel-only** (3): `list-pipeline-{ig,tg,vk}-carousel`.
+- Фикс stale field: 6 carousel-промптов имели `post_text_single` вместо `post_text_carousel` в JSON-схеме — заменено `REPLACE(...)`.
+- `channel=''` → `NULL` для 7 общих промптов (`lead-magnets-default`, `ref-material-general`, `*-topics`, `testimonial-angles`).
+
+### Frontend
+- **`/post` и `/carousel`** → `src/pages/PostCarouselList.tsx` (generic, prop `format: "post" | "carousel"`). Список проектов отфильтрован по `content_format=format`, объединён с `offers(offer_type, program_id, paid_programs(title))`. Кнопка «Создать» открывает wizard.
+- **`CreatePostCarouselWizard`** (`src/components/post-carousel/`) — 2-шаговый Dialog (по образцу `CreateLetterWizard`):
+  1. Программа → тип оффера → оффер.
+  2. Тип контента → авто/ручная тема → создать. Вызывает `generate-project-name`, инсертит проект с `content_format=format`, ставит `generate-lead-magnets` в очередь (кроме `testimonial_content`/`objection_handling`), переходит в ProjectDetail.
+- **Сайдбар** (`AppSidebar`): пункты «Создание поста» → `/post`, «Создание карусели» → `/carousel`.
+- **`usePromptInfo`**: фильтр по `sub_type` (часть queryKey).
+- **`ProjectDetail`**: `formatLabel(ct.key, projectFormat)` динамически подставляет «Пост / Карусель в Telegram» и т.д.; `pipelineCounts` фильтруются по `sub_type=projectFormat`; `displayTitle` для очереди — «Генерация поста/карусели: …».
+- **`ContentDetail`**: пробрасывает `sub_type` в `usePromptInfo` и `projectFormat` в `PipelineResultView`.
+- **`PipelineResultView`**: карточка карусели скрыта при `projectFormat==='post'`, карточка одиночной картинки — при `projectFormat==='carousel'`.
+- **`OfferDetail`**: список проектов фильтруется ещё и по `content_format=format` (исправляет проблему «открыл /carousel, попал на post-проект»).
+- **`TaskQueue`**: бейдж типа задачи теперь показывает «Пост»/«Карусель» вместо общего «Контент». Логика `getDisplayType`: если `display_title` содержит «карусел/пост» — берётся он; иначе извлекается `project_id` из `target_url` (`/projects/<uuid>`), батчем подгружается `projects.content_format`, и формат маппится в `post`(оранжевый)/`carousel`(розовый). Фолбэк — «Контент».
+
+### Edge functions
+- `generate-pipeline` дополнительно фильтрует промпт по `sub_type = project.content_format` (или `body.content_format`).
+
+## 6. Навигационный Сайдбар (5 групп + Landing)
 
 ### 1. Main
 - Queue (Очередь)
-- Content Creation (Создание контента)
+- Создание поста (`/post`)
+- Создание карусели (`/carousel`)
+- Конструктор лендингов (Landing Builder)
 - Email Builder (Email конструктор)
 - Email Chains (Email цепочки)
 
@@ -241,12 +288,24 @@ process-queue self-chain (если еще pending задачи)
 - **claude**: Текстовая генерация (все функции с Anthropic Claude)
 - **openrouter**: Генерация изображений (все функции с OpenRouter/Gemini)
 
+### Task Types (для фильтрации в UI)
+- **landing**: Генерация лендинг-блоков
+- **letter**: Генерация email-писем и блоков писем
+- **content**: Генерация контента проектов
+- Передаётся через `taskType` параметр в `enqueue()` и сохраняется в `task_queue.task_type`
+
 ### Watchdog
 Сбрасывает зависшие задачи (processing > 3 мин) → error
 
+### pg_cron Автоматический Watchdog
+- Миграция: `20260330100000_process_queue_cron.sql`
+- Запускает `process-queue` Edge Function каждую минуту через pg_cron
+- Автоматически триггерит обработку если есть pending/processing задачи
+- Предотвращает зависание задач при сбое self-chain механизма
+
 ---
 
-## 8. Edge Functions (25 функций)
+## 8. Edge Functions (29 функций)
 
 ### Управление очередью
 
@@ -271,7 +330,7 @@ process-queue self-chain (если еще pending задачи)
 | Функция | Назначение | Lane | _task_id |
 |---------|-----------|------|----------|
 | generate-email-block | Генерация блока письма (HTML или изображение), два режима | claude | Yes |
-| generate-email-letter | Полная генерация письма: 30+ переменные шаблона, retry-логика, JSON parsing с fallbacks | claude | Yes |
+| generate-email-letter | Полная генерация письма: 35+ переменные шаблона (вкл. pre_list_*, mini_course_*, pdf_reg_*), авто-загрузка возражений для warming/closed_lead, retry-логика, JSON parsing с fallbacks | claude | Yes |
 | send-test-email | Отправка тестового письма via Resend API с инъекцией preheader | — | No |
 
 ### Диагностики
@@ -291,6 +350,15 @@ process-queue self-chain (если еще pending задачи)
 | generate-pdf-material | Генерация контента PDF + опциональное фоновое изображение + landing HTML | claude+openrouter | Yes |
 | generate-banner-image | Генерация декоративных баннеров с преамбулой (без текста/UI), авто-сохранение в библиотеку | openrouter | Yes |
 
+### Лендинги
+
+| Функция | Назначение | Lane | _task_id |
+|---------|-----------|------|----------|
+| generate-landing-block | AI-генерация текстового контента для блока лендинга по промпту landing_block_content | claude | Yes |
+| generate-landing-image | Генерация изображений для блоков лендинга via OpenRouter (edit/generate/chromakey) | openrouter | Yes |
+| export-landing | Экспорт лендинга в ZIP-архив (HTML + CSS + изображения) с JSZip | — | No |
+| upload-landing-images | Временная функция: загрузка изображений в Storage по URL (verify_jwt: false, service role key) | — | No |
+
 ### Кейсы
 
 | Функция | Назначение | Lane | _task_id |
@@ -304,15 +372,93 @@ process-queue self-chain (если еще pending задачи)
 
 | Функция | Назначение | Lane | _task_id |
 |---------|-----------|------|----------|
-| fetch-google-doc | Фетч Google Docs (export TXT) или Talentsy KB (TipTap→text) | — | No |
+| fetch-google-doc | Универсальный фетч документов: Google Docs (export TXT), Talentsy KB (TipTap→text через Supabase cross-project API), Generic URLs (HTML→text). Вызывается всеми generate-* функциями для получения свежего контента по doc_url | — | No |
 | refine-prompt | AI-улучшение промпта, архивирование версии, сохранение {{placehdolders}} | claude | Yes |
 | import-prompts-txt | Bulk import промптов из TXT с NAME_ALIASES маппингом | — | No |
 
 ---
 
+## 8.1. Паттерн свежего контента (doc_url) + сегмент аудитории
+
+### Принцип: «Segment override → fetch fresh → update cache → fallback»
+
+Все Edge Functions, использующие `audience_description`, следуют единому паттерну с поддержкой выбранного сегмента аудитории:
+
+```typescript
+// audienceSegment — ключ, выбранный пользователем в визарде
+// (projects.audience_segment / email_letters.audience_segment)
+let audienceDescription = "";
+if (audienceSegment && gv[audienceSegment]) {
+  // 1. Сегмент выбран и для него есть запись в prompt_global_variables →
+  //    берём описание оттуда (фиксированные тексты для «С нуля — для себя»,
+  //    «Переквалификация», «С дипломом» и т.д.)
+  audienceDescription = gv[audienceSegment];
+} else {
+  // 2. Сегмент не выбран → всегда пытаемся получить свежий контент по URL
+  if (program.audience_doc_url) {
+    try {
+      audienceDescription = await fetchDocContent(program.audience_doc_url);
+      if (audienceDescription) {
+        // обновляем кеш в БД
+        await supabase.from("paid_programs")
+          .update({ audience_description: audienceDescription })
+          .eq("id", program.id);
+      }
+    } catch (docErr) { console.error("Error fetching audience doc:", docErr); }
+  }
+  // 3. Fallback: если URL не отдал контент, берём из кеша программы
+  if (!audienceDescription) audienceDescription = program.audience_description || "";
+}
+```
+
+### Две независимые переменные в user-промптах
+
+| Переменная | Источник | Смысл |
+|---|---|---|
+| `{{audience_description}}` | `prompt_global_variables[segment]` ИЛИ `paid_programs.audience_doc_url`/`audience_description` | Развёрнутое описание ЦА — либо текст выбранного сегмента, либо общее описание программы |
+| `{{audience_segment}}` | `projects.audience_segment` / `email_letters.audience_segment` | Ключ выбранного пользователем сегмента (например `audience_from_scratch_personal`). Добавляет фокус и явно сигнализирует LLM о целевом срезе |
+
+**Правило:** обе переменные должны присутствовать в каждом user-промпте генерации контента. В шаблонах `{{audience_description}}` сопровождается строкой:
+
+```
+ФОКУС НА СЕГМЕНТЕ АУДИТОРИИ: {{audience_segment}}
+```
+
+Массовый апдейт БД (2026-04-08) добавил эту строку в 76 активных промптов: все цепочки писем (warming/closed/webinar), все content-промпты для Instagram/Telegram/VK (post + carousel × 7 направлений), `*-topics`, `testimonial-angles`, `list-pipeline-*`, `list-topics-generation`, `lead-magnets-default`, `ref-material-general`. Исключены: `landing-block-*`, `generate-pdf-material`, `diagn-card-prompt-generation-default`, `test-generation-default` (там сегмент не имеет смысла).
+
+### Колонка `audience_segment` присутствует в:
+- `projects.audience_segment` (text)
+- `email_letters.audience_segment` (text)
+
+Собирается в `CreatePostCarouselWizard` (step 2) и `CreateLetterWizard` (Audience step) из константы `AUDIENCE_SEGMENTS`.
+
+### Функции с этим паттерном (все задеплоены с `verify_jwt=false`)
+- `generate-content` (v5+), `generate-pipeline` (v8+)
+- `generate-email-letter` (v15+)
+- `generate-lead-magnets` (v11+)
+- `generate-image`, `generate-email-block`
+- `run-diagnostic-pipeline`, `generate-diagnostic`, `generate-card-prompt`
+
+### Почему verify_jwt=false
+
+После перехода Supabase на новый формат ключей `sb_secret_*` (не-JWT), `process-queue` вызывает worker-функции с `Authorization: Bearer ${SERVICE_ROLE_KEY}`, но шлюз с `verify_jwt=true` отклоняет такой токен как невалидный JWT с 401 — **до** запуска кода функции, поэтому `failTask` никогда не вызывается и задачи «виснут» в `processing` без `error_message`. Все worker-функции переведены на `verify_jwt=false` для согласования с `process-queue`.
+
+### fetch-google-doc: Определение типа URL
+```typescript
+function detectUrl(url: string) → "google_docs" | "talentsy_kb" | "generic"
+```
+- **Google Docs**: `docs.google.com/document/d/{id}` → export как text/plain
+- **Talentsy KB**: `talentsy-kb.vercel.app/share/tk_*` → Supabase REST API → TipTap JSON → plain text через `tiptapToText()`
+- **Generic**: любой другой URL → fetch HTML → extract text
+
+### Известная ошибка (исправлена)
+Ранее `fetch-google-doc` был задеплоен со старой версией, которая не поддерживала Talentsy KB URL и возвращала `{"error":"Invalid Google Docs URL"}`. Все doc_url ссылки на Talentsy KB молча падали. Исправлено деплоем v4.
+
+---
+
 ## 9. Система Промптов
 
-### Категории (20 категорий)
+### Категории (21 категория)
 - lead_magnets
 - slide_structure
 - text_instagram
@@ -333,12 +479,14 @@ process-queue self-chain (если еще pending задачи)
 - objection_handling
 - email_builder
 - pdf_generation
+- landing_block_content
 
 ### Контентные типы (12 типов)
 - lead_magnet, quiz, guide, workbook, slide, post, email, banner, diagnostic, case, pdf, custom
 
-### Каналы (4 канала)
-- instagram, telegram, vk, email
+### Каналы (4 канала + 4 email-специфичных)
+- Контентные: instagram, telegram, vk, email
+- Email Builder: webinar_before, webinar_after, warming, closed_lead
 
 ### Версионирование
 - Таблица `prompt_versions` с change_type (manual/ai_refine)
@@ -367,6 +515,7 @@ process-queue self-chain (если еще pending задачи)
 - objection_handling
 - paid_programs_collection
 - free_courses_grid
+- diagnostics_grid (готовый блок «Подборка диагностик»: сетки 2×1/2×2/2×3, выбор записей из таблицы `diagnostics`, ячейка = image + name + ссылка «Пройти бесплатно →» на `doc_url`; заголовок «Пройдите бесплатное диагностическое тестирование»)
 - offer_collection
 - card
 - text
@@ -391,15 +540,21 @@ process-queue self-chain (если еще pending задачи)
 - PaidProgramsCollectionSettings
 - FreeCoursesGridSettings
 
-### CreateLetterWizard (5 шагов)
-1. Template (выбор шаблона)
-2. Theme (выбор цветовой схемы)
-3. Audience (выбор аудитории)
-4. Settings (дополнительные параметры)
-5. Description (описание письма)
+### CreateLetterWizard (адаптивное количество шагов)
+Визард адаптируется под тип шаблона:
+- **Service** (category=service, напр. «Мы до вас не дозвонились»): 1 шаг — выбор шаблона → сразу создание письма
+- **3-step** (Прямой оффер, Вебинар, Доверимся ИИ, Мультиоффер): Template → Audience → Settings
+- **4-step FreeForm** (С нуля): Template → Audience → Settings → Description
+- **4-step Default** (История трансформации и др.): Template → Topic → Audience → Settings
 
 ### Плейсхолдеры изображений
 - {{IMAGE:PROMPT=...}} в HTML
+- Кнопки генерации появляются только если `image_placeholders` массив непустой
+
+### CSS Reset для email-контента (BlockCanvas)
+Email HTML рендерится в contentEditable контейнере. Чтобы таблицы не ломались:
+- Контейнер: `style={{ maxWidth: "100%", overflow: "hidden" }}` — **НЕ** `wordBreak: "break-word"` (ломает таблицы, вертикальный текст)
+- CSS Reset инжектируется в HTML: `table { table-layout: auto; max-width: 100%; }`, `td { word-break: normal !important; }`
 
 ### Autosave
 - Debounce 2 сек при редактировании
@@ -408,22 +563,54 @@ process-queue self-chain (если еще pending задачи)
 
 ## 11. Email Цепочки
 
-### CreateChainWizard (5 шагов)
-1. Template (выбор шаблона)
-2. Settings (параметры цепочки)
-3. Letters (выбор писем)
-4. Timing (временные промежутки)
-5. Review (подтверждение)
+### CreateChainWizard (4 шага)
+1. Template — выбор шаблона цепочки (вебинарная, прогрев после заявки или закрытая заявка)
+2. Webinar/Program — выбор вебинара (для вебинарной) или платной программы (для прогрева и закрытой заявки)
+3. Optional Content — PDF-материал, кейс студента, мини-курс (необязательно) + оффер предзаписи (обязательно для closed_lead)
+4. Settings — название цепочки, цветовая гамма, стиль изображений + сводка (вкл. предзапись для closed_lead)
+
+**ВАЖНО**: Derived state (selectedTemplate, isWarming, isClosedLead, isProgramBased, selectedWebinar, selectedProgram) ДОЛЖЕН быть объявлен ПЕРЕД useQuery хуками, которые его используют в `enabled`. Иначе — Temporal Dead Zone crash при переходе на шаг 3.
+
+### Три типа цепочек
+- **Вебинарная** (`chain_type: "webinar"`) — 16 писем до/во время/после вебинара, привязка к webinar offer
+- **Прогрев после заявки** (`chain_type: "warming"`) — 7 писем для нурминга лидов с заявок на платный продукт, привязка напрямую к программе (без вебинара)
+- **Закрытая заявка** (`chain_type: "closed_lead"`) — 4 письма для лидов, чью заявку менеджер закрыл как нереализованную, привязка напрямую к программе
+
+### Warming Chain — 7 писем (1 в день)
+1. Welcome: Добро пожаловать в Talentsy
+2. Экспертное: Профессия будущего
+3. Кейс: История выпускника
+4. Программа: Что вы получите (+ PDF)
+5. Возражения: Честные ответы
+6. Мотивация: Первый шаг сделан
+7. Подарок: Курс в подарок (мини-курс)
+
+### Closed Lead Chain — 4 письма
+1. Мы закрыли вашу заявку, но… (+ PDF в подарок)
+2. Бесплатный мини-курс в подарок (+ кейс студента)
+3. Честные ответы + соцсети (отработка возражений, ссылки VK/Telegram/YouTube)
+4. Предзапись на программу (преимущества программы → баннер → ценность предзаписи → CTA)
+
+### Предзапись (письмо 4 closed_lead)
+- На шаге 3 CreateChainWizard пользователь выбирает оффер типа `pre_list` для выбранной программы (обязательное поле)
+- Данные оффера (title, description, landing_url) передаются через `pre_list_offer_id` в `email_chains` и `email_letters`
+- Edge function `generate-email-letter` загружает данные и подставляет переменные: `{{pre_list_title}}`, `{{pre_list_description}}`, `{{pre_list_url}}`
+
+### Отдельные шаблоны писем
+- **Мы до вас не дозвонились** — универсальное триггерное сервисное письмо, без привязки к программе. Категория: `service`. В CreateLetterWizard — одношаговый флоу: выбрал шаблон → нажал «Создать письмо» → сразу переход в конструктор (без выбора программы, аудитории, офферов).
 
 ### Таблицы
-- `email_chains` — цепочки
-- `email_chain_letters` — связи письма-цепочка
-- `email_chain_templates` — шаблоны цепочек
+- `email_chains` — цепочки (webinar_offer_id nullable для warming и closed_lead, pre_list_offer_id для closed_lead)
+- `email_chain_letters` — связи письма-цепочка (slug → promptSlug для генерации)
+- `email_chain_templates` — шаблоны цепочек (поле `chain_type`: "webinar" | "warming" | "closed_lead", `letters_config` JSON)
+- `email_letters` — письма (pre_list_offer_id для предзаписи в closed_lead цепочках)
 
-### Группировка писем
+### Группировка писем (EmailChainDetail)
 - before: До вебинара
-- during: Во время вебинара
+- webinar_day: День вебинара
 - after: После вебинара
+- warming: Прогрев после заявки
+- closed: Письма после закрытой заявки
 
 ---
 
@@ -466,7 +653,74 @@ generate-card-prompt → process-diagnostic-image (chain)
 
 ---
 
-## 14. Баннеры
+## 14. Конструктор Лендингов (Landing Builder)
+
+### Архитектура
+Визуальный блочный конструктор лендингов для создания посадочных страниц из готовых HTML-блоков с AI-генерацией контента и экспортом в ZIP.
+
+### Компоненты (`components/landing-builder/`)
+- **BlockLibraryModal** — Модальное окно библиотеки блоков с мини-превью (scaled iframe)
+- **CreateLandingWizard** — Визард создания нового лендинга (выбор шаблона, программы)
+- **LandingBlockCanvas** — Визуальное рабочее пространство для размещения блоков
+- **LandingBlockLibrary** — Каталог доступных блоков (по категориям)
+- **LandingBlockSettingsPanel** — Панель настроек блока (editable_fields, ImagePositionControl, ImageScaleControl, цвета фона секции/карточек)
+- **LandingInlinePreview** — Инлайн-превью лендинга
+- **RichTextEditor** — Rich-текст редактор для контента блоков
+
+### Страницы
+- **LandingList** (`/landings`) — Список всех лендингов с создание/удалением
+- **LandingEditor** (`/landings/:landingId`) — 3-панельный редактор (библиотека блоков + канвас + настройки), экспорт в ZIP
+
+### Таблицы (5 таблиц)
+- `landing_templates` — Шаблоны лендингов (slug, template_type, preview_image_url)
+- `landing_block_definitions` — Библиотека HTML-блоков (block_type, category, html_template, editable_fields, default_settings)
+- `landings` — Пользовательские лендинги (template_id, program_id, status: draft, accent_color)
+- `landing_blocks` — Блоки на лендинге (block_definition_id, sort_order, settings, content_overrides, custom_css)
+- `landing_template_blocks` — Предустановленные блоки для шаблонов
+
+### Шаблоны лендингов (3 шаблона)
+- **Профессия с нуля** (`profession`) — длинный лендинг платной программы (эталон — «Психолог-консультант»), 20+ блоков
+- **Предзапись** (`preorder`) — короткий лендинг предзаписи: header → hero_preorder → preorder_benefits → megabonuses
+- **Специализация** (`specialization`) — короткий лендинг специализации: header → hero_stats_gestalt
+
+### Категории блоков (41+ определений)
+- Шапка и навигация (promo_banner, header)
+- Hero и УТП (hero_stats, hero_stats_gestalt, hero_preorder, preorder_benefits, audience_market, audience_market_2, social_proof_stat, social_proof_banner_2)
+- Контентные блоки (materials_grid, megabonuses и др.)
+
+### Ключевые механики конструктора
+- **content_overrides**: JSONB с текстовыми подменами, `_image_overrides` (URL замены изображений), `_video_overrides` (URL замены видео), `_image_positions` (позиционные смещения), `_image_scales` (масштабирование)
+- **_image_overrides**: Маппинг `{ "img/path/file.png": "https://supabase-url..." }` — заменяет src всех изображений + форматные варианты (jpg↔webp↔png)
+- **_image_positions**: Маппинг `{ "img/path/file.png": { x: 0, y: -20 } }` — CSS `transform: translate()` для подгонки AI-сгенерированных изображений (только hero-блоки). Стрелки в панели настроек, шаг 5px, клавиатурное управление.
+- **_image_scales**: Маппинг `{ "img/path/file.png": 1.2 }` — CSS `transform: scale()` для пропорционального масштабирования изображений (все блоки). Кнопки ZoomIn/ZoomOut, шаг 5%, диапазон 20%–300%. Совмещается с translate в одном transform.
+- **Настройки оформления (settings)**: `background_color` (фон секции) и `card_color` (фон карточек). Применяются через CSS-инъекцию в превью. Текст и акцентный цвет удалены как избыточные.
+- **Глобальный акцентный цвет лендинга** (`landings.accent_color`): Hex-значение, переопределяющее всю фиолетовую палитру шаблона на выбранную. Picker с пресетами + произвольный color picker в тулбаре LandingEditor. Применяется тремя способами одновременно: (1) hex-замена в HTML каждого блока (ловит инлайн-стили), (2) hex-замена в загруженных CSS-файлах шаблона (ловит псевдоэлементы), (3) CSS-переопределения с `!important` для CSS-переменных (`--color-purple`, `--color-purple-dark`, `--color-purple-gradient`) и 40+ классов. Из одного цвета генерируется палитра из 6 оттенков (primary/dark/hoverDark/light/muted/veryLight), которые заменяют 9 исходных hex-значений: #7835FF, #6957CE, #5443AF, #B1A4FF, #865ad0, #8147FF, #AE1AE8, #EAE5FF, #6525e0. Сохраняется в БД мгновенно при выборе и работает как в превью, так и при ZIP-экспорте.
+- **Inline preview**: iframe с `srcdoc`, `buildPreviewHtml()` генерирует полный HTML, `applyContentOverrides()` подставляет значения, `postMessage` для click-to-edit
+- **Библиотека блоков**: BlockLibraryModal с мини-превью (масштабированный iframe 1200→280px, scale 0.233), одна колонка, thumbnail + описание
+- **Auto-save**: Debounced 2s через `triggerSave()` → `saveAllBlocks()` с `blocksRef.current`
+
+### Edge Functions
+- `generate-landing-block` — AI-генерация текстового контента (lane: claude)
+- `generate-landing-image` — Генерация изображений для блоков (lane: openrouter)
+- `export-landing` — Экспорт в ZIP (HTML + CSS + изображения) через JSZip
+- `upload-landing-images` — Временная функция загрузки изображений в Storage (verify_jwt: false, service role key)
+
+### Storage
+- Bucket `landing-assets` — загруженные пользователем изображения блоков
+- Bucket `generated-images` — AI-сгенерированные изображения (также для дефолтных изображений блоков в `generated-images/landing-blocks/`)
+
+### Миграции
+- `20260401120000_landing_constructor.sql` — 5 таблиц, RLS policies, индексы
+- `20260401120001_landing_seed_data.sql` — Seed-данные: 38 определений блоков
+- `20260401130000_landing_block_content_category.sql` — Добавление prompt_category 'landing_block_content'
+- `20260402120000_landing_block_hero_preorder.sql` — Блок hero_preorder (предзапись с бонусами)
+- `20260402130000_landing_block_preorder_benefits.sql` — Блок preorder_benefits (две карточки выгод)
+- `20260402140000_landing_block_megabonuses.sql` — Блок megabonuses (6 мегабонусов)
+- `add_accent_color_to_landings` (2026-04-06) — Колонка `accent_color text` в таблице `landings` для глобальной смены цветовой гаммы лендинга
+
+---
+
+## 15. Баннеры
 
 ### Типы
 - header_banner (600×200)
@@ -486,7 +740,7 @@ generate-card-prompt → process-diagnostic-image (chain)
 
 ---
 
-## 15. Pipeline Управления Кейсами
+## 16. Pipeline Управления Кейсами
 
 ```
 scan-case-folder → case_jobs + case_files →
@@ -502,7 +756,7 @@ deepgram-callback → classify-case (Claude, self-chaining)
 
 ---
 
-## 16. Аутентификация и Роли
+## 17. Аутентификация и Роли
 
 ### Supabase Auth
 - Email + password
@@ -531,17 +785,24 @@ deepgram-callback → classify-case (Claude, self-chaining)
 
 ---
 
-## 17. Storage Buckets
+## 18. Storage Buckets
 
 | Bucket | Назначение |
 |--------|-----------|
-| generated-images | Генерируемые изображения контента |
+| generated-images | Генерируемые изображения контента + дефолтные изображения блоков лендинга |
 | quiz-images | Изображения диагностических квизов |
 | offer-images | Изображения-обложки офферов |
+| landing-assets | Загруженные/AI-сгенерированные изображения блоков лендинга |
+
+### Локальный генерируемый контент
+- Папка: `public/generated_content/`
+- Содержит примеры сгенерированного контента для 5 программ:
+  - Гештальт-терапевт, Декоратор интерьера, Дизайнер одежды, Интегративный нутрициолог, КПТ-терапевт
+- Файлы: `test_diagnostic.txt`, `pdf_lead_magnet.txt`, `diagnostic_image.png`
 
 ---
 
-## 18. Цветовые Схемы и Стили Изображений
+## 19. Цветовые Схемы и Стили Изображений
 
 ### Color Schemes (14 схем)
 - Таблица: `color_schemes`
@@ -555,7 +816,7 @@ deepgram-callback → classify-case (Claude, self-chaining)
 
 ---
 
-## 19. Структура Тем (Topic Tree)
+## 20. Структура Тем (Topic Tree)
 
 - Таблица: `topic_tree` (329 записей)
 - Иерархия: parent_id self-reference
@@ -564,7 +825,7 @@ deepgram-callback → classify-case (Claude, self-chaining)
 
 ---
 
-## 20. Возражения (Objections)
+## 21. Возражения (Objections)
 
 - Таблица: `objections` (20 записей)
 - Поля: objection_text, program_id, tags[], created_by
@@ -572,7 +833,7 @@ deepgram-callback → classify-case (Claude, self-chaining)
 
 ---
 
-## 21. Полный Список Таблиц БД (33 таблицы)
+## 22. Полный Список Таблиц БД (38 таблиц)
 
 | Таблица | Строк | Назначение |
 |---------|-------|-----------|
@@ -595,7 +856,7 @@ deepgram-callback → classify-case (Claude, self-chaining)
 | email_settings | 2 | Заголовок и футер писем |
 | email_chains | 1 | Email-цепочки |
 | email_chain_letters | 17 | Связь цепочка-письмо |
-| email_chain_templates | 1 | Шаблоны цепочек |
+| email_chain_templates | 3 | Шаблоны цепочек (вебинарная + прогрев + закрытая заявка) |
 | pdf_materials | 8 | PDF-материалы |
 | banners | 4 | Библиотека баннеров |
 | color_schemes | 14 | Цветовые схемы |
@@ -607,11 +868,16 @@ deepgram-callback → classify-case (Claude, self-chaining)
 | topic_tree | 329 | Иерархическая структура тем |
 | tags | 3 | Теги аудитории |
 | program_tags | 35 | Связь программа-тег |
+| landing_templates | — | Шаблоны лендингов |
+| landing_block_definitions | — | Библиотека HTML-блоков для конструктора |
+| landings | — | Пользовательские лендинги |
+| landing_blocks | — | Блоки размещённые на лендингах |
+| landing_template_blocks | — | Предустановленные блоки шаблонов |
 | task_queue | 37 | Очередь задач обработки |
 
 ---
 
-## 22. SQL Functions (RPC)
+## 23. SQL Functions (RPC)
 
 | Функция | Аргументы | Возвращает | Security Definer |
 |---------|-----------|-----------|-----------------|
@@ -622,18 +888,18 @@ deepgram-callback → classify-case (Claude, self-chaining)
 
 ---
 
-## 23. Enum типы
+## 24. Enum типы
 
 | Enum | Значения |
 |------|----------|
 | app_role | admin, user |
 | offer_type | mini_course, diagnostic, webinar, pre_list, new_stream, spot_available, discount, download_pdf |
 | project_status | draft, generating_leads, leads_ready, lead_selected, generating_content, completed, error |
-| prompt_category | lead_magnets, slide_structure, text_instagram, text_vk, text_telegram, text_email, test_generation, image_carousel, image_post, image_email, reference_materials, expert_content, provocative_content, list_content, case_analysis, testimonial_content, myth_busting, objection_handling, email_builder, pdf_generation |
+| prompt_category | lead_magnets, slide_structure, text_instagram, text_vk, text_telegram, text_email, test_generation, image_carousel, image_post, image_email, reference_materials, expert_content, provocative_content, list_content, case_analysis, testimonial_content, myth_busting, objection_handling, email_builder, pdf_generation, landing_block_content |
 
 ---
 
-## 24. Triggers
+## 25. Triggers
 
 | Trigger | Таблица | Функция |
 |---------|--------|---------|
@@ -642,10 +908,13 @@ deepgram-callback → classify-case (Claude, self-chaining)
 | update_email_letters_updated_at | email_letters | update_updated_at_column() |
 | update_prompt_global_variables_updated_at | prompt_global_variables | update_updated_at_column() |
 | update_prompts_updated_at | prompts | update_updated_at_column() |
+| update_landing_templates_updated_at | landing_templates | update_updated_at_column() |
+| update_landings_updated_at | landings | update_updated_at_column() |
+| update_landing_blocks_updated_at | landing_blocks | update_updated_at_column() |
 
 ---
 
-## 25. RLS Policies Паттерн
+## 26. RLS Policies Паттерн
 
 Все таблицы имеют RLS enabled. Общий паттерн:
 
@@ -659,14 +928,15 @@ deepgram-callback → classify-case (Claude, self-chaining)
 - `email_letter_blocks`: проверка владельца через email_letters
 - `case_files`: проверка владельца через case_jobs
 - `email_chain_letters`: проверка владельца через email_chains
+- `landing_blocks`: проверка владельца через landings
 
 ### Admin-only таблицы
-- `prompts`, `color_schemes`, `image_styles`, `topic_tree`, `email_templates`, `email_chain_templates`
+- `prompts`, `color_schemes`, `image_styles`, `topic_tree`, `email_templates`, `email_chain_templates`, `landing_templates`, `landing_block_definitions`, `landing_template_blocks`
 - Требуют: has_role(auth.uid(), 'admin')
 
 ---
 
-## 26. Внешние API и Секреты
+## 27. Внешние API и Секреты
 
 | Секрет | Назначение | Используется в |
 |--------|-----------|-----------------|
@@ -680,7 +950,7 @@ deepgram-callback → classify-case (Claude, self-chaining)
 
 ---
 
-## 27. Ключевые Паттерны и Соглашения
+## 28. Ключевые Паттерны и Соглашения
 
 ### TanStack React Query
 - Запросы: useQuery({ queryKey: ["table_name"] или ["table_name", id] })
@@ -737,7 +1007,7 @@ serve(async (req: Request) => {
 
 ---
 
-## 28. Информация о Supabase Проекте
+## 29. Информация о Supabase Проекте
 
 | Параметр | Значение |
 |----------|----------|
@@ -750,7 +1020,7 @@ serve(async (req: Request) => {
 
 ---
 
-## 29. Описания Основных Страниц
+## 30. Описания Основных Страниц
 
 ### TaskQueue
 Мониторинг очереди задач с фильтрацией по статусу и lane (claude/openrouter). Показывает прогресс выполнения, ошибки и позволяет навигировать к целевым URL'ам.
@@ -779,6 +1049,23 @@ serve(async (req: Request) => {
 - Статичные изображения (image_post, image_email)
 - Баннеры (image_placeholder_* → banner_image)
 
+### LandingList
+Список всех лендингов с возможностью:
+- Создания нового лендинга (CreateLandingWizard: выбор шаблона и программы)
+- Удаления лендинга
+- Навигации в Landing Editor
+
+### LandingEditor
+Визуальный 3-панельный конструктор лендинга:
+- **LandingBlockLibrary**: Библиотека доступных HTML-блоков по категориям
+- **LandingBlockCanvas**: Рабочее пространство с drag-and-drop блоками
+- **LandingBlockSettingsPanel**: Настройки выбранного блока (editable_fields из block definition), универсальный редактор изображений с AI-генерацией (edit/generate режимы, chromakey), позиционные стрелки для hero-блоков
+- AI-генерация текстового контента через generate-landing-block
+- AI-генерация изображений через generate-landing-image (edit/generate, chromakey удаление фона)
+- RichTextEditor для редактирования контента блоков
+- Инлайн-превью (LandingInlinePreview) с click-to-edit, block actions (move/duplicate/delete), add-block gaps
+- Экспорт в ZIP через export-landing (HTML + CSS + изображения)
+
 ### EmailBuilderList
 Список всех email-писем с возможностью:
 - Дублирования письма
@@ -799,10 +1086,11 @@ serve(async (req: Request) => {
 ### EmailChainDetail
 Цепочка писем, сгруппированных по фазам:
 - before: До вебинара
-- during: Во время вебинара
+- webinar_day: День вебинара
 - after: После вебинара
+- warming: Прогрев после заявки
 
-Позволяет переупорядочивать письма, добавлять новые, регенерировать существующие.
+Позволяет просматривать статус писем, навигировать в Email Builder, регенерировать при ошибке.
 
 ### CreateDiagnostic
 Форма создания диагностики:
@@ -848,6 +1136,7 @@ Admin CRUD для промптов:
 - Управление версиями (manual/ai_refine)
 - Фильтр по content_type/channel/category
 - Bulk-операции (import/export)
+- Email Builder таб группирует промпты: «Генерация писем» (общие), «Письма ДО и ПОСЛЕ вебинара» (webinar_before/webinar_after), «Прогрев после заявки» (warming, 7 промптов)
 
 ### BannerLibrary
 Управление библиотекой баннеров:
@@ -920,7 +1209,7 @@ CRUD шаблонов email-писем (admin):
 
 ---
 
-## 30. Интеграции и Внешние Сервисы
+## 31. Интеграции и Внешние Сервисы
 
 ### Google Docs
 - Фетч контента через fetch-google-doc
@@ -928,9 +1217,12 @@ CRUD шаблонов email-писем (admin):
 - Export в TXT для обработки
 
 ### Talentsy KB
-- Cross-project Supabase query для TipTap JSON
-- Используется для获取 справочных материалов
-- Конвертация TipTap → text
+- URL формат: `https://talentsy-kb.vercel.app/share/tk_{id}`
+- Cross-project Supabase REST API запрос к `documents` таблице KB проекта (mclszzrjwhrhfqtonuiw)
+- Контент хранится в ProseMirror/TipTap JSON формате
+- Конвертация через `tiptapToText()` в `fetch-google-doc` edge function
+- Используется для описаний программ, аудиторий, тестов и других динамических контентных полей
+- Контент всегда загружается свежий при каждой генерации (не кешируется навсегда)
 
 ### Yandex Disk
 - Публичные папки для хранения видеокейсов
@@ -958,17 +1250,25 @@ CRUD шаблонов email-писем (admin):
 
 ---
 
-## 31. Ключевые Файлы и Пути
+## 32. Ключевые Файлы и Пути
 
 ### Frontend Core
 - `/src/App.tsx` — Роутинг и провайдеры
 - `/src/contexts/AuthContext.tsx` — Аутентификация
 - `/src/hooks/useTaskQueue.ts` — Интеграция с очередью
 
+### Landing Builder (ключевые файлы)
+- `/src/pages/LandingEditor.tsx` — Главный редактор: updateBlock, auto-save, block CRUD
+- `/src/components/landing-builder/LandingBlockSettingsPanel.tsx` — Панель настроек: editable fields, ImageCard с AI-генерацией, ImagePositionControl (hero), ImageScaleControl (все блоки), цвета фона
+- `/src/components/landing-builder/BlockLibraryModal.tsx` — Библиотека блоков с мини-превью (scaled iframe)
+- `/src/components/landing-builder/LandingInlinePreview.tsx` — iframe preview с postMessage событиями
+- `/src/hooks/useLandingPreviewHtml.ts` — buildPreviewHtml(), applyContentOverrides(), absolutifyPaths(), inlined CSS, buildAccentPalette(), buildAccentColorCSS(), replaceHexInHtml() для глобального акцентного цвета
+
 ### Backend
 - `/supabase/functions/enqueue-task/` — Добавление в очередь
 - `/supabase/functions/process-queue/` — Диспетчер
 - `/supabase/functions/generate-*` — Функции генерации
+- `/supabase/functions/upload-landing-images/` — Загрузка изображений (временная)
 
 ### Типы
 - `/src/integrations/supabase/types.ts` — TypeScript типы (auto-generated)
@@ -981,7 +1281,7 @@ CRUD шаблонов email-писем (admin):
 
 ---
 
-## 32. Best Practices
+## 33. Best Practices
 
 ### Безопасность
 - RLS policies на всех таблицах
@@ -1009,7 +1309,7 @@ CRUD шаблонов email-писем (admin):
 
 ---
 
-## 33. Миграция и Версионирование
+## 34. Миграция и Версионирование
 
 ### Структура миграций
 - Находятся в `/supabase/migrations/`
@@ -1026,7 +1326,7 @@ CRUD шаблонов email-писем (admin):
 
 ---
 
-## 34. Development Workflow
+## 35. Development Workflow
 
 ### Локальная разработка
 1. Clone репозитория: `https://github.com/alexbest47/contentgen`
@@ -1035,8 +1335,10 @@ CRUD шаблонов email-писем (admin):
 4. Supabase local development (если нужно)
 
 ### Деплой
-- Frontend: Vercel/Netlify (CI/CD из GitHub)
-- Backend: Supabase автоматически деплоит функции из `/supabase/functions/`
+- Frontend: Vercel (CI/CD из GitHub) — https://contentgen-five.vercel.app
+- Backend: Edge Functions деплоятся через Supabase MCP (`deploy_edge_function`) — **НЕ автоматически из GitHub**
+- Vercel Project: `contentgen` (team: alexbest47s-projects)
+- **ВАЖНО**: Supabase CLI (`.exe`) не работает в sandbox-среде Cowork. Использовать Supabase MCP для деплоя edge functions
 
 ### Тестирование
 - Unit-тесты: Jest (если настроены)
@@ -1045,7 +1347,7 @@ CRUD шаблонов email-писем (admin):
 
 ---
 
-## 35. Troubleshooting
+## 36. Troubleshooting
 
 ### Типичные проблемы
 
@@ -1059,6 +1361,14 @@ CRUD шаблонов email-писем (admin):
 
 **Transcription Fails**: Проверить DEEPGRAM_API_KEY, формат видео, callback URL
 
+**doc_url контент не обновляется**: Проверить, что `fetch-google-doc` задеплоена актуальная версия (v4+). Старая версия не поддерживает Talentsy KB URL и возвращает "Invalid Google Docs URL". Также убедиться, что в generate-* функциях используется паттерн "always fetch fresh" (см. секцию 8.1), а не `if (!audienceDescription)` с кешем
+
+**CreateChainWizard crash при переходе к шагу 3**: Temporal Dead Zone (TDZ) — derived state (isClosedLead и др.) объявлен после useQuery hooks, которые ссылаются на него в `enabled`. Решение: объявить derived state ПЕРЕД useQuery
+
+**Вертикальный текст в email preview**: CSS `word-break: break-word` на contentEditable наследуется в table cells email'а. Решение: НЕ использовать `wordBreak` на контейнере, вместо этого инжектировать CSS Reset с `td { word-break: normal !important }`
+
+**Горизонтальная прокрутка в email preview**: Фиксированный `width: 600px` + `overflow-x: auto` создаёт scrollbar. Решение: использовать `max-width: 100%` + `overflow: hidden`
+
 ### Логи
 - Edge Functions: Dashboard → Functions → Logs
 - Frontend: Browser Console
@@ -1066,7 +1376,7 @@ CRUD шаблонов email-писем (admin):
 
 ---
 
-## 36. Дополнительные Ресурсы
+## 37. Дополнительные Ресурсы
 
 - **Supabase Docs**: https://supabase.com/docs
 - **React Router**: https://reactrouter.com/
@@ -1081,6 +1391,124 @@ CRUD шаблонов email-писем (admin):
 
 ---
 
-**Документация актуальна на**: 2026-04-01
+**Документация актуальна на**: 2026-04-06
+
+---
+
+## 38. Версии Edge Functions (актуальные деплои)
+
+| Функция | Версия | Дата последнего деплоя | Ключевые изменения |
+|---------|--------|----------------------|-------------------|
+| fetch-google-doc | v4 | 2026-04-02 | Добавлена поддержка Talentsy KB URL и generic URL |
+| generate-email-letter | v15 | 2026-04-08 | audience_segment override, verify_jwt=false |
+| generate-landing-block | v12 | 2026-04-01 | AI-генерация контента лендинг-блоков |
+| generate-landing-image | v7 | 2026-04-01 | Edit/generate/chromakey режимы |
+| generate-pipeline | v16 | 2026-04-08 | + trust_ai / webinar_invite / webinar_invite_2 / direct_offer / multi_offer / transformation_story: skipLeadRequirement; инжекция `{{letter_theme_title}}` из `projects.topic_description`; инжекция `{{offers_data}}` для multi_offer (primary + `extra_offer_ids`, с подгрузкой doc_url); audience_segment; objection_handling без lead; verify_jwt=false |
+| generate-lead-magnets | v11 | 2026-04-08 | audience_segment override, verify_jwt=false |
+| generate-content | v5 | 2026-04-08 | audience_segment override, verify_jwt=false |
+| generate-bot-message | v4 | 2026-04-08 | + program_title / program_description / program_doc_description в templateVars (подгружается из paid_programs.program_doc_url через fetchDocContent); работает с chain без webinar_offer_id (warming-кейс). v3: verify_jwt=false, AbortController timeouts (fetchDocContent 20s, Anthropic 110s × 3 попытки), ранний апдейт bot_chain_messages.status=processing, error-path пишет error_message в bot_chain_messages |
+| process-queue | v3 | 2026-04-02 | taskType support, dispatch с SERVICE_ROLE_KEY |
+| enqueue-task | v2 | 2026-04-02 | taskType support |
+| fetch-google-doc | v4 | 2026-04-02 | Поддержка Talentsy KB URL и generic URL |
+| generate-diagnostic | v2 | 2026-04-03 | Fresh audience/test_description fetch from URL |
+| run-diagnostic-pipeline | v2 | 2026-04-03 | Fresh audience_description + fetchDocContent |
+| generate-card-prompt | v2 | 2026-04-03 | Fresh audience_description + fetchDocContent |
+| generate-image | v2 | 2026-04-03 | Fresh audience_description from URL |
+| generate-email-block | v2 | 2026-04-03 | Fresh audience_description from URL |
+
+### Изменения 2026-04-08 (новые типы контента post/carousel)
+
+Добавлены новые автономные типы контента в `CreatePostCarouselWizard` (по аналогии с email wizard). Все они пропускают шаг angles/lead-magnet — проект создаётся со `status='lead_selected'`, генерация запускается напрямую через `generate-pipeline`:
+
+| `content_type` | Пост | Карусель | Гейт | Ключевые входы |
+|---|---|---|---|---|
+| `from_scratch` (С нуля по описанию) | ✓ | ✓ | — | `topic_description`, `slide_count` |
+| `trust_ai` (Доверимся ИИ) | ✓ | ✓ | — | только программа/оффер/сегмент |
+| `webinar_invite` (Приглашение на вебинар) | ✓ | ✓ | `offer_type='webinar'` | `{{webinar_data}}` |
+| `webinar_invite_2` (Приглашение на вебинар — Письмо 2) | ✓ | ✓ | `offer_type='webinar'` | `{{webinar_data}}`, 2–3 инсайта по теме, НЕ повторяет анонс |
+| `direct_offer` (Прямой оффер) | ✓ | ✓ | — | `{{offer_description}}` как главный источник |
+| `multi_offer` (Мультиоффер) | — | ✓ | — | `letter_theme_title` (в `topic_description`), `extra_offer_ids uuid[]`, рендерится в `{{offers_data}}` |
+| `transformation_story` (История трансформации) | — | ✓ | — | theme auto/manual/tree → `{{letter_theme_title}}`, архетип из `{{audience_description}}` + инструмент из `{{program_doc_description}}`, без кейса |
+
+Промпты (все в 3 каналах ig/tg/vk, sub_type post и/или carousel) создавались клонированием ближайшего существующего шаблона с доминирующим override-блоком в начале `system_prompt`, чтобы перекрыть инерцию «визуал = лид-магнит» клонированного контекста:
+- **multi_offer carousel**: «один оффер = один слайд, реальные названия и ссылки из `{{offers_data}}`, никаких выдумок, запрет на обобщения типа "5 способов"».
+- **trust_ai post/carousel**: «это НЕ лид-магнит, сам выбери жанр на основе программы/оффера/сегмента, контент самодостаточный, визуал = иллюстрация к смыслу».
+- **direct_offer post/carousel**: «прямая продажа оффера, структура заход → мост → презентация оффера → возражения → CTA, факты строго из `{{offer_description}}`».
+- **transformation_story carousel**: «история по архетипу (ДО → поворот → ПОСЛЕ → инструмент из программы → CTA), без case_data, герой — собирательный образ из `{{audience_description}}`».
+- **webinar_invite_2 post/carousel**: «второе касание в стиле Письма 2 — 2–3 инсайта по теме, познавательный тон, не повторять анонс».
+
+Схема БД:
+- `ALTER TABLE projects ADD COLUMN extra_offer_ids uuid[] NOT NULL DEFAULT '{}'` — для multi_offer.
+- `projects.topic_description` переиспользуется как универсальное поле «тема» (from_scratch, multi_offer, transformation_story) и маппится в промптах как `{{topic_description}}` и `{{letter_theme_title}}`.
+
+Edge fn `generate-pipeline` v16:
+- `isWebinarInvite` ловит оба `webinar_invite` и `webinar_invite_2`.
+- `skipLeadRequirement = objection_handling+carousel || from_scratch || trust_ai || webinar_invite(_2) || direct_offer || multi_offer || transformation_story`.
+- Инжекция `{{letter_theme_title}}` из `projects.topic_description`.
+- Для `multi_offer`: подгружает основной оффер + `extra_offer_ids`, резолвит `doc_url` каждого через `fetch-google-doc`, форматирует в блок `ОФФЕР N:\nТип/Название/Описание/Ссылка` и подставляет в `{{offers_data}}`.
+
+Frontend:
+- `CreatePostCarouselWizard`: новые пункты в `CONTENT_TYPES`, `isAutonomous` расширен, гейты `format==='carousel'` для multi_offer/transformation_story, `ExtraOfferRow` подкомпонент для multi_offer (до 2 дополнительных офферов с собственным type+offer picker).
+- `src/pages/Prompts.tsx` `CONTENT_TYPE_ORDER` и `src/lib/promptConstants.ts` `contentTypeLabels` обновлены.
+
+### Изменения 2026-04-08 (экспорт диагностик в ZIP)
+
+`src/pages/Diagnostics.tsx`: кнопка «Выгрузить все (ZIP)» в шапке списка. Тянет все диагностики с `quiz_json` и/или `card_prompt`, отдельным запросом подгружает `paid_programs(id, title)` (inline-join падал на `PGRST200: Could not find a relationship between 'diagnostics' and 'paid_programs' in the schema cache`), группирует по названию программы и через `jszip` собирает архив `diagnostics-YYYY-MM-DD.zip` со структурой `<program_title>/тест.json` + `<program_title>/карта.json`. Если у одной программы несколько диагностик — вкладываются подпапками по имени диагностики. Санитизация имён папок: запрещённые символы ФС → `_`, лимит 120 символов.
+
+### Изменения 2026-04-08 (audience_segment rollout)
+1. Миграция: `ALTER TABLE projects ADD COLUMN audience_segment text` (`email_letters.audience_segment` уже существовал).
+2. `CreatePostCarouselWizard` (step 2): добавлен селектор `AUDIENCE_SEGMENTS`, обязательный для `canCreate`, сохраняется в `projects.audience_segment`.
+3. Все 4 worker-функции (`generate-pipeline`, `generate-content`, `generate-lead-magnets`, `generate-email-letter`) передают `{{audience_segment}}` в `templateVars` и применяют override `audience_description = gv[segment]` при наличии записи в `prompt_global_variables`.
+4. Массовый SQL-апдейт 76 активных промптов: после `{{audience_description}}` добавлена строка `ФОКУС НА СЕГМЕНТЕ АУДИТОРИИ: {{audience_segment}}` (см. секцию 8.1).
+5. Все worker-функции переведены на `verify_jwt=false` — фикс зависаний задач в `processing` из-за новых ключей `sb_secret_*`.
+### Изменения 2026-04-08 (bot-chain feature + фикс зависаний generate-bot-message)
+
+**Новая фича — цепочки сообщений для бота (bot chains)**, по аналогии с email-цепочками, но для Telegram-бота.
+
+Схема БД:
+- `bot_chains` (id, title, program_id, offer_id, audience_segment, status, created_at, ...) — шапка цепочки.
+- `bot_chain_messages` (id, chain_id, position, kind `text|image`, prompt_id, doc_url, content, image_url, status `pending|processing|ready|error`, error_message, ...) — отдельные сообщения.
+
+Frontend:
+- `CreateBotChainWizard` — визард создания цепочки (программа → оффер → сегмент → набор сообщений с типом text/image и привязкой к промпту).
+- `src/pages/BotChainDetail.tsx` — детальная страница цепочки (две вкладки: список сообщений + настройки), кнопка «Сгенерировать всё» ставит все `bot_chain_messages` в очередь через `enqueue-task` с `function_name='generate-bot-message'`.
+- `src/pages/BotMessageDetail.tsx` — редактор одного сообщения (текст или промпт-картинки), ручной перезапуск генерации.
+- Маршруты в `App.tsx`:
+  - `/bot-chains/:chainId` → `BotChainDetail`
+  - `/bot-chains/:chainId/messages/:messageId` → `BotMessageDetail`
+
+Edge function `generate-bot-message`:
+- Режимы: `text` (Anthropic claude-sonnet-4 по шаблону промпта + `{{audience_description}}`, `{{audience_segment}}`, `{{program_doc_description}}`, `{{offer_description}}`, опциональный `doc_url` → `fetchDocContent`) и `image` (OpenRouter `google/gemini-3-pro-image-preview`, сохранение в Storage).
+- Пишет результат в `bot_chain_messages.content`/`image_url`, помечает `status='ready'`; при ошибке — `status='error'` + `error_message`.
+
+**Инцидент: зависание задач `generate-bot-message` в очереди.** Симптом: все 15 задач цепочки `99ca79c7-...` застревали в `task_queue.status='processing'`, пока watchdog `process-queue` не убивал их через 3 минуты с таймаутом. Прямой вызов функции через `curl` отрабатывал за ~17–30с. Причина: `generate-bot-message` был задеплоен с `verify_jwt: true`, тогда как все остальные worker-функции в проекте — с `verify_jwt: false`. Fire-and-forget `fetch` из `process-queue` с `SERVICE_ROLE_KEY` в таком сочетании с новыми ключами `sb_secret_*` не достигал функции — задача оставалась `processing` без логов. Починка:
+1. Передеплой `generate-bot-message` v3 с `verify_jwt: false`.
+2. Добавлены таймауты через `AbortController`: `fetchDocContent` — 20s, вызов Anthropic — 110s на попытку × 3 попытки.
+3. Апдейт `bot_chain_messages.status='processing'` перенесён в начало обработчика (до загрузки chain/prompt/docs), чтобы UI видел прогресс и ранние ошибки трассировались.
+4. `catch`-блок теперь также помечает `bot_chain_messages` как `error` с `error_message`.
+5. Сброс очереди: `task_queue` и `bot_chain_messages` вернули в `pending`, триггернули `process-queue` — все 15 сообщений дошли до `status='ready'` за ~90с.
+
+**Конвенция (важно)**: любая edge function, вызываемая из `process-queue`, должна быть задеплоена с `verify_jwt: false`. Иначе fire-and-forget dispatch молча не достигает функции, а `task_queue` копит `processing` → timeout → `error` без полезных логов в самой функции.
+
+### Изменения 2026-04-08 (бот-цепочка «Прогрев после заявки»)
+
+Адаптация email-цепочки `warming` под бот по тому же принципу, что и `bot-webinar-before-after`.
+
+БД: 7 новых промптов `bot-warming-letter-1 … bot-warming-letter-7`, `channel='bot_warming'`, `category=content_type='bot_builder'`, `step_order=1..7`. Названия: Welcome после заявки → Экспертный контент → Кейс выпускника → Что внутри программы → Честные ответы на возражения → Первый шаг уже сделан → Подарок. Каждый возвращает строгий JSON (`message_text` + `buttons` + `image.imagen_prompt`) в том же формате, что `bot-webinar-letter-*`. Ограничения под бот: plain text, 2–5 абзацев, лимит эмодзи, `{{brand_voice}}` / `{{antiAI_rules}}`. Imagen-промпт по структуре «преамбула + {{image_style}} + сцена + TEXT BLOCK + layout». Последнее письмо (подарок) содержит плейсхолдеры `{mini_course_title}` / `{mini_course_url}` для ручной подстановки.
+
+Переменные, которые используют bot-warming-промпты: `{{program_title}}`, `{{program_description}}`, `{{audience_segment}}`, `{{brand_style}}`, `{{brand_voice}}`, `{{antiAI_rules}}`, `{{talentsy}}`, `{{image_style}}`.
+
+Edge fn `generate-bot-message` v4:
+- В `templateVars` добавлены `program_title`, `program_description`, `program_doc_description` (резолв через `fetchDocContent(paid_programs.program_doc_url)`).
+- Ветка с `chain.webinar_offer_id` делается опциональной — для warming-кейса `webinar_offer_id=null`, `offer_title/offer_description/webinar_data` остаются пустыми, остальные переменные резолвятся из `paid_programs` и `prompt_global_variables` как обычно.
+
+Frontend:
+- `src/pages/Prompts.tsx` вкладка «Конструктор ботов»: добавлен отдельный блок «Прогрев после заявки (бот)» с `PipelineGroup groupKey="bot_warming"` (фильтр `channel==='bot_warming'`, сортировка по `step_order`).
+- `src/components/chains/CreateBotChainWizard.tsx`:
+  - `BOT_TEMPLATES` получил поле `kind: "webinar" | "warming"`. Новый шаблон `bot-warming-after-application` (7 сообщений на слаги `bot-warming-letter-1..7`, `channel='bot_warming'`).
+  - Шаг 2 ветвится: для `kind==='webinar'` — прежний селектор вебинара, для `kind==='warming'` — селектор `paid_programs` (запрос `bot_warming_programs`).
+  - `handleCreate`: для warming-шаблона `program_id = programId` напрямую, `webinar_offer_id = null`. Гейт «Далее» и сводка на шаге 4 также разветвлены по `isWarmingKind`. Остальные шаги (audience_segment / title / color scheme / image_style) одни и те же.
+
 **GitHub**: https://github.com/alexbest47/contentgen
+**Vercel**: https://contentgen-five.vercel.app
 **Supabase Project ID**: szlvnesyoydwvtqieazo

@@ -142,7 +142,7 @@ export default function EmailBuilder() {
     queryKey: ["email_template_name", templateId],
     queryFn: async () => {
       if (!templateId) return null;
-      const { data } = await supabase.from("email_templates").select("name").eq("id", templateId).single();
+      const { data } = await supabase.from("email_templates").select("name, category, content_type").eq("id", templateId).single();
       return data;
     },
     enabled: !!templateId,
@@ -375,6 +375,7 @@ export default function EmailBuilder() {
         },
         displayTitle: `Генерация блока: ${block.block_type}`,
         lane: "claude",
+        taskType: "letter",
         targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
@@ -395,6 +396,7 @@ export default function EmailBuilder() {
         payload: { generate_image: true, block_id: blockId, banner_image_prompt: block.banner_image_prompt },
         displayTitle: `Генерация изображения блока`,
         lane: "openrouter",
+        taskType: "letter",
         targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
@@ -442,6 +444,7 @@ export default function EmailBuilder() {
         payload: { letter_id: letterId },
         displayTitle: `Генерация письма: ${title || "Без названия"}`,
         lane: "claude",
+        taskType: "letter",
         targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
@@ -488,6 +491,7 @@ export default function EmailBuilder() {
         payload: { generate_image: true, placeholder_id: placeholderId, prompt: ph.prompt, letter_id: letterId },
         displayTitle: `Генерация изображения письма`,
         lane: "openrouter",
+        taskType: "letter",
         targetUrl: `/email-builder/${letterId}`,
       });
       toast.success("Задача добавлена в очередь");
@@ -760,6 +764,7 @@ export default function EmailBuilder() {
         
         generatingLetter={generatingLetter}
         canGenerate={
+          (template as any)?.category === "content_email" ||
           ["Приглашение на вебинар: письмо 1", "Приглашение на вебинар: письмо 2", "С нуля", "Доверимся ИИ", "Мультиоффер"].includes(template?.name || "")
             ? true
             : template?.name === "Прямой оффер"
@@ -844,7 +849,10 @@ export default function EmailBuilder() {
               onChangeSelectedBlockHtml={() => {}}
               selectedObjectionIds={selectedObjectionIds}
               onChangeObjectionIds={handleChangeObjectionIds}
-              noCaseRequired={["Приглашение на вебинар: письмо 1", "Приглашение на вебинар: письмо 2", "С нуля", "Доверимся ИИ"].includes(template?.name || "")}
+              noCaseRequired={
+                (template as any)?.category === "content_email" ||
+                ["Приглашение на вебинар: письмо 1", "Приглашение на вебинар: письмо 2", "С нуля", "Доверимся ИИ"].includes(template?.name || "")
+              }
             />
           )}
         </div>

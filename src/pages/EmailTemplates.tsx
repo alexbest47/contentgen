@@ -26,9 +26,10 @@ const MODE_LABELS: Record<string, string> = {
 const CATEGORY_LABELS: Record<string, string> = {
   paid_programs: "Платные программы",
   webinar: "Вебинары",
+  content_email: "Контентные письма",
 };
 
-const ALL_CATEGORIES = ["paid_programs", "webinar"];
+const ALL_CATEGORIES = ["paid_programs", "webinar", "content_email"];
 
 export default function EmailTemplates() {
   const { data: templates, isLoading } = useQuery({

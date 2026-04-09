@@ -20,7 +20,40 @@ export default function Prompts() {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<PromptForm>(emptyForm);
-  const [activeTab, setActiveTab] = useState<string>("lead_magnet");
+  const [activeTab, setActiveTab] = useState<string>("content_prep");
+
+  const CONTENT_PREP_SLUGS = [
+    "lead-magnets-default",
+    "ref-material-general",
+    "expert-content-topics",
+    "provocative-topics",
+    "list-topics-generation",
+    "testimonial-angles",
+    "myth-busting-topics",
+    "objection-handling-topics",
+  ];
+  const POST_CHANNELS: { key: string; label: string }[] = [
+    { key: "instagram", label: "Instagram" },
+    { key: "telegram", label: "Telegram" },
+    { key: "vk", label: "ВКонтакте" },
+  ];
+  const CONTENT_TYPE_ORDER = [
+    "from_scratch",
+    "trust_ai",
+    "webinar_invite",
+    "webinar_invite_2",
+    "direct_offer",
+    "multi_offer",
+    "transformation_story",
+    "lead_magnet",
+    "reference_material",
+    "expert_content",
+    "provocative_content",
+    "list_content",
+    "testimonial_content",
+    "myth_busting",
+    "objection_handling",
+  ];
 
   const { data: prompts, isLoading } = useQuery({
     queryKey: ["prompts"],
@@ -135,7 +168,9 @@ export default function Prompts() {
   const mythBustingPrompts = (prompts ?? []).filter((p: any) => p.content_type === "myth_busting");
   const objectionHandlingPrompts = (prompts ?? []).filter((p: any) => p.content_type === "objection_handling");
   const emailBuilderPrompts = (prompts ?? []).filter((p: any) => p.content_type === "email_builder");
+  const botBuilderPrompts = (prompts ?? []).filter((p: any) => p.content_type === "bot_builder");
   const pdfMaterialPrompts = (prompts ?? []).filter((p: any) => p.content_type === "pdf_material");
+  const landingBlockPrompts = (prompts ?? []).filter((p: any) => p.content_type === "landing_block_content");
 
   // Group lead_magnet prompts: those without channel are "general", others grouped by channel
   const generalLeadMagnetPrompts = leadMagnetPrompts
@@ -530,58 +565,103 @@ export default function Prompts() {
       {isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
       ) : (prompts ?? []).length > 0 ? (
-        <Tabs defaultValue="lead_magnet" onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="lead_magnet">Лидмагнит</TabsTrigger>
-            <TabsTrigger value="reference_material">Справочный материал</TabsTrigger>
-            <TabsTrigger value="diagnostic">Диагностики</TabsTrigger>
-             <TabsTrigger value="expert_content">Экспертный контент</TabsTrigger>
-             <TabsTrigger value="provocative_content">Провокационный контент</TabsTrigger>
-             <TabsTrigger value="list_content">Список</TabsTrigger>
-             <TabsTrigger value="case_analysis">Кейсы</TabsTrigger>
-             <TabsTrigger value="testimonial_content">Контент-отзыв</TabsTrigger>
-             <TabsTrigger value="myth_busting">Разбор мифа</TabsTrigger>
-             <TabsTrigger value="objection_handling">Отработка возражения</TabsTrigger>
-             <TabsTrigger value="email_builder">Конструктор email</TabsTrigger>
-             <TabsTrigger value="pdf_material">Генерация PDF</TabsTrigger>
-           </TabsList>
-           <TabsContent value="lead_magnet">
-             {renderLeadMagnetTab()}
-           </TabsContent>
-           <TabsContent value="reference_material">
-             {renderReferenceMaterialTab()}
-           </TabsContent>
-           <TabsContent value="diagnostic">
-             {renderDiagnosticTab()}
-           </TabsContent>
-           <TabsContent value="expert_content">
-             {renderExpertContentTab()}
-           </TabsContent>
-           <TabsContent value="provocative_content">
-             {renderProvocativeContentTab()}
-           </TabsContent>
-           <TabsContent value="list_content">
-             {renderListContentTab()}
-           </TabsContent>
-           <TabsContent value="case_analysis">
-             {renderCaseAnalysisTab()}
-           </TabsContent>
-           <TabsContent value="testimonial_content">
-             {renderTestimonialContentTab()}
-           </TabsContent>
-           <TabsContent value="myth_busting">
-             {renderMythBustingTab()}
-           </TabsContent>
-           <TabsContent value="objection_handling">
-             {renderObjectionHandlingTab()}
-           </TabsContent>
+        <Tabs defaultValue="content_prep" onValueChange={setActiveTab}>
+          <TabsList className="flex-wrap h-auto">
+            <TabsTrigger value="content_prep">Подготовка контента</TabsTrigger>
+            <TabsTrigger value="posts">Создание постов</TabsTrigger>
+            <TabsTrigger value="carousels">Создание каруселей</TabsTrigger>
+            <TabsTrigger value="email_builder">Конструктор e-mail</TabsTrigger>
+            <TabsTrigger value="bot_builder">Конструктор ботов</TabsTrigger>
+            <TabsTrigger value="diagnostic">Подготовка диагностик</TabsTrigger>
+            <TabsTrigger value="case_analysis">Подготовка кейсов</TabsTrigger>
+            <TabsTrigger value="landing_block_content">Конструктор лендингов</TabsTrigger>
+            <TabsTrigger value="pdf_material">Генерация PDF</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="content_prep">
+            {(() => {
+              const list = (prompts ?? [])
+                .filter((p: any) => CONTENT_PREP_SLUGS.includes(p.slug))
+                .sort(
+                  (a: any, b: any) =>
+                    CONTENT_PREP_SLUGS.indexOf(a.slug) - CONTENT_PREP_SLUGS.indexOf(b.slug),
+                );
+              return (
+                <div className="space-y-3">
+                  {list.length > 0 ? (
+                    list.map((p: any) => (
+                      <PromptStepCard
+                        key={p.id}
+                        prompt={p}
+                        showStepNumber={false}
+                        onEdit={openEdit}
+                        onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
+                        onDuplicate={openDuplicate}
+                      />
+                    ))
+                  ) : (
+                    <div className="py-8 text-center text-muted-foreground border rounded-lg">
+                      Нет промптов
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </TabsContent>
+
+          {(["posts", "carousels"] as const).map((kind) => (
+            <TabsContent key={kind} value={kind}>
+              <div className="space-y-10">
+                {POST_CHANNELS.map((ch) => {
+                  const suffix = kind === "posts" ? "-post" : "-carousel";
+                  const channelPrompts = (prompts ?? [])
+                    .filter(
+                      (p: any) =>
+                        p.channel === ch.key &&
+                        typeof p.slug === "string" &&
+                        p.slug.endsWith(suffix) &&
+                        CONTENT_TYPE_ORDER.includes(p.content_type),
+                    )
+                    .sort(
+                      (a: any, b: any) =>
+                        CONTENT_TYPE_ORDER.indexOf(a.content_type) -
+                        CONTENT_TYPE_ORDER.indexOf(b.content_type),
+                    );
+                  if (channelPrompts.length === 0) return null;
+                  return (
+                    <PipelineGroup
+                      key={ch.key}
+                      groupKey={`${kind}-${ch.key}`}
+                      label={ch.label}
+                      prompts={channelPrompts}
+                      onEdit={openEdit}
+                      onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })}
+                      onDuplicate={openDuplicate}
+                    />
+                  );
+                })}
+              </div>
+            </TabsContent>
+          ))}
+
+          <TabsContent value="diagnostic">
+            {renderDiagnosticTab()}
+          </TabsContent>
+          <TabsContent value="case_analysis">
+            {renderCaseAnalysisTab()}
+          </TabsContent>
             <TabsContent value="email_builder">
                {(() => {
-                 const general = emailBuilderPrompts.filter((p: any) => !p.channel || (p.channel !== 'webinar_before' && p.channel !== 'webinar_after'));
+                 const knownChannels = ['webinar_before', 'webinar_after', 'warming', 'closed_lead'];
+                 const general = emailBuilderPrompts.filter((p: any) => !p.channel || !knownChannels.includes(p.channel));
                  const webinarBefore = emailBuilderPrompts.filter((p: any) => p.channel === 'webinar_before').sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
                  const webinarAfter = emailBuilderPrompts.filter((p: any) => p.channel === 'webinar_after').sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                 const warming = emailBuilderPrompts.filter((p: any) => p.channel === 'warming').sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                 const closedLead = emailBuilderPrompts.filter((p: any) => p.channel === 'closed_lead').sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
                  const sortedGeneral = general.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
                  const hasWebinar = webinarBefore.length > 0 || webinarAfter.length > 0;
+                 const hasWarming = warming.length > 0;
+                 const hasClosedLead = closedLead.length > 0;
                  return (
                    <div className="space-y-8">
                      {sortedGeneral.length > 0 && (
@@ -599,16 +679,75 @@ export default function Prompts() {
                          )}
                        </div>
                      )}
-                     {sortedGeneral.length === 0 && !hasWebinar && (
+                     {hasWarming && (
+                       <div className="space-y-6">
+                         <Separator />
+                         <h2 className="text-xl font-bold">Прогрев после заявки</h2>
+                         <PipelineGroup groupKey="warming" label="Прогрев после заявки (7 писем)" prompts={warming} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                       </div>
+                     )}
+                     {hasClosedLead && (
+                       <div className="space-y-6">
+                         <Separator />
+                         <h2 className="text-xl font-bold">Письма после закрытой заявки</h2>
+                         <PipelineGroup groupKey="closed_lead" label="Письма после закрытой заявки (4 письма + «Не дозвонились»)" prompts={closedLead} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                       </div>
+                     )}
+                     {sortedGeneral.length === 0 && !hasWebinar && !hasWarming && !hasClosedLead && (
                        <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
                      )}
                    </div>
                  );
                })()}
              </TabsContent>
+            <TabsContent value="bot_builder">
+              {(() => {
+                const before = botBuilderPrompts.filter((p: any) => p.channel === 'bot_webinar_before').sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                const after = botBuilderPrompts.filter((p: any) => p.channel === 'bot_webinar_after').sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                const warming = botBuilderPrompts.filter((p: any) => p.channel === 'bot_warming').sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                const has = before.length > 0 || after.length > 0 || warming.length > 0;
+                return (
+                  <div className="space-y-8">
+                    {has ? (
+                      <div className="space-y-6">
+                        <h2 className="text-xl font-bold">Сообщения ДО и ПОСЛЕ вебинара</h2>
+                        {before.length > 0 && (
+                          <PipelineGroup groupKey="bot_webinar_before" label="ДО вебинара" prompts={before} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                        )}
+                        {after.length > 0 && (
+                          <PipelineGroup groupKey="bot_webinar_after" label="ПОСЛЕ вебинара" prompts={after} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                        )}
+                        {warming.length > 0 && (
+                          <>
+                            <h2 className="text-xl font-bold pt-4">Прогрев после заявки (бот)</h2>
+                            <PipelineGroup groupKey="bot_warming" label="Прогрев после заявки (7 сообщений)" prompts={warming} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
+                    )}
+                  </div>
+                );
+              })()}
+            </TabsContent>
             <TabsContent value="pdf_material">
               {(() => {
                 const sorted = pdfMaterialPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                return (
+                  <div className="space-y-3">
+                    {sorted.length > 0 ? sorted.map((p: any) => (
+                      <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                    )) : (
+                      <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
+                    )}
+                  </div>
+                );
+              })()}
+            </TabsContent>
+            <TabsContent value="landing_block_content">
+              {(() => {
+                const sorted = landingBlockPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
                 return (
                   <div className="space-y-3">
                     {sorted.length > 0 ? sorted.map((p: any) => (

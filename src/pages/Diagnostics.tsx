@@ -14,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { Label } from "@/components/ui/label";
-import { Plus, Loader2, Eye, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Loader2, Eye, Pencil, Trash2, RefreshCw, Download } from "lucide-react";
+import JSZip from "jszip";
 import { toast } from "sonner";
 import { ImageUploadField } from "@/components/offer/ImageUploadField";
 import { uploadOfferImage } from "@/lib/uploadOfferImage";
@@ -50,6 +51,83 @@ export default function Diagnostics() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingDiag, setEditingDiag] = useState<EditingDiag | null>(null);
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const sanitizeFolderName = (s: string) =>
+    (s || "без_названия").replace(/[\\/:*?"<>|]+/g, "_").trim().slice(0, 120) || "без_названия";
+
+  const handleExportAll = async () => {
+    setExporting(true);
+    try {
+      const { data, error } = await supabase
+        .from("diagnostics")
+        .select("id, name, quiz_json, card_prompt, program_id")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const rawRows = (data || []).filter((d: any) => d.quiz_json || d.card_prompt);
+      const programIds = Array.from(new Set(rawRows.map((r: any) => r.program_id).filter(Boolean)));
+      const programTitleById = new Map<string, string>();
+      if (programIds.length > 0) {
+        const { data: progs } = await supabase
+          .from("paid_programs")
+          .select("id, title")
+          .in("id", programIds);
+        (progs || []).forEach((p: any) => programTitleById.set(p.id, p.title));
+      }
+      const rows = rawRows.map((r: any) => ({
+        ...r,
+        _programTitle: programTitleById.get(r.program_id) || "Без программы",
+      }));
+      if (rows.length === 0) {
+        toast.error("Нет диагностик для выгрузки");
+        return;
+      }
+      const zip = new JSZip();
+      const usedNames = new Map<string, number>();
+      for (const d of rows as any[]) {
+        const programTitle = d._programTitle || "Без программы";
+        let folderBase = sanitizeFolderName(programTitle);
+        // If multiple diagnostics share the same program, suffix with diagnostic name
+        const existing = rows.filter((r: any) => (r._programTitle || "Без программы") === programTitle);
+        if (existing.length > 1) {
+          folderBase = `${folderBase}/${sanitizeFolderName(d.name || d.id)}`;
+        }
+        const count = (usedNames.get(folderBase) || 0) + 1;
+        usedNames.set(folderBase, count);
+        const folderName = count > 1 ? `${folderBase} (${count})` : folderBase;
+        const folder = zip.folder(folderName)!;
+        if (d.quiz_json) {
+          folder.file("тест.json", JSON.stringify(d.quiz_json, null, 2));
+        }
+        if (d.card_prompt) {
+          // card_prompt may already be JSON text or plain; wrap minimal JSON
+          let cardContent: string;
+          try {
+            JSON.parse(d.card_prompt);
+            cardContent = d.card_prompt;
+          } catch {
+            cardContent = JSON.stringify({ card_prompt: d.card_prompt }, null, 2);
+          }
+          folder.file("карта.json", cardContent);
+        }
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `diagnostics-${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Выгружено диагностик: ${rows.length}`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || "Ошибка выгрузки");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const { data: diagnostics, isLoading } = useQuery({
     queryKey: ["diagnostics"],
@@ -166,10 +244,16 @@ export default function Diagnostics() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Диагностики</h1>
-        <Button onClick={() => navigate("/create-diagnostic")}>
-          <Plus className="h-4 w-4 mr-2" />
-          Создать диагностику
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportAll} disabled={exporting}>
+            {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            Выгрузить все (ZIP)
+          </Button>
+          <Button onClick={() => navigate("/create-diagnostic")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Создать диагностику
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

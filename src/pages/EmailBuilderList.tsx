@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ExternalLink, Copy, Trash2, Loader2 } from "lucide-react";
+import { Plus, ExternalLink, Copy, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -17,6 +17,8 @@ export default function EmailBuilderList() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
   const { data: letters, isLoading } = useQuery({
     queryKey: ["email_letters"],
@@ -127,7 +129,7 @@ export default function EmailBuilderList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {letters.map((letter) => (
+            {letters.slice((page - 1) * pageSize, page * pageSize).map((letter) => (
               <TableRow key={letter.id}>
                 <TableCell className="font-medium">{letter.title || "Без названия"}</TableCell>
                 <TableCell className="text-muted-foreground max-w-[180px] truncate">
@@ -164,6 +166,35 @@ export default function EmailBuilderList() {
             ))}
           </TableBody>
         </Table>
+      )}
+
+      {letters && letters.length > pageSize && (
+        <div className="flex items-center justify-between pt-2">
+          <div className="text-sm text-muted-foreground">
+            Показано {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, letters.length)} из {letters.length}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              <ChevronLeft className="h-4 w-4" /> Назад
+            </Button>
+            <div className="text-sm">
+              Страница {page} из {Math.ceil(letters.length / pageSize)}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(Math.ceil(letters.length / pageSize), p + 1))}
+              disabled={page >= Math.ceil(letters.length / pageSize)}
+            >
+              Вперёд <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       )}
 
       <CreateLetterWizard open={wizardOpen} onOpenChange={setWizardOpen} />

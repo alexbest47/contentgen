@@ -279,7 +279,7 @@ const handleDownload = async (banner: any) => {
 function BannerGrid({ banners, onEdit, onDelete, onPreview, onRegenerate, onDownload, regeneratingId }: { banners: any[]; onEdit: (b: any) => void; onDelete: (b: any) => void; onPreview: (b: any) => void; onRegenerate: (b: any) => void; onDownload: (b: any) => void; regeneratingId: string | null }) {
   if (banners.length === 0) return null;
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
       {banners.map((b: any) => (
         <Card key={b.id} className="overflow-hidden">
           <div
@@ -294,21 +294,21 @@ function BannerGrid({ banners, onEdit, onDelete, onPreview, onRegenerate, onDown
               </div>
             )}
           </div>
-          <div className="p-3 space-y-1">
-            <div className="flex items-start justify-between">
+          <div className="p-2 space-y-0.5">
+            <div className="flex items-start justify-between gap-1">
               <div className="min-w-0">
-                <p className="font-medium truncate">{b.title}</p>
-                <p className="text-sm text-muted-foreground truncate">
+                <p className="font-medium text-xs truncate">{b.title}</p>
+                <p className="text-[11px] text-muted-foreground truncate">
                   {b.category === "paid_program" ? b.paid_programs?.title : getOfferTypeLabel(b.offer_type || "")}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground truncate">
                   {getBannerTypeLabel(b.banner_type)}
                   {b.color_schemes?.name && ` · ${b.color_schemes.name}`}
                 </p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>

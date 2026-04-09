@@ -6,6 +6,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function fetchDocContent(url: string): Promise<string> {
+  try {
+    if (!url) return "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resp = await fetch(`${supabaseUrl}/functions/v1/fetch-google-doc`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ url }),
+    });
+    if (!resp.ok) {
+      console.error(`fetch-google-doc error: ${resp.status} for ${url}`);
+      return "";
+    }
+    const data = await resp.json();
+    return data.text || "";
+  } catch (e) {
+    console.error("Error fetching doc content:", url, e);
+  }
+  return "";
+}
+
 async function completeTask(taskId: string, result: any) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -74,21 +99,33 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, skipped: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { data: program } = await supabase.from("paid_programs").select("title, description, audience_description, program_doc_url").eq("id", program_id).single();
+    const { data: program } = await supabase.from("paid_programs").select("title, description, audience_description, audience_doc_url, program_doc_url").eq("id", program_id).single();
+
+    // Always fetch fresh audience description from URL, fallback to cached
+    let audienceDescription = "";
+    if (program?.audience_doc_url) {
+      try {
+        audienceDescription = await fetchDocContent(program.audience_doc_url);
+        if (audienceDescription) {
+          await supabase.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
+        }
+      } catch (e) { console.error("[card-prompt] Error fetching audience doc:", e); }
+    }
+    if (!audienceDescription) audienceDescription = program?.audience_description || "";
 
     let programDocDescription = "";
     if (program?.program_doc_url) {
-      try { const docMatch = program.program_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/); if (docMatch) { const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`; const docResponse = await fetch(exportUrl); if (docResponse.ok) programDocDescription = await docResponse.text(); } } catch (e) { console.error("[card-prompt] Error fetching program doc:", e); }
+      try { programDocDescription = await fetchDocContent(program.program_doc_url); } catch (e) { console.error("[card-prompt] Error fetching program doc:", e); }
     }
 
     let diagnosticDocDescription = "";
     const { data: diagDoc } = await supabase.from("diagnostics").select("doc_url").eq("id", diagnostic_id).single();
     if (diagDoc?.doc_url) {
-      try { const docMatch = diagDoc.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/); if (docMatch) { const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`; const docResponse = await fetch(exportUrl); if (docResponse.ok) diagnosticDocDescription = await docResponse.text(); } } catch (e) { console.error("[card-prompt] Error fetching diagnostic doc:", e); }
+      try { diagnosticDocDescription = await fetchDocContent(diagDoc.doc_url); } catch (e) { console.error("[card-prompt] Error fetching diagnostic doc:", e); }
     }
 
     const templateVars: Record<string, string> = {
-      program_title: program?.title || "", program_description: program?.description || "", audience_description: program?.audience_description || "",
+      program_title: program?.title || "", program_description: program?.description || "", audience_description: audienceDescription,
       offer_title: name || "", offer_value: description || "", offer_description: diagnosticDocDescription, program_doc_description: programDocDescription,
     };
 

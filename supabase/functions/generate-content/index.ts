@@ -12,6 +12,31 @@ const OFFER_TYPE_LABELS: Record<string, string> = {
   discount: "Промокод", download_pdf: "Скачай PDF",
 };
 
+async function fetchDocContent(url: string): Promise<string> {
+  try {
+    if (!url) return "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resp = await fetch(`${supabaseUrl}/functions/v1/fetch-google-doc`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ url }),
+    });
+    if (!resp.ok) {
+      console.error(`fetch-google-doc error: ${resp.status} for ${url}`);
+      return "";
+    }
+    const data = await resp.json();
+    return data.text || "";
+  } catch (e) {
+    console.error("Error fetching doc content:", url, e);
+  }
+  return "";
+}
+
 async function completeTask(taskId: string, result: any) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -63,26 +88,45 @@ serve(async (req) => {
 
     const offer = project.offers;
     if (!offer) throw new Error("Project has no associated offer");
-    const program = offer.paid_programs;
+    let program = offer.paid_programs;
+    // Prefer the program explicitly chosen on the project (e.g. for offers like
+    // "spot_available" that aren't tied to a specific paid program)
+    if (project.program_id) {
+      const { data: projProgram } = await supabase.from("paid_programs").select("*").eq("id", project.program_id).single();
+      if (projProgram) program = projProgram;
+    }
+    if (!program) throw new Error("Project has no associated paid program");
     const selectedLead = project.lead_magnets?.find((lm: any) => lm.is_selected);
     if (!selectedLead) throw new Error("Не выбран лид-магнит");
 
-    let audienceDescription = program.audience_description || "";
-    if (program.audience_doc_url && !audienceDescription) {
-      try {
-        const docMatch = program.audience_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
-        if (docMatch) { const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`; const docResponse = await fetch(exportUrl); if (docResponse.ok) { audienceDescription = await docResponse.text(); await supabase.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id); } else { await docResponse.text(); } }
-      } catch (docErr) { console.error("Error fetching Google Doc:", docErr); }
+    let audienceDescription = "";
+    const audienceSegment = project?.audience_segment || "";
+    if (audienceSegment && gv[audienceSegment]) {
+      audienceDescription = gv[audienceSegment];
+    } else {
+      if (program.audience_doc_url) {
+        try {
+          audienceDescription = await fetchDocContent(program.audience_doc_url);
+          if (audienceDescription) {
+            await supabase.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
+          }
+        } catch (docErr) { console.error("Error fetching audience doc:", docErr); }
+      }
+      if (!audienceDescription) audienceDescription = program.audience_description || "";
     }
 
     let programDocDescription = "";
     if (program.program_doc_url) {
-      try { const docMatch = program.program_doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/); if (docMatch) { const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`; const docResponse = await fetch(exportUrl); if (docResponse.ok) programDocDescription = await docResponse.text(); } } catch (e) { console.error("Error fetching program doc:", e); }
+      try {
+        programDocDescription = await fetchDocContent(program.program_doc_url);
+      } catch (e) { console.error("Error fetching program doc:", e); }
     }
 
     let offerDescription = "";
     if (offer.doc_url) {
-      try { const docMatch = offer.doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/); if (docMatch) { const exportUrl = `https://docs.google.com/document/d/${docMatch[1]}/export?format=txt`; const docResponse = await fetch(exportUrl); if (docResponse.ok) offerDescription = await docResponse.text(); else await docResponse.text(); } } catch (docErr) { console.error("Error fetching offer Google Doc:", docErr); }
+      try {
+        offerDescription = await fetchDocContent(offer.doc_url);
+      } catch (docErr) { console.error("Error fetching offer Google Doc:", docErr); }
     }
 
     const { data: prompt } = await supabase.from("prompts").select("*").eq("category", category).eq("is_active", true).limit(1).single();
@@ -92,7 +136,7 @@ serve(async (req) => {
     const mythContext = `Выбранная тема разбора мифа:\n- Название: ${selectedLead.title}\n- Категория: ${selectedLead.visual_format || ""}\n- Угол подачи: ${selectedLead.visual_content || ""}\n- Крючок: ${selectedLead.instant_value || ""}\n- Переход к офферу: ${selectedLead.transition_to_course || ""}`;
 
     const userPrompt = prompt.user_prompt_template
-      .replace(/\{\{program_title\}\}/g, program.title).replace(/\{\{offer_type\}\}/g, OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type).replace(/\{\{offer_title\}\}/g, offer.title).replace(/\{\{audience_description\}\}/g, audienceDescription).replace(/\{\{offer_value\}\}/g, offer.description || "").replace(/\{\{offer_description\}\}/g, offerDescription).replace(/\{\{offer_image\}\}/g, offer.image_url || "").replace(/\{\{lead_magnet\}\}/g, leadMagnetContext).replace(/\{\{reference_material\}\}/g, leadMagnetContext).replace(/\{\{myth_topic\}\}/g, mythContext).replace(/\{\{program_doc_description\}\}/g, programDocDescription).replace(/\{\{brand_style\}\}/g, brandStyle).replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "").replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "").replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "").replace(/\{\{objection_data\}\}/g, "").replace(/\{\{objection_angle\}\}/g, "");
+      .replace(/\{\{program_title\}\}/g, program.title).replace(/\{\{offer_type\}\}/g, OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type).replace(/\{\{offer_title\}\}/g, offer.title).replace(/\{\{audience_description\}\}/g, audienceDescription).replace(/\{\{audience_segment\}\}/g, audienceSegment || "").replace(/\{\{offer_value\}\}/g, offer.description || "").replace(/\{\{offer_description\}\}/g, offerDescription).replace(/\{\{offer_image\}\}/g, offer.image_url || "").replace(/\{\{lead_magnet\}\}/g, leadMagnetContext).replace(/\{\{reference_material\}\}/g, leadMagnetContext).replace(/\{\{myth_topic\}\}/g, mythContext).replace(/\{\{program_doc_description\}\}/g, programDocDescription).replace(/\{\{brand_style\}\}/g, brandStyle).replace(/\{\{offer_rules\}\}/g, gv["offer_rules"] || "").replace(/\{\{antiAI_rules\}\}/g, gv["antiAI_rules"] || "").replace(/\{\{brand_voice\}\}/g, gv["brand_voice"] || "").replace(/\{\{objection_data\}\}/g, "").replace(/\{\{objection_angle\}\}/g, "");
 
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

@@ -38,6 +38,7 @@ interface Task {
   display_title: string;
   priority: number;
   target_url: string | null;
+  task_type: string;
 }
 
 const statusLabels: Record<string, string> = {
@@ -54,6 +55,43 @@ const statusColors: Record<string, string> = {
   error: "bg-red-100 text-red-800",
 };
 
+const taskTypeLabels: Record<string, string> = {
+  landing: "Лендинг",
+  letter: "Письмо",
+  content: "Контент",
+};
+
+const taskTypeColors: Record<string, string> = {
+  landing: "bg-purple-100 text-purple-800",
+  letter: "bg-cyan-100 text-cyan-800",
+  content: "bg-orange-100 text-orange-800",
+  post: "bg-orange-100 text-orange-800",
+  carousel: "bg-pink-100 text-pink-800",
+};
+
+function extractProjectId(targetUrl: string | null): string | null {
+  if (!targetUrl) return null;
+  const m = targetUrl.match(/\/projects\/([0-9a-f-]{36})/i);
+  return m ? m[1] : null;
+}
+
+function getDisplayType(
+  task: { task_type: string; display_title: string | null; target_url: string | null },
+  projectFormats: Record<string, string | null>
+): { key: string; label: string } {
+  if (task.task_type === "content") {
+    const t = task.display_title ?? "";
+    if (/карусел/i.test(t)) return { key: "carousel", label: "Карусель" };
+    if (/\bпост/i.test(t)) return { key: "post", label: "Пост" };
+    const pid = extractProjectId(task.target_url);
+    const fmt = pid ? projectFormats[pid] : null;
+    if (fmt === "carousel") return { key: "carousel", label: "Карусель" };
+    if (fmt === "post") return { key: "post", label: "Пост" };
+    return { key: "content", label: "Контент" };
+  }
+  return { key: task.task_type, label: taskTypeLabels[task.task_type] ?? task.task_type };
+}
+
 const PAGE_SIZE = 20;
 
 export default function TaskQueue() {
@@ -62,8 +100,10 @@ export default function TaskQueue() {
   const navigate = useNavigate();
 
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [projectFormats, setProjectFormats] = useState<Record<string, string | null>>({});
   const [statusFilter, setStatusFilter] = useState("all");
   const [laneFilter, setLaneFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [initialLoading, setInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [page, setPage] = useState(1);
@@ -73,6 +113,8 @@ export default function TaskQueue() {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
+  // RLS handles per-user filtering on the DB side.
+  // Admins see all tasks, regular users see only their own.
   const fetchTasks = useCallback(async (silent = false) => {
     if (!silent) {
       if (isFirstLoad.current) setInitialLoading(true);
@@ -81,7 +123,7 @@ export default function TaskQueue() {
 
     let query = supabase
       .from("task_queue")
-      .select("id, created_at, started_at, completed_at, created_by, lane, status, function_name, error_message, display_title, priority, target_url", { count: "exact" })
+      .select("id, created_at, started_at, completed_at, created_by, lane, status, function_name, error_message, display_title, priority, target_url, task_type", { count: "exact" })
       .order("created_at", { ascending: false })
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
@@ -90,6 +132,9 @@ export default function TaskQueue() {
     }
     if (laneFilter !== "all") {
       query = query.eq("lane", laneFilter);
+    }
+    if (typeFilter !== "all") {
+      query = query.eq("task_type", typeFilter);
     }
 
     const { data, count, error } = await query;
@@ -103,20 +148,41 @@ export default function TaskQueue() {
       setIsRefreshing(false);
       return;
     }
-    setTasks((data as Task[]) || []);
+    const taskList = (data as Task[]) || [];
+    setTasks(taskList);
     setTotalCount(count ?? 0);
+
+    const projectIds = Array.from(
+      new Set(
+        taskList
+          .filter((t) => t.task_type === "content")
+          .map((t) => extractProjectId(t.target_url))
+          .filter((x): x is string => !!x)
+      )
+    );
+    if (projectIds.length > 0) {
+      const { data: projData } = await supabase
+        .from("projects")
+        .select("id, content_format")
+        .in("id", projectIds);
+      const map: Record<string, string | null> = {};
+      (projData || []).forEach((p: any) => {
+        map[p.id] = p.content_format ?? null;
+      });
+      setProjectFormats((prev) => ({ ...prev, ...map }));
+    }
 
     if (isFirstLoad.current) {
       setInitialLoading(false);
       isFirstLoad.current = false;
     }
     setIsRefreshing(false);
-  }, [page, statusFilter, laneFilter]);
+  }, [page, statusFilter, laneFilter, typeFilter]);
 
   // Reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, laneFilter]);
+  }, [statusFilter, laneFilter, typeFilter]);
 
   // Fetch on page/filter change
   useEffect(() => {
@@ -202,7 +268,7 @@ export default function TaskQueue() {
   };
 
   const handleClearQueue = async () => {
-    const { error, count } = await supabase
+    const { error } = await supabase
       .from("task_queue")
       .delete()
       .in("status", ["completed", "error"]);
@@ -289,6 +355,15 @@ export default function TaskQueue() {
             <TabsTrigger value="openrouter">OpenRouter</TabsTrigger>
           </TabsList>
         </Tabs>
+
+        <Tabs value={typeFilter} onValueChange={setTypeFilter}>
+          <TabsList>
+            <TabsTrigger value="all">Все типы</TabsTrigger>
+            <TabsTrigger value="landing">Лендинг</TabsTrigger>
+            <TabsTrigger value="letter">Письмо</TabsTrigger>
+            <TabsTrigger value="content">Контент</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       <div className="rounded-md border">
@@ -296,6 +371,7 @@ export default function TaskQueue() {
           <TableHeader>
             <TableRow>
               <TableHead>Задача</TableHead>
+              <TableHead>Тип</TableHead>
               <TableHead>Линия</TableHead>
               <TableHead>Статус</TableHead>
               <TableHead>Создано</TableHead>
@@ -306,13 +382,13 @@ export default function TaskQueue() {
           <TableBody>
             {initialLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   Загрузка...
                 </TableCell>
               </TableRow>
             ) : tasks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   Нет задач
                 </TableCell>
               </TableRow>
@@ -349,6 +425,16 @@ export default function TaskQueue() {
                         {task.error_message}
                       </div>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const dt = getDisplayType(task, projectFormats);
+                      return (
+                        <Badge className={taskTypeColors[dt.key] || "bg-gray-100 text-gray-800"}>
+                          {dt.label}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{task.lane}</Badge>

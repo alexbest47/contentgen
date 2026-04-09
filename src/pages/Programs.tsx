@@ -4,9 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { useContentFormat, appendFormat } from "@/lib/contentFormat";
 
 export default function Programs() {
   const navigate = useNavigate();
+  const { format, label } = useContentFormat();
 
   const { data: programs, isLoading } = useQuery({
     queryKey: ["paid_programs"],
@@ -20,7 +22,7 @@ export default function Programs() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Создание контента</h1>
+        <h1 className="text-2xl font-bold">{label}</h1>
         <p className="text-muted-foreground">Выберите программу для создания контента</p>
       </div>
 
@@ -34,7 +36,7 @@ export default function Programs() {
             <div
               key={p.id}
               className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => navigate(`/programs/${p.id}`)}
+              onClick={() => navigate(appendFormat(`/programs/${p.id}`, format))}
             >
               <div className="min-w-0 flex-1">
                 <div className="font-medium">{p.title}</div>

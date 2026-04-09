@@ -12,14 +12,28 @@ const OFFER_TYPE_LABELS: Record<string, string> = {
   discount: "Промокод", download_pdf: "Скачай PDF",
 };
 
-async function fetchGoogleDoc(url: string): Promise<string> {
+async function fetchDocContent(url: string): Promise<string> {
   try {
-    const match = url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
-    if (!match) return "";
-    const exportUrl = `https://docs.google.com/document/d/${match[1]}/export?format=txt`;
-    const resp = await fetch(exportUrl);
-    if (resp.ok) return await resp.text();
-  } catch (e) { console.error("Error fetching Google Doc:", e); }
+    if (!url) return "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resp = await fetch(`${supabaseUrl}/functions/v1/fetch-google-doc`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ url }),
+    });
+    if (!resp.ok) {
+      console.error(`fetch-google-doc error: ${resp.status} for ${url}`);
+      return "";
+    }
+    const data = await resp.json();
+    return data.text || "";
+  } catch (e) {
+    console.error("Error fetching doc content:", url, e);
+  }
   return "";
 }
 
@@ -203,6 +217,7 @@ serve(async (req) => {
     const imageStyleId = (letter as any).image_style_id;
     const pdfMaterialId = (letter as any).pdf_material_id;
     const miniCourseOfferId = (letter as any).mini_course_offer_id;
+    const preListOfferId = (letter as any).pre_list_offer_id;
 
     let program: any = null;
     if (programId) {
@@ -217,7 +232,7 @@ serve(async (req) => {
         offerTitle = offer.title;
         offerValue = offer.description || "";
         offerImageUrl = offer.image_url || "";
-        offerDesc = offer.doc_url ? await fetchGoogleDoc(offer.doc_url) : "";
+        offerDesc = offer.doc_url ? await fetchDocContent(offer.doc_url) : "";
         offerTypeLabel = OFFER_TYPE_LABELS[offer.offer_type] || offer.offer_type;
       }
     }
@@ -249,7 +264,21 @@ serve(async (req) => {
         miniCourseDescription = mcOffer.description || "";
         miniCourseUrl = mcOffer.landing_url || "";
         if (mcOffer.doc_url && !miniCourseDescription) {
-          miniCourseDescription = await fetchGoogleDoc(mcOffer.doc_url);
+          miniCourseDescription = await fetchDocContent(mcOffer.doc_url);
+        }
+      }
+    }
+
+    // Load pre_list offer data
+    let preListTitle = "", preListDescription = "", preListUrl = "";
+    if (preListOfferId) {
+      const { data: plOffer } = await sb.from("offers").select("title, description, landing_url, doc_url").eq("id", preListOfferId).single();
+      if (plOffer) {
+        preListTitle = plOffer.title || "";
+        preListDescription = plOffer.description || "";
+        preListUrl = plOffer.landing_url || "";
+        if (plOffer.doc_url && !preListDescription) {
+          preListDescription = await fetchDocContent(plOffer.doc_url);
         }
       }
     }
@@ -261,18 +290,56 @@ serve(async (req) => {
         const items = [];
         for (const ex of extras) {
           let desc = ex.description || "";
-          if (ex.doc_url && !desc) desc = await fetchGoogleDoc(ex.doc_url);
+          if (ex.doc_url && !desc) desc = await fetchDocContent(ex.doc_url);
           items.push(`- ${ex.title} (${OFFER_TYPE_LABELS[ex.offer_type] || ex.offer_type}): ${desc}`);
         }
         offersSelectionContext = items.join("\n");
       }
     }
 
-    // Fetch template name early — needed for multi-offer check and prompt map
+    // Fetch template name + category — needed for multi-offer check, prompt map, and content_email branch
     let templateName = "";
+    let templateCategory = "";
+    let templateContentType = "";
     if (templateId) {
-      const { data: tpl } = await sb.from("email_templates").select("name").eq("id", templateId).single();
-      if (tpl) templateName = tpl.name;
+      const { data: tpl } = await sb.from("email_templates").select("name, category, content_type").eq("id", templateId).single();
+      if (tpl) {
+        templateName = tpl.name;
+        templateCategory = (tpl as any).category || "";
+        templateContentType = (tpl as any).content_type || "";
+      }
+    }
+
+    // Content-email branch: load selected content option (lead magnet / reference / etc)
+    const isContentEmail = templateCategory === "content_email";
+    let contentSourceTitle = "";
+    let contentSourceData = "";
+    if (isContentEmail) {
+      const contentSourceId = (letter as any).content_source_id;
+      // Objection-handling letter: load selected objections directly as source data
+      if (templateContentType === "objection_handling" && selectedObjectionIds.length > 0) {
+        const { data: objList } = await sb
+          .from("objections")
+          .select("id, objection_text, tags")
+          .in("id", selectedObjectionIds);
+        const ordered = selectedObjectionIds
+          .map((id) => (objList || []).find((o: any) => o.id === id))
+          .filter(Boolean);
+        contentSourceTitle = "Отработка выбранных возражений";
+        contentSourceData = ordered
+          .map((o: any, i: number) => `${i + 1}. ${o.objection_text}${o.tags && o.tags.length ? ` [теги: ${o.tags.join(", ")}]` : ""}`)
+          .join("\n");
+      } else if (contentSourceId && contentSourceId !== "objection_direct") {
+        const { data: src } = await sb
+          .from("email_letter_lead_magnets")
+          .select("title, payload, content_type")
+          .eq("id", contentSourceId)
+          .single();
+        if (src) {
+          contentSourceTitle = src.title || "";
+          contentSourceData = JSON.stringify(src.payload || {}, null, 2);
+        }
+      }
     }
 
     // Multi-offer: build offers_data from offer_id + extra_offer_ids
@@ -328,6 +395,25 @@ serve(async (req) => {
       if (chainLink?.slug) chainLetterSlug = chainLink.slug;
     }
 
+    // Auto-load objections by program_id for warming/closed chain letters when no explicit objections selected
+    if (objectionDataMassive === "[]" && programId && chainLetterSlug) {
+      const isChainSlugWithObjections = chainLetterSlug.startsWith("email-warming-letter-") || chainLetterSlug.startsWith("email-closed-letter-");
+      if (isChainSlugWithObjections) {
+        const { data: progObjRows } = await sb
+          .from("objections")
+          .select("id, objection_text")
+          .eq("program_id", programId)
+          .limit(7);
+        if (progObjRows && progObjRows.length > 0) {
+          objectionDataMassive = JSON.stringify(
+            progObjRows.map((r: any) => ({ id: r.id, objection: r.objection_text })),
+            null, 2
+          );
+          console.log(`Auto-loaded ${progObjRows.length} objections for program ${programId}`);
+        }
+      }
+    }
+
     const TEMPLATE_PROMPT_MAP: Record<string, string> = {
       "Прямой оффер": "email-builder-direct-offer",
       "Приглашение на вебинар: письмо 1": "email-builder-webinar-letter-1",
@@ -336,7 +422,20 @@ serve(async (req) => {
       "Доверимся ИИ": "email-builder-ai-driven",
       "Мультиоффер": "email-builder-multi-offer",
     };
-    const promptSlug = chainLetterSlug || TEMPLATE_PROMPT_MAP[templateName] || "email-builder-full-letter";
+    // For content_email templates, use the duplicated email-channel prompt by category
+    const CONTENT_TYPE_TO_CATEGORY: Record<string, string> = {
+      lead_magnet: "lead_magnets",
+      reference_material: "reference_materials",
+      expert_content: "expert_content",
+      provocative_content: "provocative_content",
+      testimonial_content: "testimonial_content",
+      myth_busting: "myth_busting",
+      objection_handling: "objection_handling",
+    };
+    const contentEmailSlug = isContentEmail && templateContentType
+      ? `${CONTENT_TYPE_TO_CATEGORY[templateContentType] || templateContentType}-email`
+      : null;
+    const promptSlug = contentEmailSlug || chainLetterSlug || TEMPLATE_PROMPT_MAP[templateName] || "email-builder-full-letter";
 
     const { data: prompt } = await sb.from("prompts")
       .select("*")
@@ -367,17 +466,20 @@ serve(async (req) => {
     if (audienceSegment && gv[audienceSegment]) {
       audienceDescription = gv[audienceSegment];
     } else {
-      audienceDescription = program?.audience_description || "";
-      if (program?.audience_doc_url && !audienceDescription) {
-        audienceDescription = await fetchGoogleDoc(program.audience_doc_url);
-        if (audienceDescription) {
-          await sb.from("paid_programs").update({ audience_description: audienceDescription }).eq("id", program.id);
-        }
+      if (program?.audience_doc_url) {
+        try {
+          const fresh = await fetchDocContent(program.audience_doc_url);
+          if (fresh) {
+            audienceDescription = fresh;
+            await sb.from("paid_programs").update({ audience_description: fresh }).eq("id", program.id);
+          }
+        } catch (docErr) { console.error("Error fetching audience doc:", docErr); }
       }
+      if (!audienceDescription) audienceDescription = program?.audience_description || "";
     }
     let programDocDescription = "";
     if (program?.program_doc_url) {
-      programDocDescription = await fetchGoogleDoc(program.program_doc_url);
+      programDocDescription = await fetchDocContent(program.program_doc_url);
     }
 
     const letterTheme = `${letter.letter_theme_title}\n${letter.letter_theme_description || ""}`;
@@ -402,6 +504,7 @@ serve(async (req) => {
       "audience_description", "program_doc_description", "case_data",
       "objection_data_massive", "offer_rules", "offer_description",
       "brand_style", "brand_voice", "antiAI_rules", "content_theme",
+      "talentsy",
     ]);
 
     // Build a unified template vars map with image_style taking priority over global
@@ -411,6 +514,7 @@ serve(async (req) => {
       program_description: program?.description || "",
       program_doc_description: programDocDescription,
       audience_description: audienceDescription,
+      audience_segment: audienceSegment || "",
       offer_title: offerTitle,
       offer_value: offerValue,
       offer_description: offerDesc,
@@ -430,11 +534,17 @@ serve(async (req) => {
       mini_course_title: miniCourseTitle,
       mini_course_description: miniCourseDescription,
       mini_course_url: miniCourseUrl,
+      pre_list_title: preListTitle,
+      pre_list_description: preListDescription,
+      pre_list_url: preListUrl,
       offer_rules: gv.offer_rules || "",
       antiAI_rules: gv.antiAI_rules || "",
       brand_voice: gv.brand_voice || "",
       objection_data_massive: objectionDataMassive,
       image_style: imageStyleText, // override global with selected style
+      content_source_title: contentSourceTitle,
+      content_source_data: contentSourceData,
+      user_topic: (letter as any).user_topic || "",
     };
 
     function applyVars(text: string, vars: Record<string, string>): string {

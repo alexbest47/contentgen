@@ -6,10 +6,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Tag } from "lucide-react";
 import { OFFER_TYPES, CONTENT_OFFER_KEYS, SALES_OFFER_KEYS } from "@/lib/offerTypes";
+import { useContentFormat, appendFormat } from "@/lib/contentFormat";
 
 export default function ProgramDetail() {
   const { programId } = useParams();
   const navigate = useNavigate();
+  const { format, suffix } = useContentFormat();
 
   const { data: program } = useQuery({
     queryKey: ["program", programId],
@@ -47,7 +49,7 @@ export default function ProgramDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/programs")}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(`/programs${suffix}`)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
@@ -84,7 +86,7 @@ export default function ProgramDetail() {
               <Card
                 key={type.key}
                 className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
-                onClick={() => navigate(`/programs/${programId}/offers/${type.key}`)}
+                onClick={() => navigate(appendFormat(`/programs/${programId}/offers/${type.key}`, format))}
               >
                 <CardContent className="flex items-center gap-4 py-6">
                   <div className="rounded-lg bg-accent p-3 text-accent-foreground group-hover:bg-primary/10 transition-colors">
@@ -103,7 +105,7 @@ export default function ProgramDetail() {
               <Card
                 key={type.key}
                 className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
-                onClick={() => navigate(`/programs/${programId}/offers/${type.key}`)}
+                onClick={() => navigate(appendFormat(`/programs/${programId}/offers/${type.key}`, format))}
               >
                 <CardContent className="flex items-center gap-4 py-6">
                   <div className="rounded-lg bg-accent p-3 text-accent-foreground group-hover:bg-primary/10 transition-colors">

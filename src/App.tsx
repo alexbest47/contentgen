@@ -24,8 +24,11 @@ import Archive from "@/pages/Archive";
 import EmailSettings from "@/pages/EmailSettings";
 import EmailBuilderList from "@/pages/EmailBuilderList";
 import EmailBuilder from "@/pages/EmailBuilder";
+import SelectContentForLetter from "@/pages/SelectContentForLetter";
 import EmailChainList from "@/pages/EmailChainList";
 import EmailChainDetail from "@/pages/EmailChainDetail";
+import BotChainDetail from "@/pages/BotChainDetail";
+import BotMessageDetail from "@/pages/BotMessageDetail";
 import ChainTemplates from "@/pages/ChainTemplates";
 import CreateDiagnostic from "@/pages/CreateDiagnostic";
 import DiagnosticDetail from "@/pages/DiagnosticDetail";
@@ -39,7 +42,11 @@ import EmailTemplates from "@/pages/EmailTemplates";
 import PdfMaterials from "@/pages/PdfMaterials";
 import PdfMaterialView from "@/pages/PdfMaterialView";
 import TaskQueue from "@/pages/TaskQueue";
+import PostCarouselList from "@/pages/PostCarouselList";
 import BannerLibrary from "@/pages/BannerLibrary";
+import LandingList from "@/pages/LandingList";
+import LandingEditor from "@/pages/LandingEditor";
+// LandingPreview removed — ZIP export moved to LandingEditor
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +79,8 @@ const App = () => (
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Navigate to="/queue" replace />} />
               <Route path="/queue" element={<TaskQueue />} />
+              <Route path="/post" element={<PostCarouselList format="post" />} />
+              <Route path="/carousel" element={<PostCarouselList format="carousel" />} />
               <Route path="/programs" element={<Programs />} />
               <Route path="/programs/:programId" element={<ProgramDetail />} />
               <Route path="/programs/:programId/offers/:offerType" element={<OfferTypeDetail />} />
@@ -82,9 +91,14 @@ const App = () => (
               <Route path="/descriptions" element={<ProtectedRoute adminOnly><Descriptions /></ProtectedRoute>} />
               <Route path="/archive" element={<ProtectedRoute adminOnly><Archive /></ProtectedRoute>} />
               <Route path="/email-builder" element={<EmailBuilderList />} />
+              <Route path="/email-builder/select-content/:letterId" element={<SelectContentForLetter />} />
               <Route path="/email-builder/:letterId" element={<EmailBuilder />} />
               <Route path="/email-chains" element={<EmailChainList />} />
               <Route path="/email-chains/:chainId" element={<EmailChainDetail />} />
+              <Route path="/bot-chains/:chainId" element={<BotChainDetail />} />
+              <Route path="/bot-chains/:chainId/messages/:messageId" element={<BotMessageDetail />} />
+              <Route path="/landings" element={<LandingList />} />
+              <Route path="/landings/:landingId" element={<LandingEditor />} />
               <Route path="/chain-templates" element={<ProtectedRoute adminOnly><ChainTemplates /></ProtectedRoute>} />
               <Route path="/diagnostics" element={<ProtectedRoute adminOnly><Diagnostics /></ProtectedRoute>} />
               <Route path="/create-diagnostic" element={<ProtectedRoute adminOnly><CreateDiagnostic /></ProtectedRoute>} />
