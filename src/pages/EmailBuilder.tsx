@@ -50,6 +50,66 @@ export default function EmailBuilder() {
   // New full-letter state
   const [generatedHtml, setGeneratedHtml] = useState("");
   const [imagePlaceholders, setImagePlaceholders] = useState<ImagePlaceholder[]>([]);
+  const [refineImageDialogOpen, setRefineImageDialogOpen] = useState(false);
+  const [refineImagePlaceholderId, setRefineImagePlaceholderId] = useState<string | null>(null);
+  const DEFAULT_REFINE_IMAGE_SYSTEM_PROMPT = `Ты редактируешь существующее брендовое изображение для email-рассылки. Сохрани общую композицию, стиль, палитру, типографику и брендовый язык оригинала. Внеси ТОЛЬКО те правки, которые просит пользователь. Не перерисовывай изображение заново, не меняй соотношение сторон и визуальную идентичность.`;
+  const [refineImageSystemPrompt, setRefineImageSystemPrompt] = useState(DEFAULT_REFINE_IMAGE_SYSTEM_PROMPT);
+  const [refineImageInstructions, setRefineImageInstructions] = useState("");
+  const [refiningImage, setRefiningImage] = useState(false);
+
+  const submitRefinePlaceholderImage = async () => {
+    if (!refineImagePlaceholderId || !letterId) return;
+    if (!refineImageInstructions.trim()) {
+      toast.error("Опишите правки");
+      return;
+    }
+    setRefiningImage(true);
+    setGeneratingPlaceholderIds(prev => new Set(prev).add(refineImagePlaceholderId));
+    try {
+      const taskId = await enqueue({
+        functionName: "refine-post-image",
+        payload: {
+          mode: "email_placeholder",
+          letter_id: letterId,
+          placeholder_id: refineImagePlaceholderId,
+          user_instructions: refineImageInstructions,
+          system_prompt: refineImageSystemPrompt,
+        },
+        displayTitle: `Правка картинки письма: ${title || letterId}`,
+        lane: "openrouter",
+        taskType: "letter",
+        targetUrl: `/email-builder/${letterId}`,
+      });
+      const start = Date.now();
+      while (Date.now() - start < 300000) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const { data: t } = await supabase.from("task_queue").select("status, result").eq("id", taskId as any).single();
+        if (t?.status === "completed") {
+          const newUrl = (t.result as any)?.image_url;
+          if (newUrl) {
+            setImagePlaceholders(prev =>
+              prev.map(p => p.id === refineImagePlaceholderId ? { ...p, image_url: newUrl } : p)
+            );
+          }
+          queryClient.invalidateQueries({ queryKey: ["email_letter", letterId] });
+          break;
+        }
+        if (t?.status === "failed") break;
+      }
+      toast.success("Изображение обновлено");
+      setRefineImageDialogOpen(false);
+      setRefineImageInstructions("");
+    } catch (e: any) {
+      toast.error(e.message || "Ошибка");
+    } finally {
+      setRefiningImage(false);
+      setGeneratingPlaceholderIds(prev => {
+        const n = new Set(prev);
+        if (refineImagePlaceholderId) n.delete(refineImagePlaceholderId);
+        return n;
+      });
+    }
+  };
   const [caseId, setCaseId] = useState<string | null>(null);
   const [extraOfferIds, setExtraOfferIds] = useState<string[]>([]);
   const [audienceSegment, setAudienceSegment] = useState("");
@@ -874,6 +934,10 @@ export default function EmailBuilder() {
             onUploadPlaceholderImage={uploadPlaceholderImage}
             onPickFromLibrary={(phId) => setBannerPickerPlaceholderId(phId)}
             onSavePlaceholderToLibrary={savePlaceholderToLibrary}
+            onRefinePlaceholderImage={(phId) => {
+              setRefineImagePlaceholderId(phId);
+              setRefineImageDialogOpen(true);
+            }}
             generatingLetter={generatingLetter}
           />
         </div>
@@ -968,6 +1032,46 @@ export default function EmailBuilder() {
         onSelect={(id) => handleChangeCaseId(id)}
         selectedCaseId={caseId}
       />
+
+      <Dialog open={refineImageDialogOpen} onOpenChange={setRefineImageDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Правка изображения</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">System prompt (пресет)</label>
+              <Textarea
+                rows={6}
+                className="font-mono text-xs"
+                value={refineImageSystemPrompt}
+                onChange={(e) => setRefineImageSystemPrompt(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Что изменить</label>
+              <Textarea
+                rows={5}
+                placeholder="Например: замени фоновый цвет на тёплый беж, добавь иконку книги в левый верхний угол..."
+                value={refineImageInstructions}
+                onChange={(e) => setRefineImageInstructions(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setRefineImageSystemPrompt(DEFAULT_REFINE_IMAGE_SYSTEM_PROMPT)}
+                disabled={refiningImage}
+              >
+                Сбросить промпт
+              </Button>
+              <Button onClick={submitRefinePlaceholderImage} disabled={refiningImage}>
+                {refiningImage ? "Применяем..." : "Применить правки"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {bannerPickerPlaceholderId && (
         <BannerPickerDialog

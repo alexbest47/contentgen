@@ -98,7 +98,7 @@ ${rows.join("\n")}
 </table>
 </td></tr></table>`;
 
-    return `<table width="100%" cellpadding="0" cellspacing="0" style="background-color:${bgColor};"><tr><td style="padding:16px 16px;">${card}</td></tr></table>`;
+    return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F6F6F6;"><tr><td align="center" style="padding:0;"><table width="600" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;background-color:${bgColor};"><tr><td style="padding:16px 16px;">${card}</td></tr></table></td></tr></table>`;
   };
 
   const handleUpdateBlock = () => {

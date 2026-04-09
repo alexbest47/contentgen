@@ -1,6 +1,7 @@
 // @ts-nocheck
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { optimizeImage } from "../_shared/optimizeImage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,17 +54,24 @@ function extractImageFromOpenRouter(data: any): string | null {
   return null;
 }
 
-async function uploadDataUrl(dataUrl: string, path: string): Promise<string> {
+async function uploadDataUrl(dataUrl: string, path: string, optimize: boolean): Promise<string> {
   const m = dataUrl.match(/^data:(.+?);base64,(.*)$/);
   if (!m) throw new Error("Invalid data URL from model");
-  const contentType = m[1];
+  let contentType = m[1];
   const b64 = m[2];
   const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
+  let bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const { error } = await sb.storage.from("generated-images").upload(path, bytes, { contentType, upsert: true });
+  let finalPath = path;
+  if (optimize) {
+    const opt = await optimizeImage(bytes);
+    bytes = opt.bytes;
+    contentType = opt.contentType;
+    finalPath = path.replace(/\.[a-zA-Z0-9]+$/, "") + "." + opt.ext;
+  }
+  const { error } = await sb.storage.from("generated-images").upload(finalPath, bytes, { contentType, upsert: true });
   if (error) throw error;
-  const { data } = sb.storage.from("generated-images").getPublicUrl(path);
+  const { data } = sb.storage.from("generated-images").getPublicUrl(finalPath);
   return data.publicUrl;
 }
 
@@ -80,6 +88,8 @@ Deno.serve(async (req) => {
       content_type,
       slide_number,
       bot_message_id,
+      letter_id,
+      placeholder_id,
       user_instructions,
       system_prompt,
     } = body;
@@ -91,11 +101,19 @@ Deno.serve(async (req) => {
     let currentUrl: string | null = null;
     let targetCategory: string | null = null;
 
+    let letterPlaceholders: any[] | null = null;
     if (mode === "bot_message") {
       if (!bot_message_id) throw new Error("bot_message_id required");
       const { data, error } = await sb.from("bot_chain_messages").select("image_url").eq("id", bot_message_id).single();
       if (error) throw error;
       currentUrl = data?.image_url;
+    } else if (mode === "email_placeholder") {
+      if (!letter_id || !placeholder_id) throw new Error("letter_id and placeholder_id required");
+      const { data, error } = await sb.from("email_letters").select("image_placeholders").eq("id", letter_id).single();
+      if (error) throw error;
+      letterPlaceholders = (data?.image_placeholders as any[]) || [];
+      const ph = letterPlaceholders.find((p) => p.id === placeholder_id);
+      currentUrl = ph?.image_url || null;
     } else {
       if (!project_id || !content_type) throw new Error("project_id and content_type required");
       if (mode === "static") targetCategory = `static_image_${content_type}`;
@@ -129,7 +147,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
+        model: "google/gemini-3.1-flash-image-preview",
         modalities: ["image", "text"],
         messages: [
           {
@@ -148,19 +166,32 @@ Deno.serve(async (req) => {
     }
     const orData = await orRes.json();
     const newImage = extractImageFromOpenRouter(orData);
-    if (!newImage) throw new Error("No image returned by model");
+    if (!newImage) {
+      const snippet = JSON.stringify(orData).slice(0, 800);
+      throw new Error(`No image returned by model. Response: ${snippet}`);
+    }
 
     // 4) Upload
     const keyBase = mode === "bot_message"
       ? `bot_messages/${bot_message_id}_refine_${Date.now()}.png`
-      : `${project_id}/${targetCategory}_refine_${Date.now()}.png`;
+      : mode === "email_placeholder"
+        ? `email-letter-${placeholder_id}-refine-${Date.now()}.png`
+        : `${project_id}/${targetCategory}_refine_${Date.now()}.png`;
+    // Only optimize for email letters (emails need to be lightweight).
+    // Posts / carousels / banners / bot messages keep original quality.
+    const shouldOptimize = mode === "email_placeholder";
     const publicUrl = newImage.startsWith("data:")
-      ? await uploadDataUrl(newImage, keyBase)
+      ? await uploadDataUrl(newImage, keyBase, shouldOptimize)
       : newImage;
 
     // 5) Update DB
     if (mode === "bot_message") {
       await sb.from("bot_chain_messages").update({ image_url: publicUrl }).eq("id", bot_message_id);
+    } else if (mode === "email_placeholder") {
+      const updated = (letterPlaceholders || []).map((p: any) =>
+        p.id === placeholder_id ? { ...p, image_url: publicUrl } : p
+      );
+      await sb.from("email_letters").update({ image_placeholders: updated }).eq("id", letter_id);
     } else {
       const { data: existing } = await sb
         .from("content_pieces")

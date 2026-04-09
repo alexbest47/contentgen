@@ -10,8 +10,9 @@ import { ArrowLeft, ExternalLink, RefreshCw, Loader2, ImageIcon, ImagePlus } fro
 const CHANNEL_LABELS: Record<string, string> = {
   bot_webinar_before: "До вебинара",
   bot_webinar_after: "После вебинара",
+  bot_warming: "Прогрев после заявки",
 };
-const CHANNEL_ORDER = ["bot_webinar_before", "bot_webinar_after"];
+const CHANNEL_ORDER = ["bot_webinar_before", "bot_webinar_after", "bot_warming"];
 
 function statusBadge(status: string) {
   switch (status) {
@@ -119,7 +120,11 @@ export default function BotChainDetail() {
         <div>
           <h1 className="text-2xl font-bold">{chain.title || "Бот-цепочка"}</h1>
           <p className="text-muted-foreground text-sm">
-            {chain.template_slug === "bot-webinar-before-after" ? "До и после вебинара" : chain.template_slug}
+            {chain.template_slug === "bot-webinar-before-after"
+              ? "До и после вебинара"
+              : chain.template_slug === "bot-warming-after-application"
+                ? "Прогрев после заявки"
+                : chain.template_slug}
           </p>
         </div>
       </div>

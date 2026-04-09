@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decode as decodeBase64, encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import UPNG from "https://esm.sh/upng-js@2.1.0";
 import jpegJs from "https://esm.sh/jpeg-js@0.4.4";
+import { optimizeImage } from "../_shared/optimizeImage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -294,11 +295,23 @@ serve(async (req) => {
     // Upload to Supabase Storage
     const timestamp = Date.now();
     const safeName = image_path.replace(/[^a-zA-Z0-9]/g, "_").slice(-40);
-    const filePath = `${landing_id}/${block_id}/ai_${safeName}_${timestamp}.png`;
+
+    // Optimize: for landing images we want JPEG compression (much smaller),
+    // but if remove_bg was requested we must preserve the alpha channel → keep PNG.
+    let uploadBytes = imageBytes;
+    let uploadContentType = "image/png";
+    let uploadExt = "png";
+    if (!remove_bg) {
+      const opt = await optimizeImage(imageBytes);
+      uploadBytes = opt.bytes;
+      uploadContentType = opt.contentType;
+      uploadExt = opt.ext;
+    }
+    const filePath = `${landing_id}/${block_id}/ai_${safeName}_${timestamp}.${uploadExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from("landing-assets")
-      .upload(filePath, imageBytes, { contentType: "image/png", upsert: false });
+      .upload(filePath, uploadBytes, { contentType: uploadContentType, upsert: false });
     if (uploadError) throw new Error(`Upload error: ${uploadError.message}`);
 
     const { data: urlData } = supabase.storage.from("landing-assets").getPublicUrl(filePath);

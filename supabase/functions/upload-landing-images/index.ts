@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { optimizeImage } from "../_shared/optimizeImage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,12 +31,18 @@ serve(async (req: Request) => {
         const arrayBuffer = await blob.arrayBuffer();
         const uint8 = new Uint8Array(arrayBuffer);
 
-        const contentType = response.headers.get("content-type") || "image/png";
-        const storagePath = `${folder}/${img.filename}`;
+        // Optimize: downscale + JPEG re-encode to keep landing images light.
+        const opt = await optimizeImage(uint8);
+        const optimizedBytes = opt.bytes;
+        const contentType = opt.contentType;
+        // Swap extension in filename to match optimized format
+        const baseName = img.filename.replace(/\.[a-zA-Z0-9]+$/, "");
+        const finalFilename = `${baseName}.${opt.ext}`;
+        const storagePath = `${folder}/${finalFilename}`;
 
         const { error: uploadError } = await supabase.storage
           .from(bucket)
-          .upload(storagePath, uint8, {
+          .upload(storagePath, optimizedBytes, {
             contentType,
             upsert: true,
           });

@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2, RefreshCcw, Upload, FolderOpen, BookmarkPlus } from "lucide-react";
+import { Settings, ArrowUp, ArrowDown, Trash2, ImageIcon, Loader2, RefreshCcw, Upload, FolderOpen, BookmarkPlus, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { blockTypeLabels, isGeneratedBlock, isTemplateLocked, type EmailBlockType } from "./BlockLibrary";
@@ -46,6 +46,7 @@ interface Props {
   onUploadPlaceholderImage?: (placeholderId: string, file: File) => void;
   onPickFromLibrary?: (placeholderId: string) => void;
   onSavePlaceholderToLibrary?: (placeholderId: string) => void;
+  onRefinePlaceholderImage?: (placeholderId: string) => void;
   generatingLetter?: boolean;
 }
 
@@ -204,6 +205,7 @@ export default function BlockCanvas({
   onGeneratePlaceholderImage, generatingPlaceholderIds,
   onUpdateGeneratedHtml, onUploadPlaceholderImage,
   onPickFromLibrary, onSavePlaceholderToLibrary,
+  onRefinePlaceholderImage,
   generatingLetter,
 }: Props) {
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -511,6 +513,18 @@ export default function BlockCanvas({
                     onClick={() => onSavePlaceholderToLibrary(ph.id)}
                   >
                     <BookmarkPlus className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {isFilled && onRefinePlaceholderImage && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shadow-md bg-background/90 backdrop-blur-sm"
+                    title="Правка изображения"
+                    disabled={isGenerating}
+                    onClick={() => onRefinePlaceholderImage(ph.id)}
+                  >
+                    <Wand2 className="h-3.5 w-3.5" />
                   </Button>
                 )}
               </div>

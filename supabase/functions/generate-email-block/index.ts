@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { optimizeImage } from "../_shared/optimizeImage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,10 +98,12 @@ serve(async (req) => {
       if (!imageUrl) throw new Error("Не удалось сгенерировать изображение");
 
       const base64 = imageUrl.split(",")[1];
-      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-      const fileName = `email-block-${blockId}-${Date.now()}.png`;
+      const rawBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const optimized = await optimizeImage(rawBytes);
+      const bytes = optimized.bytes;
+      const fileName = `email-block-${blockId}-${Date.now()}.${optimized.ext}`;
 
-      await sb.storage.from("generated-images").upload(fileName, bytes, { contentType: "image/png", upsert: true });
+      await sb.storage.from("generated-images").upload(fileName, bytes, { contentType: optimized.contentType, upsert: true });
       const { data: pub } = sb.storage.from("generated-images").getPublicUrl(fileName);
 
       const responseData = { banner_image_url: pub.publicUrl };
