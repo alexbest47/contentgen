@@ -16,7 +16,9 @@ import LandingBlockSettingsPanel from "@/components/landing-builder/LandingBlock
 import LandingInlinePreview from "@/components/landing-builder/LandingInlinePreview";
 import BlockLibraryModal from "@/components/landing-builder/BlockLibraryModal";
 import { buildPreviewHtml, useInlinedCSS, useBlockDefsMap } from "@/hooks/useLandingPreviewHtml";
-import { exportLandingAsZip } from "@/utils/exportLandingZip";
+import { compileLandingFile, exportLandingAsZip } from "@/utils/exportLandingZip";
+import { publishLandingToS3 } from "@/lib/publishLandingToS3";
+import { getSupabaseFunctionErrorMessage } from "@/lib/getSupabaseFunctionErrorMessage";
 
 export type LandingBlock = {
   id: string;
@@ -50,6 +52,7 @@ export default function LandingEditor() {
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [viewMode, setViewMode] = useState<"canvas" | "preview">("preview");
   const [exporting, setExporting] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [showExportSettings, setShowExportSettings] = useState(false);
   const inlinedCSS = useInlinedCSS();
   const blockDefsMap = useBlockDefsMap();
@@ -618,6 +621,7 @@ export default function LandingEditor() {
             </PopoverContent>
           </Popover>
           <Button
+            type="button"
             variant="outline"
             size="sm"
             disabled={exporting}
@@ -657,19 +661,93 @@ export default function LandingEditor() {
                     gatewayAlias: landing?.gateway_alias || null,
                   },
                 );
-                toast.success("ZIP-архив скачан");
+                toast.success("Файл скачан");
               } catch (err) {
                 console.error("Export error:", err);
-                toast.error("Ошибка при экспорте ZIP");
+                toast.error("Ошибка при скачивании");
               } finally {
                 setExporting(false);
               }
             }}
           >
             {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
-            Скачать ZIP
+            Скачать
           </Button>
-          <Button variant="outline" size="sm" onClick={saveAllBlocks}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={publishing}
+            onClick={async () => {
+              if ((landing?.landing_type || "wordpress") !== "s3") {
+                toast.message("Автопубликация для WordPress будет добавлена позже");
+                return;
+              }
+              if (!inlinedCSS) {
+                toast.error("CSS ещё загружается, попробуйте через секунду");
+                return;
+              }
+              if (!landingId) {
+                toast.error("Лендинг не найден");
+                return;
+              }
+              if (!landing?.url_path?.trim()) {
+                toast.error("Заполните поле URL для публикации");
+                return;
+              }
+
+              setPublishing(true);
+              try {
+                const { rawBlockHtmls } = buildPreviewHtml(
+                  blocks,
+                  inlinedCSS,
+                  landing?.name || "landing",
+                  blockDefsMap || undefined,
+                  false,
+                  {
+                    breadcrumbSlug: landing?.breadcrumb_slug || "psychology",
+                    breadcrumbTitle: landing?.breadcrumb_title || "Курсы психологии",
+                  },
+                  accentColor,
+                );
+                if (rawBlockHtmls.length === 0) {
+                  toast.error("Нет блоков для публикации");
+                  return;
+                }
+
+                const compiled = compileLandingFile(
+                  rawBlockHtmls,
+                  landing?.name || "landing",
+                  "s3",
+                  {
+                    siteTitle: landing?.site_title || null,
+                    formType: (landing?.form_type as "getcourse" | "gateway" | undefined) || "gateway",
+                    getcourseActionId: landing?.getcourse_action_id || null,
+                    formDealName: landing?.form_deal_name || null,
+                    gatewayAlias: landing?.gateway_alias || null,
+                  },
+                );
+
+                const result = await publishLandingToS3({
+                  landingId,
+                  path: landing.url_path,
+                  html: compiled.content,
+                });
+
+                queryClient.invalidateQueries({ queryKey: ["published_s3_landings"] });
+                toast.success(`Опубликовано: ${result.url}`);
+              } catch (err: any) {
+                console.error("Publish error:", err);
+                toast.error(await getSupabaseFunctionErrorMessage(err));
+              } finally {
+                setPublishing(false);
+              }
+            }}
+          >
+            {publishing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
+            Опубликовать
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={saveAllBlocks}>
             <Save className="mr-2 h-4 w-4" /> Сохранить
           </Button>
         </div>

@@ -1523,6 +1523,38 @@ export type Database = {
           },
         ]
       }
+      published_s3_landings: {
+        Row: {
+          created_at: string
+          id: string
+          landing_id: string
+          path: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          landing_id: string
+          path: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          landing_id?: string
+          path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "published_s3_landings_landing_id_fkey"
+            columns: ["landing_id"]
+            isOneToOne: false
+            referencedRelation: "landings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_magnets: {
         Row: {
           created_at: string
