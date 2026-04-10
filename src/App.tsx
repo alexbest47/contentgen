@@ -51,6 +51,9 @@ import ContentPlan from "@/pages/ContentPlan";
 import SocialAccounts from "@/pages/SocialAccounts";
 import VideoProjectList from "@/pages/VideoProjectList";
 import VideoProjectEditor from "@/pages/VideoProjectEditor";
+import CompetitorList from "@/pages/CompetitorList";
+import CompetitorEmails from "@/pages/CompetitorEmails";
+import CompetitorEmailDetail from "@/pages/CompetitorEmailDetail";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -104,6 +107,9 @@ const App = () => (
               <Route path="/bot-chains/:chainId/messages/:messageId" element={<BotMessageDetail />} />
               <Route path="/vertical-content" element={<VideoProjectList />} />
               <Route path="/vertical-content/:id" element={<VideoProjectEditor />} />
+              <Route path="/competitors" element={<CompetitorList />} />
+              <Route path="/competitor-emails" element={<CompetitorEmails />} />
+              <Route path="/competitor-emails/:id" element={<CompetitorEmailDetail />} />
               <Route path="/landings" element={<LandingList />} />
               <Route path="/landings/:landingId" element={<LandingEditor />} />
               <Route path="/chain-templates" element={<ProtectedRoute adminOnly><ChainTemplates /></ProtectedRoute>} />

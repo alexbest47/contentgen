@@ -6,12 +6,14 @@
 
 - Создавать и управлять офферами (лид-магниты, диагностики, вебинары и т.д.)
 - Генерировать контент для 4 каналов: Instagram, Telegram, VK, Email
+- Создавать вертикальные видео и изображения в пошаговом конструкторе с AI-генерацией
 - Собирать email-письма в блочном конструкторе с AI-генерацией
 - Собирать email-цепочки из нескольких писем по шаблону
 - Генерировать диагностические квизы с изображениями
 - Транскрибировать и классифицировать кейсы клиентов
 - Создавать PDF-материалы и баннеры
 - Собирать лендинги в визуальном конструкторе из готовых HTML-блоков с AI-генерацией контента и экспортом в ZIP
+- Принимать и анализировать email-рассылки конкурентов (Resend inbound → Claude AI анализ)
 - Управлять промптами с версионированием и глобальными переменными
 
 ---
@@ -27,9 +29,10 @@
 | UI-компоненты | shadcn/ui (Radix UI), Lucide Icons, Sonner (тосты) |
 | Backend | Supabase (PostgreSQL 17, Auth, Storage, 29 Edge Functions на Deno) |
 | AI-генерация текста | Anthropic Claude (claude-sonnet-4-20250514) |
-| AI-генерация изображений | OpenRouter → Google Gemini 3 Pro Image Preview |
+| AI-генерация изображений | OpenRouter → Google Gemini Flash 3.1 Image Preview |
+| AI-генерация видео | Google Gemini API → Veo 3.1 (Fast / Standard / Lite) |
 | Транскрибация | Deepgram (модель nova-2, язык: ru, async webhook) |
-| Отправка писем | Resend API |
+| Отправка писем / Inbound email | Resend API (отправка + приём inbound через webhook) |
 | Внешние сервисы | Yandex Disk (публичные папки для кейсов), Google Docs, Talentsy KB (TipTap JSON via Supabase cross-project query), Generic URLs |
 
 ### Ключевые зависимости
@@ -79,14 +82,14 @@ src/
 │   ├── project/                     # PipelineResultView
 │   ├── prompts/                     # PromptFormDialog, PromptStepCard, PipelineGroup, и др.
 │   └── ui/                          # shadcn/ui компоненты (40+)
-├── pages/                           # 38 страниц
+├── pages/                           # 50+ страниц
 └── integrations/supabase/
     ├── client.ts                    # Supabase клиент (авто-генерация)
     └── types.ts                     # TypeScript типы БД (авто-генерация)
 
 supabase/
 ├── config.toml                      # Конфигурация проекта (verify_jwt = false)
-└── functions/                       # 29 Edge Functions (Deno)
+└── functions/                       # 33 Edge Functions (Deno)
 ```
 
 ---
@@ -122,6 +125,26 @@ supabase/
 ├── Стили изображений (image_styles) — 3 стиля
 └── Структура тем (topic_tree) — 329 записей
 
+Видео-проекты (video_projects)
+├── Этапы (video_stages) — пошаговый конструктор (фото + видео)
+│   ├── stage_type: "image" | "video"
+│   ├── model: Gemini Flash 3.1 (image) / Veo 3.1 Fast/Standard/Lite (video)
+│   ├── config: aspect_ratio, quality/resolution, duration, generate_audio
+│   ├── reference_image_url, start_frame_url → result_url
+│   └── task_id → task_queue
+
+Письма конкурентов (competitor_emails)
+├── competitor_name (text) — название конкурента (заполняется AI из анализа)
+├── from_address — email отправителя
+├── html_body / text_body — тело письма (загружается через Resend Receiving API)
+├── status: new → fetched → analyzing → analyzed / error
+├── resend_email_id — ID для получения тела через Resend API
+└── Анализы (competitor_email_analyses) — структурированный JSON от Claude
+    ├── email_type, summary, tone, target_audience
+    ├── offers[], products[], promotions[], cta_list[]
+    ├── urgency_triggers[], key_messages[]
+    └── raw_analysis (полный JSON)
+
 Лендинги (landings)
 ├── Блоки лендинга (landing_blocks) — связь лендинг→определение блока
 ├── Шаблоны лендингов (landing_templates)
@@ -147,6 +170,11 @@ supabase/
 | `/programs/:programId/offers/:offerType/:offerId` | OfferDetail | Детали оффера, выбор топиков/лидов |
 | `/programs/:programId/offers/:offerType/:offerId/projects/:projectId` | ProjectDetail | Детали проекта с генерацией контента |
 | `/programs/:programId/offers/:offerType/:offerId/projects/:projectId/content/:contentType` | ContentDetail | Просмотр контента (карусель/статичные изображения) |
+| `/vertical-content` | VideoProjectList | Список видео-проектов (инлайн-переименование, удаление) |
+| `/vertical-content/:id` | VideoProjectEditor | Конструктор видео-проекта (этапы фото/видео) |
+| `/content-plan` | ContentPlan | Календарный контент-план (email, social, events) |
+| `/competitor-emails` | CompetitorEmails | Лента писем конкурентов (фильтр по конкуренту/типу, удаление, ручной запуск анализа) |
+| `/competitor-emails/:id` | CompetitorEmailDetail | Детальный просмотр письма + анализ JSON (переанализ) |
 | `/landings` | LandingList | Список лендингов (конструктор) |
 | `/landings/:landingId` | LandingEditor | Визуальный редактор лендинга |
 | `/email-builder` | EmailBuilderList | Список email-писем |
@@ -224,7 +252,12 @@ supabase/
 - Queue (Очередь)
 - Создание поста (`/post`)
 - Создание карусели (`/carousel`)
+- Вертикальный контент (`/vertical-content`)
+- Контент-план (`/content-plan`)
 - Конструктор лендингов (Landing Builder)
+
+### 1.5. Анализ конкурентов
+- Письма конкурентов (`/competitor-emails`) — inbound email через Resend webhook
 - Email Builder (Email конструктор)
 - Email Chains (Email цепочки)
 
@@ -284,18 +317,21 @@ completeTask(taskId, result) / failTask(taskId, errorMessage)
 process-queue self-chain (если еще pending задачи)
 ```
 
-### Lanes (2 полосы обработки)
-- **claude**: Текстовая генерация (все функции с Anthropic Claude)
-- **openrouter**: Генерация изображений (все функции с OpenRouter/Gemini)
+### Lanes (3 полосы обработки)
+- **claude** (concurrency: 3): Текстовая генерация (все функции с Anthropic Claude)
+- **openrouter** (concurrency: 5): Генерация изображений (все функции с OpenRouter/Gemini)
+- **google-ai** (concurrency: 3): Генерация видео (Veo 3.1 через Google Gemini API)
 
 ### Task Types (для фильтрации в UI)
 - **landing**: Генерация лендинг-блоков
 - **letter**: Генерация email-писем и блоков писем
 - **content**: Генерация контента проектов
+- **video**: Генерация фото/видео для вертикального контента
+- **competitor**: Анализ писем конкурентов через Claude
 - Передаётся через `taskType` параметр в `enqueue()` и сохраняется в `task_queue.task_type`
 
 ### Watchdog
-Сбрасывает зависшие задачи (processing > 3 мин) → error
+Сбрасывает зависшие задачи (processing > 7 мин) → error
 
 ### pg_cron Автоматический Watchdog
 - Миграция: `20260330100000_process_queue_cron.sql`
@@ -305,13 +341,13 @@ process-queue self-chain (если еще pending задачи)
 
 ---
 
-## 8. Edge Functions (31 функция)
+## 8. Edge Functions (35 функций)
 
 ### Управление очередью
 
 | Функция | Назначение | Lane |
 |---------|-----------|------|
-| enqueue-task | Добавление задачи, auth via JWT, trigger process-queue | — |
+| enqueue-task | Добавление задачи, auth via getUser (verify_jwt: false), trigger process-queue с serviceKey | — |
 | process-queue | Диспетчер: watchdog + claim_next_task + fire-and-forget + self-chain | — |
 
 ### Генерация контента
@@ -325,6 +361,12 @@ process-queue self-chain (если еще pending задачи)
 | refine-post-image | Правка существующего изображения (post/carousel/banner/bot_message): fetch текущего URL → base64 → OpenRouter Gemini мультимодально (text+image) → upload в `generated-images` → update `content_pieces` или `bot_chain_messages.image_url`. Режимы: static / carousel (+slide_number) / banner / bot_message | openrouter | Yes |
 | generate-lead-magnets | Генерация вариаций лид-магнитов (5 штук), маппинг content_type → prompt category | claude | Yes |
 | generate-project-name | Авто-генерация названия проекта (3-6 слов на русском) | claude | No |
+
+### Вертикальный контент (Видео)
+
+| Функция | Назначение | Lane | _task_id |
+|---------|-----------|------|----------|
+| generate-video-content | Генерация фото (OpenRouter Gemini Flash) и видео (Google Gemini API Veo 3.1). Image-to-video через bytesBase64Encoded start frame. Async polling (predictLongRunning → poll every 10s → download → upload to Storage) | openrouter / google-ai | Yes |
 
 ### Email
 
@@ -369,6 +411,35 @@ process-queue self-chain (если еще pending задачи)
 | transcribe-case-file | Отправка видео на Deepgram async с callback URL | — | No |
 | deepgram-callback | Webhook: сохранение транскрипции, trigger классификации + следующий файл | — | No |
 | classify-case | Анализ транскрипции via Claude, self-chain к следующему файлу | claude | No |
+
+### Анализ конкурентов
+
+| Функция | Назначение | Lane | _task_id |
+|---------|-----------|------|----------|
+| inbound-competitor-email | Приём Resend webhook (email.received), svix-верификация, загрузка тела через Resend Receiving API (`/emails/receiving/{id}`), сохранение в competitor_emails. Пользователь запускает анализ вручную из UI | — | No (verify_jwt: false) |
+| analyze-competitor-email | Анализ письма конкурента через Claude → структурированный JSON (competitor_name, email_type, summary, offers[], products[], promotions[], cta_list[], urgency_triggers[], key_messages[], tone, target_audience). Сохраняет competitor_name в competitor_emails. Обновляет task_queue статус (completed/error) | claude | Yes (verify_jwt: false) |
+
+### Архитектура inbound email
+
+```
+Resend webhook (email.received) → contentgen.talentsy.ru MX records
+    ↓
+POST /functions/v1/inbound-competitor-email (verify_jwt: false)
+    ↓ svix signature verification
+    ↓ fetch body: GET https://api.resend.com/emails/receiving/{email_id}
+    ↓ (webhook payload содержит ТОЛЬКО метаданные, тело — через отдельный API)
+INSERT competitor_emails (status: fetched если есть тело, new если нет)
+    ↓
+Пользователь нажимает «Анализ» в UI
+    ↓
+POST /functions/v1/enqueue-task (verify_jwt: false, проверка auth через getUser)
+    ↓
+process-queue → analyze-competitor-email → Claude API → competitor_email_analyses
+    ↓
+competitor_emails.competitor_name = analysis.competitor_name
+competitor_emails.status = "analyzed"
+task_queue.status = "completed"
+```
 
 ### Утилиты
 
@@ -443,7 +514,7 @@ if (audienceSegment && gv[audienceSegment]) {
 
 ### Почему verify_jwt=false
 
-После перехода Supabase на новый формат ключей `sb_secret_*` (не-JWT), `process-queue` вызывает worker-функции с `Authorization: Bearer ${SERVICE_ROLE_KEY}`, но шлюз с `verify_jwt=true` отклоняет такой токен как невалидный JWT с 401 — **до** запуска кода функции, поэтому `failTask` никогда не вызывается и задачи «виснут» в `processing` без `error_message`. Все worker-функции переведены на `verify_jwt=false` для согласования с `process-queue`.
+После перехода Supabase на новый формат ключей `sb_secret_*` (не-JWT), `process-queue` вызывает worker-функции с `Authorization: Bearer ${SERVICE_ROLE_KEY}`, но шлюз с `verify_jwt=true` отклоняет такой токен как невалидный JWT с 401 — **до** запуска кода функции, поэтому `failTask` никогда не вызывается и задачи «виснут» в `processing` без `error_message`. Все worker-функции переведены на `verify_jwt=false` для согласования с `process-queue`. Функция `enqueue-task` также переведена на `verify_jwt=false` с проверкой auth через `getUser(token)` внутри функции, т.к. gateway отклонял валидные frontend-токены.
 
 ### fetch-google-doc: Определение типа URL
 ```typescript
@@ -483,8 +554,8 @@ function detectUrl(url: string) → "google_docs" | "talentsy_kb" | "generic"
 - pdf_generation
 - landing_block_content
 
-### Контентные типы (12 типов)
-- lead_magnet, quiz, guide, workbook, slide, post, email, banner, diagnostic, case, pdf, custom
+### Контентные типы (13 типов)
+- lead_magnet, quiz, guide, workbook, slide, post, email, banner, diagnostic, case, pdf, competitor, custom
 
 ### Каналы (4 канала + 4 email-специфичных)
 - Контентные: instagram, telegram, vk, email
@@ -742,6 +813,50 @@ generate-card-prompt → process-diagnostic-image (chain)
 
 ---
 
+## 15.1. Контент-План (Content Plan)
+
+Календарный планировщик контента с поддержкой email, социальных сетей и событий.
+
+### Страница
+- Маршрут: `/content-plan`
+- Компонент: `src/pages/ContentPlan.tsx`
+- Диалог добавления: `src/components/AddToContentPlanDialog.tsx`
+
+### Виды календаря
+- **Месяц** — 7-колоночная сетка дней, записи отображаются как цветные бейджи
+- **Неделя** — вертикальный список дней с детализацией записей
+
+### Типы записей
+- **Email** (синий) — привязка к email_letters, отслеживание сегмента аудитории
+- **Social** (зелёный) — посты/карусели, привязка к social_accounts (Instagram, Telegram, VK, YouTube, TikTok, Facebook, X, Threads, Дзен)
+- **Event** (оранжевый) — вебинары, марафоны, старт потоков, праздники, кастомные типы
+
+### Статусы записей (email и social)
+- `todo` — "Нужно подготовить"
+- `ready` — "Готово к отправке / публикации"
+- `done` — "Опубликовано / отправлено"
+
+### Функциональность
+- Создание, редактирование, удаление записей
+- Drag & Drop перемещение между датами (HTML5 drag/drop)
+- Фильтрация по типу, программе, соц. аккаунту, автору
+- Привязка email-писем и постов к записям плана
+- Кастомные типы событий с пользовательскими цветами
+- Отображение авторов записей (связь с profiles)
+
+### Таблицы БД
+- `content_plan_items` — основная таблица записей (id, date, type, title, description, status, program_id, letter_id, post_id, social_type, event_type, custom_event_type_id, audience_segment, created_by)
+- `content_plan_social_accounts` — junction-таблица (item_id → account_id)
+- `social_accounts` — аккаунты соц. сетей (platform, account_name, is_active)
+- `custom_event_types` — кастомные типы событий (name, color, icon)
+
+### Интеграции
+- Email Builder — добавление писем в план, открытие связанных писем
+- Посты/Карусели — добавление в план через AddToContentPlanDialog
+- Программы — фильтрация и привязка записей к paid_programs
+
+---
+
 ## 16. Pipeline Управления Кейсами
 
 ```
@@ -835,7 +950,7 @@ deepgram-callback → classify-case (Claude, self-chaining)
 
 ---
 
-## 22. Полный Список Таблиц БД (38 таблиц)
+## 22. Полный Список Таблиц БД (47 таблиц)
 
 | Таблица | Строк | Назначение |
 |---------|-------|-----------|
@@ -876,6 +991,12 @@ deepgram-callback → classify-case (Claude, self-chaining)
 | landing_blocks | — | Блоки размещённые на лендингах |
 | landing_template_blocks | — | Предустановленные блоки шаблонов |
 | task_queue | 37 | Очередь задач обработки |
+| video_projects | — | Проекты вертикального видеоконтента |
+| video_stages | — | Этапы (кадры/сцены) видеопроекта |
+| content_plan_items | — | Записи контент-плана (email, social, event) |
+| content_plan_social_accounts | — | Связь записей контент-плана с соц. аккаунтами |
+| social_accounts | — | Аккаунты соц. сетей (Instagram, TG, VK, YouTube и др.) |
+| custom_event_types | — | Пользовательские типы событий контент-плана |
 
 ---
 
@@ -949,6 +1070,8 @@ deepgram-callback → classify-case (Claude, self-chaining)
 | SUPABASE_SERVICE_ROLE_KEY | Supabase admin key | Все Edge Functions |
 | SUPABASE_URL | Project URL | Все Edge Functions |
 | SUPABASE_ANON_KEY | Anon key для self-chain | process-queue |
+| GOOGLE_AI_API_KEY | Google Generative AI API (Veo 3.1 видео, Gemini) | generate-video-content |
+| RESEND_WEBHOOK_SECRET | Svix signing secret для верификации Resend webhook | inbound-competitor-email |
 
 ---
 
@@ -1067,6 +1190,16 @@ serve(async (req: Request) => {
 - RichTextEditor для редактирования контента блоков
 - Инлайн-превью (LandingInlinePreview) с click-to-edit, block actions (move/duplicate/delete), add-block gaps
 - Экспорт в ZIP через export-landing (HTML + CSS + изображения)
+
+### ContentPlan
+Календарный контент-план с двумя видами (месяц/неделя):
+- Три типа записей: Email (синий), Social (зелёный), Event (оранжевый)
+- Статусы: todo → ready → done
+- Drag & Drop перемещение записей между датами
+- Фильтрация по типу, программе, соц. аккаунту, автору
+- Привязка email-писем и постов к записям через AddToContentPlanDialog
+- Кастомные типы событий с пользовательскими цветами
+- Интеграция с social_accounts (Instagram, Telegram, VK, YouTube, TikTok, Facebook, X, Threads, Дзен)
 
 ### EmailBuilderList
 Список всех email-писем с возможностью:

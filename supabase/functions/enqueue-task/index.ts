@@ -40,7 +40,7 @@ serve(async (req) => {
     }
 
     // Validate task_type if provided
-    const validTypes = ["landing", "letter", "content", "video"];
+    const validTypes = ["landing", "letter", "content", "video", "competitor"];
     const resolvedTaskType = task_type && validTypes.includes(task_type) ? task_type : "content";
 
     // Insert task into queue

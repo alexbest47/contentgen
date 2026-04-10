@@ -318,7 +318,7 @@ export default function VideoProjectEditor() {
           display_title: `${stage.stage_type === "image" ? "Изображение" : "Видео"}: ${stage.prompt?.substring(0, 60)}...`,
           lane: stage.stage_type === "video" ? "google-ai" : "openrouter",
           task_type: "video",
-          target_url: `/video-projects/${id}`,
+          target_url: `/vertical-content/${id}`,
         },
       });
 

@@ -370,6 +370,7 @@ export default function TaskQueue() {
             <TabsTrigger value="letter">Письмо</TabsTrigger>
             <TabsTrigger value="content">Контент</TabsTrigger>
             <TabsTrigger value="video">Видео</TabsTrigger>
+            <TabsTrigger value="competitor">Конкуренты</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
