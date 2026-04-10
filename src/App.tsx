@@ -47,6 +47,8 @@ import BannerLibrary from "@/pages/BannerLibrary";
 import LandingList from "@/pages/LandingList";
 import LandingEditor from "@/pages/LandingEditor";
 // LandingPreview removed — ZIP export moved to LandingEditor
+import ContentPlan from "@/pages/ContentPlan";
+import SocialAccounts from "@/pages/SocialAccounts";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +81,7 @@ const App = () => (
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Navigate to="/queue" replace />} />
               <Route path="/queue" element={<TaskQueue />} />
+              <Route path="/content-plan" element={<ContentPlan />} />
               <Route path="/post" element={<PostCarouselList format="post" />} />
               <Route path="/carousel" element={<PostCarouselList format="carousel" />} />
               <Route path="/programs" element={<Programs />} />
@@ -117,6 +120,7 @@ const App = () => (
               <Route path="/prompts" element={<ProtectedRoute adminOnly><Prompts /></ProtectedRoute>} />
               <Route path="/prompt-variables" element={<ProtectedRoute adminOnly><PromptVariables /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute adminOnly><UsersAdmin /></ProtectedRoute>} />
+              <Route path="/social-accounts" element={<ProtectedRoute adminOnly><SocialAccounts /></ProtectedRoute>} />
               <Route path="/email-settings" element={<ProtectedRoute adminOnly><EmailSettings /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />

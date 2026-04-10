@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronRight, Trash2, Loader2 } from "lucide-react";
+import { Plus, ChevronRight, Trash2, Loader2, CalendarDays } from "lucide-react";
+import AddToContentPlanDialog from "@/components/AddToContentPlanDialog";
 import { toast } from "sonner";
 import CreatePostCarouselWizard from "@/components/post-carousel/CreatePostCarouselWizard";
 import {
@@ -34,6 +35,8 @@ export default function PostCarouselList({ format }: Props) {
   const queryClient = useQueryClient();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [planProject, setPlanProject] = useState<{ id: string; title: string; program_id?: string | null } | null>(null);
 
   const title = format === "carousel" ? "Создание карусели" : "Создание поста";
   const buttonLabel = format === "carousel" ? "Новая карусель" : "Новый пост";
@@ -114,6 +117,17 @@ export default function PostCarouselList({ format }: Props) {
               <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
                 <span>{new Date(p.created_at).toLocaleDateString("ru-RU")}</span>
                 <Button
+                  variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary"
+                  title="В контент-план"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPlanProject({ id: p.id, title: p.title, program_id: p.program_id || p.offers?.program_id });
+                    setPlanDialogOpen(true);
+                  }}
+                >
+                  <CalendarDays className="h-4 w-4" />
+                </Button>
+                <Button
                   variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive"
                   onClick={(e) => { e.stopPropagation(); setDeleteId(p.id); }}
                 >
@@ -147,6 +161,18 @@ export default function PostCarouselList({ format }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {planProject && (
+        <AddToContentPlanDialog
+          open={planDialogOpen}
+          onOpenChange={(v) => { setPlanDialogOpen(v); if (!v) setPlanProject(null); }}
+          type="social"
+          title={planProject.title}
+          linkedId={planProject.id}
+          programId={planProject.program_id}
+          socialType={format}
+        />
+      )}
     </div>
   );
 }

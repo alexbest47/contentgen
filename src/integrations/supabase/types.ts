@@ -14,6 +14,129 @@ export type Database = {
   }
   public: {
     Tables: {
+      content_plan_items: {
+        Row: {
+          id: string
+          date: string
+          type: string
+          title: string
+          description: string | null
+          status: string
+          program_id: string | null
+          created_by: string
+          created_at: string
+          updated_at: string
+          audience_segment: string | null
+          letter_id: string | null
+          social_type: string | null
+          post_id: string | null
+          event_type: string | null
+          custom_event_type_id: string | null
+        }
+        Insert: {
+          id?: string
+          date: string
+          type: string
+          title: string
+          description?: string | null
+          status?: string
+          program_id?: string | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+          audience_segment?: string | null
+          letter_id?: string | null
+          social_type?: string | null
+          post_id?: string | null
+          event_type?: string | null
+          custom_event_type_id?: string | null
+        }
+        Update: {
+          id?: string
+          date?: string
+          type?: string
+          title?: string
+          description?: string | null
+          status?: string
+          program_id?: string | null
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+          audience_segment?: string | null
+          letter_id?: string | null
+          social_type?: string | null
+          post_id?: string | null
+          event_type?: string | null
+          custom_event_type_id?: string | null
+        }
+        Relationships: []
+      }
+      content_plan_social_accounts: {
+        Row: {
+          id: string
+          item_id: string
+          account_id: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          account_id: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          account_id?: string
+        }
+        Relationships: []
+      }
+      custom_event_types: {
+        Row: {
+          id: string
+          name: string
+          color: string
+          icon: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          color?: string
+          icon?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          color?: string
+          icon?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      social_accounts: {
+        Row: {
+          id: string
+          platform: string
+          account_name: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          platform: string
+          account_name: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          platform?: string
+          account_name?: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           banner_type: string
