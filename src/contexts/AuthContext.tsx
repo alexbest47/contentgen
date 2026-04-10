@@ -32,31 +32,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          // Defer fetch to avoid Supabase deadlock
-          setTimeout(() => fetchUserData(session.user.id), 0);
-        } else {
-          setProfile(null);
-          setRole(null);
-          setLoading(false);
+        if (session) {
+          setTimeout(() => {
+            void validateAndHydrateSession({ foreground: false });
+          }, 0);
+          return;
         }
+
+        clearAuthState();
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
+    void validateAndHydrateSession({ foreground: true });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  async function validateAndHydrateSession(options?: { foreground?: boolean }) {
+    if (options?.foreground) {
+      setLoading(true);
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const currentSession = sessionData.session;
+
+    if (!currentSession) {
+      clearAuthState();
+      return;
+    }
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !userData.user) {
+      const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
+
+      if (refreshError || !refreshedData.session?.user) {
+        await supabase.auth.signOut();
+        clearAuthState();
+        return;
+      }
+
+      setSession(refreshedData.session);
+      setUser(refreshedData.session.user);
+      await fetchUserData(refreshedData.session.user.id);
+      return;
+    }
+
+    setSession(currentSession);
+    setUser(userData.user);
+    await fetchUserData(userData.user.id);
+  }
+
+  function clearAuthState() {
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setRole(null);
+    setLoading(false);
+  }
 
   async function fetchUserData(userId: string) {
     const [profileRes, roleRes] = await Promise.all([

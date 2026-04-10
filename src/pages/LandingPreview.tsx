@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Download } from "lucide-react";
-import { exportLandingAsZip } from "@/utils/exportLandingZip";
+import { compileLandingFile, exportLandingAsZip } from "@/utils/exportLandingZip";
+import { publishLandingToS3 } from "@/lib/publishLandingToS3";
+import { getSupabaseFunctionErrorMessage } from "@/lib/getSupabaseFunctionErrorMessage";
 import { toast } from "sonner";
 import { buildPreviewHtml, useInlinedCSS, useBlockDefsMap } from "@/hooks/useLandingPreviewHtml";
 
@@ -366,8 +368,10 @@ function hideElementContaining(html: string, markerText: string): string {
 export default function LandingPreview() {
   const { landingId } = useParams<{ landingId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [exporting, setExporting] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const rawBlockHtmlsRef = useRef<string[]>([]);
 
   const inlinedCSS = useInlinedCSS();
@@ -439,6 +443,7 @@ export default function LandingPreview() {
         </div>
         <div className="flex items-center gap-2">
           <Button
+            type="button"
             variant="outline"
             size="sm"
             disabled={exporting}
@@ -462,18 +467,74 @@ export default function LandingPreview() {
                     gatewayAlias: landing?.gateway_alias || null,
                   },
                 );
-                toast.success("ZIP-архив скачан");
+                toast.success("Файл скачан");
               } catch (err: any) {
-                toast.error("Ошибка экспорта: " + err.message);
+                toast.error("Ошибка скачивания: " + err.message);
               } finally {
                 setExporting(false);
               }
             }}
           >
             {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
-            Скачать ZIP
+            Скачать
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate(`/landings/${landingId}`)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={publishing}
+            onClick={async () => {
+              if ((landing?.landing_type || "wordpress") !== "s3") {
+                toast.message("Автопубликация для WordPress будет добавлена позже");
+                return;
+              }
+              if (!landingId) {
+                toast.error("Лендинг не найден");
+                return;
+              }
+              if (!landing?.url_path?.trim()) {
+                toast.error("Заполните поле URL для публикации");
+                return;
+              }
+              if (rawBlockHtmlsRef.current.length === 0) {
+                toast.error("Нет блоков для публикации");
+                return;
+              }
+
+              setPublishing(true);
+              try {
+                const compiled = compileLandingFile(
+                  rawBlockHtmlsRef.current,
+                  landing?.name || "landing",
+                  "s3",
+                  {
+                    siteTitle: landing?.site_title || null,
+                    formType: (landing?.form_type as "getcourse" | "gateway" | undefined) || "gateway",
+                    getcourseActionId: landing?.getcourse_action_id || null,
+                    formDealName: landing?.form_deal_name || null,
+                    gatewayAlias: landing?.gateway_alias || null,
+                  },
+                );
+
+                const result = await publishLandingToS3({
+                  landingId,
+                  path: landing.url_path,
+                  html: compiled.content,
+                });
+
+                queryClient.invalidateQueries({ queryKey: ["published_s3_landings"] });
+                toast.success(`Опубликовано: ${result.url}`);
+              } catch (err: any) {
+                toast.error(await getSupabaseFunctionErrorMessage(err));
+              } finally {
+                setPublishing(false);
+              }
+            }}
+          >
+            {publishing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
+            Опубликовать
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => navigate(`/landings/${landingId}`)}>
             Вернуться в конструктор
           </Button>
         </div>

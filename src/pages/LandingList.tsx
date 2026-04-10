@@ -6,11 +6,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, ExternalLink, Copy, Trash2, Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import CreateLandingWizard from "@/components/landing-builder/CreateLandingWizard";
+import { getSupabaseFunctionErrorMessage } from "@/lib/getSupabaseFunctionErrorMessage";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Черновик", variant: "secondary" },
@@ -23,6 +26,7 @@ export default function LandingList() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [wizardOpen, setWizardOpen] = useState(false);
+  const publishedBaseUrl = "https://land.talentsy.ru/landings";
 
   const { data: landings, isLoading } = useQuery({
     queryKey: ["landings"],
@@ -30,6 +34,18 @@ export default function LandingList() {
       const { data, error } = await supabase
         .from("landings")
         .select("*, landing_templates(name, slug), paid_programs(title)")
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const { data: publishedLandings, isLoading: isPublishedLoading } = useQuery({
+    queryKey: ["published_s3_landings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("published_s3_landings")
+        .select("*, landings(id, name)")
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data as any[];
@@ -88,8 +104,26 @@ export default function LandingList() {
       queryClient.invalidateQueries({ queryKey: ["landings"] });
       toast.success("Лендинг удалён");
     },
+    onError: async (e: Error) => toast.error(await getSupabaseFunctionErrorMessage(e)),
+  });
+
+  const deletePublishedMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await invokeEdgeFunction("delete-s3-landing", {
+        publication_id: id,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["published_s3_landings"] });
+      toast.success("Публикация удалена");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const buildPublishedUrl = (path: string) => {
+    const normalizedPath = path.replace(/^\/+|\/+$/g, "");
+    return `${publishedBaseUrl}/${normalizedPath}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -104,89 +138,180 @@ export default function LandingList() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center gap-2 text-muted-foreground py-8">
-          <Loader2 className="h-4 w-4 animate-spin" /> Загрузка...
-        </div>
-      ) : !landings?.length ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p className="mb-4">Пока нет лендингов</p>
-          <Button variant="outline" onClick={() => setWizardOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Создать первый лендинг
-          </Button>
-        </div>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Название</TableHead>
-              <TableHead>Шаблон</TableHead>
-              <TableHead>Программа</TableHead>
-              <TableHead>Статус</TableHead>
-              <TableHead>Обновлено</TableHead>
-              <TableHead className="text-right">Действия</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {landings.map((landing: any) => {
-              const status = STATUS_MAP[landing.status] || STATUS_MAP.draft;
-              return (
-                <TableRow key={landing.id} className="cursor-pointer" onClick={() => navigate(`/landings/${landing.id}`)}>
-                  <TableCell className="font-medium">{landing.name}</TableCell>
-                  <TableCell>{landing.landing_templates?.name || "—"}</TableCell>
-                  <TableCell>{landing.paid_programs?.title || "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant={status.variant}>{status.label}</Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {landing.updated_at ? format(new Date(landing.updated_at), "d MMM yyyy, HH:mm", { locale: ru }) : "—"}
-                  </TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        title="Предпросмотр"
-                        onClick={() => navigate(`/landings/${landing.id}/preview`)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        title="Открыть в конструкторе"
-                        onClick={() => navigate(`/landings/${landing.id}`)}
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        title="Дублировать"
-                        onClick={() => duplicateMutation.mutate(landing.id)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        title="Удалить"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => {
-                          if (confirm("Удалить лендинг?")) deleteMutation.mutate(landing.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+      <Tabs defaultValue="constructor" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="constructor">Страницы конструктора</TabsTrigger>
+          <TabsTrigger value="published">Опубликованные s3-страницы</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="constructor" className="space-y-4">
+          {isLoading ? (
+            <div className="flex items-center gap-2 py-8 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Загрузка...
+            </div>
+          ) : !landings?.length ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <p className="mb-4">Пока нет лендингов</p>
+              <Button variant="outline" onClick={() => setWizardOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Создать первый лендинг
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Название</TableHead>
+                  <TableHead>Шаблон</TableHead>
+                  <TableHead>Программа</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead>Обновлено</TableHead>
+                  <TableHead className="text-right">Действия</TableHead>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      )}
+              </TableHeader>
+              <TableBody>
+                {landings.map((landing: any) => {
+                  const status = STATUS_MAP[landing.status] || STATUS_MAP.draft;
+                  return (
+                    <TableRow key={landing.id} className="cursor-pointer" onClick={() => navigate(`/landings/${landing.id}`)}>
+                      <TableCell className="font-medium">{landing.name}</TableCell>
+                      <TableCell>{landing.landing_templates?.name || "—"}</TableCell>
+                      <TableCell>{landing.paid_programs?.title || "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant={status.variant}>{status.label}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {landing.updated_at ? format(new Date(landing.updated_at), "d MMM yyyy, HH:mm", { locale: ru }) : "—"}
+                      </TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Предпросмотр"
+                            onClick={() => navigate(`/landings/${landing.id}/preview`)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Открыть в конструкторе"
+                            onClick={() => navigate(`/landings/${landing.id}`)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Дублировать"
+                            onClick={() => duplicateMutation.mutate(landing.id)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Удалить"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => {
+                              if (confirm("Удалить лендинг?")) deleteMutation.mutate(landing.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </TabsContent>
+
+        <TabsContent value="published" className="space-y-4">
+          {isPublishedLoading ? (
+            <div className="flex items-center gap-2 py-8 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Загрузка...
+            </div>
+          ) : !publishedLandings?.length ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <p>Пока нет опубликованных s3-страниц</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Путь</TableHead>
+                  <TableHead>URL</TableHead>
+                  <TableHead>Исходный лендинг</TableHead>
+                  <TableHead>Создан</TableHead>
+                  <TableHead>Обновлен</TableHead>
+                  <TableHead className="text-right">Действия</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {publishedLandings.map((landing: any) => {
+                  const url = buildPublishedUrl(landing.path);
+                  return (
+                    <TableRow key={landing.id}>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{landing.id}</TableCell>
+                      <TableCell className="font-medium">/{landing.path}</TableCell>
+                      <TableCell>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                        >
+                          {url}
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </TableCell>
+                      <TableCell>
+                        {landing.landings?.name ? (
+                          <button
+                            type="button"
+                            className="text-left text-primary hover:underline"
+                            onClick={() => navigate(`/landings/${landing.landing_id}`)}
+                          >
+                            {landing.landings.name}
+                          </button>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {landing.created_at ? format(new Date(landing.created_at), "d MMM yyyy, HH:mm", { locale: ru }) : "—"}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {landing.updated_at ? format(new Date(landing.updated_at), "d MMM yyyy, HH:mm", { locale: ru }) : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Удалить публикацию"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => {
+                            if (confirm("Удалить запись опубликованной s3-страницы?")) {
+                              deletePublishedMutation.mutate(landing.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </TabsContent>
+      </Tabs>
 
       <CreateLandingWizard open={wizardOpen} onOpenChange={setWizardOpen} />
     </div>

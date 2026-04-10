@@ -1,4 +1,10 @@
-export async function exportLandingAsZip(
+export type CompiledLandingFile = {
+  filename: string;
+  mimeType: string;
+  content: string;
+};
+
+export function compileLandingFile(
   blockHtmls: string[],
   landingName: string,
   landingType: "wordpress" | "s3" = "s3",
@@ -12,7 +18,7 @@ export async function exportLandingAsZip(
     formDealName?: string | null;
     gatewayAlias?: string | null;
   },
-) {
+) : CompiledLandingFile {
   const basePath = "/talentsy-template/";
   const assetBaseRaw = (import.meta.env.VITE_LANDING_ASSET_BASE_URL as string | undefined)?.trim()
     || `${window.location.origin}${basePath}`;
@@ -227,10 +233,11 @@ ${combinedHtml}
 
 <?php get_footer('light'); ?>
 `;
-
-    const blob = new Blob([php], { type: "application/x-httpd-php" });
-    downloadBlob(blob, "template.php");
-    return;
+    return {
+      filename: "template.php",
+      mimeType: "application/x-httpd-php",
+      content: php,
+    };
   }
 
   const siteTitle = (options?.siteTitle || "").trim() || landingName.trim();
@@ -575,9 +582,31 @@ ${discountUntilScript}
 </body>
 </html>
 `;
+  return {
+    filename: "index.html",
+    mimeType: "text/html;charset=utf-8",
+    content: html,
+  };
+}
 
-  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-  downloadBlob(blob, "index.html");
+export async function exportLandingAsZip(
+  blockHtmls: string[],
+  landingName: string,
+  landingType: "wordpress" | "s3" = "s3",
+  options?: {
+    wpTemplateName?: string | null;
+    siteTitle?: string | null;
+    s3CustomCss?: string | null;
+    s3BodyClassExtra?: string | null;
+    formType?: "getcourse" | "gateway" | null;
+    getcourseActionId?: string | null;
+    formDealName?: string | null;
+    gatewayAlias?: string | null;
+  },
+) {
+  const compiled = compileLandingFile(blockHtmls, landingName, landingType, options);
+  const blob = new Blob([compiled.content], { type: compiled.mimeType });
+  downloadBlob(blob, compiled.filename);
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -763,4 +792,3 @@ function applyS3FormPlaceholders(
   out = injectBeforeFormClose(out, gatewayHiddens);
   return out;
 }
-
