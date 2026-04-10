@@ -359,6 +359,7 @@ export default function TaskQueue() {
             <TabsTrigger value="all">Все линии</TabsTrigger>
             <TabsTrigger value="claude">Claude</TabsTrigger>
             <TabsTrigger value="openrouter">OpenRouter</TabsTrigger>
+            <TabsTrigger value="google-ai">Google AI</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -368,6 +369,8 @@ export default function TaskQueue() {
             <TabsTrigger value="landing">Лендинг</TabsTrigger>
             <TabsTrigger value="letter">Письмо</TabsTrigger>
             <TabsTrigger value="content">Контент</TabsTrigger>
+            <TabsTrigger value="video">Видео</TabsTrigger>
+            <TabsTrigger value="competitor">Конкуренты</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>

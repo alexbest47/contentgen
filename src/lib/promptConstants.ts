@@ -28,6 +28,7 @@ export const categoryLabels: Record<PromptCategory, string> = {
   landing_block_teachers: "Лендинг: преподаватели",
   landing_block_curriculum: "Лендинг: программа обучения",
   landing_block_faq: "Лендинг: часто задаваемые вопросы",
+  competitor_analysis: "Анализ конкурентов",
 };
 
 export const categories = Object.keys(categoryLabels) as PromptCategory[];
@@ -53,6 +54,7 @@ export const contentTypeLabels: Record<string, string> = {
   email_builder: "Конструктор email",
   pdf_material: "PDF-материал",
   landing_block_content: "Конструктор лендингов",
+  competitor_analysis: "Анализ конкурентов",
 };
 
 export const contentTypeKeys = Object.keys(contentTypeLabels);
@@ -80,6 +82,7 @@ export const deriveCategory = (contentType: string, channel?: string): PromptCat
   if (contentType === "bot_builder") return "bot_builder";
   if (contentType === "pdf_material") return "pdf_generation";
   if (contentType === "landing_block_content") return "landing_block_content";
+  if (contentType === "competitor_analysis") return "competitor_analysis";
   if (channel) {
     const mapping: Record<string, PromptCategory> = {
       instagram: "text_instagram",

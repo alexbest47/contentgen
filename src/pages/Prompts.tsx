@@ -171,6 +171,7 @@ export default function Prompts() {
   const botBuilderPrompts = (prompts ?? []).filter((p: any) => p.content_type === "bot_builder");
   const pdfMaterialPrompts = (prompts ?? []).filter((p: any) => p.content_type === "pdf_material");
   const landingBlockPrompts = (prompts ?? []).filter((p: any) => p.content_type === "landing_block_content");
+  const competitorAnalysisPrompts = (prompts ?? []).filter((p: any) => p.content_type === "competitor_analysis");
 
   // Group lead_magnet prompts: those without channel are "general", others grouped by channel
   const generalLeadMagnetPrompts = leadMagnetPrompts
@@ -576,6 +577,7 @@ export default function Prompts() {
             <TabsTrigger value="case_analysis">Подготовка кейсов</TabsTrigger>
             <TabsTrigger value="landing_block_content">Конструктор лендингов</TabsTrigger>
             <TabsTrigger value="pdf_material">Генерация PDF</TabsTrigger>
+            <TabsTrigger value="competitor_analysis">Анализ конкурентов</TabsTrigger>
           </TabsList>
 
           <TabsContent value="content_prep">
@@ -748,6 +750,20 @@ export default function Prompts() {
             <TabsContent value="landing_block_content">
               {(() => {
                 const sorted = landingBlockPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
+                return (
+                  <div className="space-y-3">
+                    {sorted.length > 0 ? sorted.map((p: any) => (
+                      <PromptStepCard key={p.id} prompt={p} showStepNumber={true} onEdit={openEdit} onToggle={(id, is_active) => toggleMutation.mutate({ id, is_active })} onDuplicate={openDuplicate} />
+                    )) : (
+                      <div className="py-8 text-center text-muted-foreground border rounded-lg">Нет промптов</div>
+                    )}
+                  </div>
+                );
+              })()}
+            </TabsContent>
+            <TabsContent value="competitor_analysis">
+              {(() => {
+                const sorted = competitorAnalysisPrompts.sort((a: any, b: any) => (a.step_order ?? 1) - (b.step_order ?? 1));
                 return (
                   <div className="space-y-3">
                     {sorted.length > 0 ? sorted.map((p: any) => (

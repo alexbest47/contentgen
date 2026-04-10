@@ -9,10 +9,12 @@ import {
   GraduationCap, Tag, TableProperties,
   MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion, MailPlus, TreePine, FileText, FilePlus2,
   BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown, ListOrdered, ImageIcon, Link2, Layers, Layout, FileImage, GalleryHorizontal,
+  CalendarDays, Globe, Clapperboard, MailSearch,
 } from "lucide-react";
 
 const topNav = [
   { title: "Очередь задач", url: "/queue", icon: ListOrdered },
+  { title: "Контент-план", url: "/content-plan", icon: CalendarDays },
 ];
 
 const contentCreationNav = [
@@ -21,6 +23,7 @@ const contentCreationNav = [
   { title: "Конструктор писем", url: "/email-builder", icon: MailPlus },
   { title: "Конструктор цепочек", url: "/email-chains", icon: Link2 },
   { title: "Конструктор лендингов", url: "/landings", icon: Layout },
+  { title: "Вертикальный контент", url: "/vertical-content", icon: Clapperboard },
 ];
 
 const offerPrepNav = [
@@ -39,6 +42,7 @@ const contentPrepNav = [
   { title: "Управление кейсами", url: "/cases", icon: FileVideo },
   { title: "Дерево тем", url: "/topics", icon: TreePine },
   { title: "Работа с возражениями", url: "/objections", icon: ShieldQuestion },
+  { title: "Письма конкурентов", url: "/competitor-emails", icon: MailSearch },
 ];
 
 const emailSettingsNav = [
@@ -49,6 +53,7 @@ const emailSettingsNav = [
 
 const adminNav = [
   { title: "Платные программы", url: "/manage-programs", icon: GraduationCap },
+  { title: "Аккаунты соцсетей", url: "/social-accounts", icon: Globe },
   { title: "Теги", url: "/tags", icon: Tag },
   { title: "Таблица описаний", url: "/descriptions", icon: TableProperties },
   { title: "Архив", url: "/archive", icon: Archive },

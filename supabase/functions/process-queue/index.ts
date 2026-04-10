@@ -11,10 +11,11 @@ const corsHeaders = {
 const LANE_CONCURRENCY: Record<string, number> = {
   claude: 3,
   openrouter: 5,
+  "google-ai": 3,
 };
 
-// Timeout in minutes
-const TASK_TIMEOUT_MINUTES = 3;
+// Timeout in minutes (google-ai video generation can take up to 5+ min)
+const TASK_TIMEOUT_MINUTES = 7;
 
 async function processLane(
   supabase: any,

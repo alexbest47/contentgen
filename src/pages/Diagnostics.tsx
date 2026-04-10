@@ -25,6 +25,7 @@ interface EditingDiag {
   name: string;
   description: string;
   doc_url: string;
+  test_url: string;
   program_id: string;
   image_url: string;
 }
@@ -134,7 +135,7 @@ export default function Diagnostics() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("diagnostics")
-        .select("id, name, description, status, created_at, program_id, prompt_id, doc_url, image_url, audience_tags")
+        .select("id, name, description, status, created_at, program_id, prompt_id, doc_url, test_url, image_url, audience_tags")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -194,6 +195,7 @@ export default function Diagnostics() {
           name: diag.name,
           description: diag.description || null,
           doc_url: diag.doc_url || null,
+          test_url: diag.test_url || null,
           program_id: diag.program_id,
           image_url: imageUrl,
         } as any)
@@ -318,6 +320,7 @@ export default function Diagnostics() {
                             name: d.name,
                             description: (d as any).description || "",
                             doc_url: (d as any).doc_url || "",
+                            test_url: (d as any).test_url || "",
                             program_id: d.program_id,
                             image_url: (d as any).image_url || "",
                           });
@@ -427,6 +430,14 @@ export default function Diagnostics() {
                 placeholder="Google Doc или Talentsy KB ссылка"
               />
               <p className="text-xs text-muted-foreground">Поддерживаются ссылки на Google Docs и Talentsy KB (talentsy-kb.vercel.app/share/tk_...)</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Ссылка на тест</Label>
+              <Input
+                value={editingDiag?.test_url || ""}
+                onChange={(e) => setEditingDiag((prev) => prev ? { ...prev, test_url: e.target.value } : null)}
+                placeholder="https://..."
+              />
             </div>
           </div>
           <DialogFooter>

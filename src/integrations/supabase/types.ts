@@ -14,6 +14,371 @@ export type Database = {
   }
   public: {
     Tables: {
+      content_plan_items: {
+        Row: {
+          id: string
+          date: string
+          type: string
+          title: string
+          description: string | null
+          status: string
+          program_id: string | null
+          created_by: string
+          created_at: string
+          updated_at: string
+          audience_segment: string | null
+          letter_id: string | null
+          social_type: string | null
+          post_id: string | null
+          event_type: string | null
+          custom_event_type_id: string | null
+        }
+        Insert: {
+          id?: string
+          date: string
+          type: string
+          title: string
+          description?: string | null
+          status?: string
+          program_id?: string | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+          audience_segment?: string | null
+          letter_id?: string | null
+          social_type?: string | null
+          post_id?: string | null
+          event_type?: string | null
+          custom_event_type_id?: string | null
+        }
+        Update: {
+          id?: string
+          date?: string
+          type?: string
+          title?: string
+          description?: string | null
+          status?: string
+          program_id?: string | null
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+          audience_segment?: string | null
+          letter_id?: string | null
+          social_type?: string | null
+          post_id?: string | null
+          event_type?: string | null
+          custom_event_type_id?: string | null
+        }
+        Relationships: []
+      }
+      content_plan_social_accounts: {
+        Row: {
+          id: string
+          item_id: string
+          account_id: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          account_id: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          account_id?: string
+        }
+        Relationships: []
+      }
+      custom_event_types: {
+        Row: {
+          id: string
+          name: string
+          color: string
+          icon: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          color?: string
+          icon?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          color?: string
+          icon?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      social_accounts: {
+        Row: {
+          id: string
+          platform: string
+          account_name: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          platform: string
+          account_name: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          platform?: string
+          account_name?: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      competitors: {
+        Row: {
+          id: string
+          name: string
+          website: string | null
+          description: string
+          sender_emails: string[]
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          website?: string | null
+          description?: string
+          sender_emails?: string[]
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          website?: string | null
+          description?: string
+          sender_emails?: string[]
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      competitor_emails: {
+        Row: {
+          id: string
+          competitor_id: string | null
+          resend_email_id: string | null
+          from_address: string
+          to_address: string | null
+          subject: string
+          html_body: string | null
+          text_body: string | null
+          headers: Record<string, any>
+          received_at: string
+          status: string
+          error_message: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          competitor_id?: string | null
+          resend_email_id?: string | null
+          from_address: string
+          to_address?: string | null
+          subject?: string
+          html_body?: string | null
+          text_body?: string | null
+          headers?: Record<string, any>
+          received_at?: string
+          status?: string
+          error_message?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          competitor_id?: string | null
+          resend_email_id?: string | null
+          from_address?: string
+          to_address?: string | null
+          subject?: string
+          html_body?: string | null
+          text_body?: string | null
+          headers?: Record<string, any>
+          received_at?: string
+          status?: string
+          error_message?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_emails_competitor_id_fkey"
+            columns: ["competitor_id"]
+            referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      competitor_email_analyses: {
+        Row: {
+          id: string
+          email_id: string
+          email_type: string | null
+          summary: string | null
+          offers: any[]
+          products: any[]
+          promotions: any[]
+          cta_list: any[]
+          urgency_triggers: any[]
+          target_audience: string | null
+          tone: string | null
+          key_messages: any[]
+          raw_analysis: Record<string, any>
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          email_id: string
+          email_type?: string | null
+          summary?: string | null
+          offers?: any[]
+          products?: any[]
+          promotions?: any[]
+          cta_list?: any[]
+          urgency_triggers?: any[]
+          target_audience?: string | null
+          tone?: string | null
+          key_messages?: any[]
+          raw_analysis?: Record<string, any>
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          email_id?: string
+          email_type?: string | null
+          summary?: string | null
+          offers?: any[]
+          products?: any[]
+          promotions?: any[]
+          cta_list?: any[]
+          urgency_triggers?: any[]
+          target_audience?: string | null
+          tone?: string | null
+          key_messages?: any[]
+          raw_analysis?: Record<string, any>
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_email_analyses_email_id_fkey"
+            columns: ["email_id"]
+            referencedRelation: "competitor_emails"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      video_projects: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          status: string
+          program_id: string | null
+          offer_id: string | null
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          status?: string
+          program_id?: string | null
+          offer_id?: string | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          status?: string
+          program_id?: string | null
+          offer_id?: string | null
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      video_stages: {
+        Row: {
+          id: string
+          video_project_id: string
+          sort_order: number
+          stage_type: string
+          model: string | null
+          prompt: string | null
+          config: Record<string, any>
+          reference_image_url: string | null
+          start_frame_url: string | null
+          result_url: string | null
+          result_metadata: Record<string, any> | null
+          task_id: string | null
+          status: string
+          error_message: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          video_project_id: string
+          sort_order?: number
+          stage_type?: string
+          model?: string | null
+          prompt?: string | null
+          config?: Record<string, any>
+          reference_image_url?: string | null
+          start_frame_url?: string | null
+          result_url?: string | null
+          result_metadata?: Record<string, any> | null
+          task_id?: string | null
+          status?: string
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          video_project_id?: string
+          sort_order?: number
+          stage_type?: string
+          model?: string | null
+          prompt?: string | null
+          config?: Record<string, any>
+          reference_image_url?: string | null
+          start_frame_url?: string | null
+          result_url?: string | null
+          result_metadata?: Record<string, any> | null
+          task_id?: string | null
+          status?: string
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           banner_type: string
@@ -1990,6 +2355,7 @@ export type Database = {
         | "landing_block_teachers"
         | "landing_block_curriculum"
         | "landing_block_faq"
+        | "competitor_analysis"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2163,6 +2529,7 @@ export const Constants = {
         "landing_block_teachers",
         "landing_block_curriculum",
         "landing_block_faq",
+        "competitor_analysis",
       ],
     },
   },
