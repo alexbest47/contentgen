@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { LandingBlock } from "@/pages/LandingEditor";
-import { WP_HEADER_LIGHT_HTML, WP_FOOTER_LIGHT_HTML, WP_BREADCRUMBS_HTML } from "@/lib/wpTemplateParts";
+import { WP_HEADER_LIGHT_HTML, WP_FOOTER_LIGHT_HTML, WP_BREADCRUMBS_HTML, WP_AGREED_HTML } from "@/lib/wpTemplateParts";
 
 const CSS_FILES = [
   "css/fix.css",
@@ -13,13 +13,15 @@ const CSS_FILES = [
 ];
 
 const BASE_PATH = "/talentsy-template/";
+const ASSET_BASE_URL = (import.meta.env.VITE_LANDING_ASSET_BASE_URL as string | undefined)?.trim()
+  || `${window.location.origin}${BASE_PATH}`;
 
 /** Placeholder SVG for empty images (generic person avatar silhouette) */
 export const PLACEHOLDER_IMAGE = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Crect width='300' height='300' fill='%23e5e7eb'/%3E%3Ccircle cx='150' cy='120' r='50' fill='%239ca3af'/%3E%3Cellipse cx='150' cy='260' rx='80' ry='60' fill='%239ca3af'/%3E%3C/svg%3E`;
 
 /** Fetch all template CSS files and return inlined <style> blocks */
 async function fetchInlinedCSS(): Promise<string> {
-  const baseUrl = window.location.origin + BASE_PATH;
+  const baseUrl = ASSET_BASE_URL.endsWith("/") ? ASSET_BASE_URL : `${ASSET_BASE_URL}/`;
   const results = await Promise.all(
     CSS_FILES.map(async (file) => {
       try {
@@ -211,6 +213,59 @@ function replaceImageInHtml(html: string, oldSrc: string, newSrc: string): strin
   // When newSrc is empty (e.g. after AI clears teacher photos), use placeholder
   const replacement = newSrc || PLACEHOLDER_IMAGE;
   return html.split(oldSrc).join(replacement);
+}
+
+/**
+ * Replace form template markers with preview-safe values.
+ * This keeps visual parity in constructor preview without binding runtime integrations.
+ */
+function applyPreviewFormPlaceholders(html: string): string {
+  const previewPromoBlock = `<div class="promo-container course-block__item course-block__item_promo">
+               <button type="button" class="promo-button icon" style="--icon: url('img/main-page/icon/icon-arrow-down.svg')">
+                  У меня есть промокод
+                </button>
+
+                <div class="course-block__item-hidden">
+                  <div class="course-block__item-hidden-el mb-10">
+                    <input type="text" class="input input-light jsPmoField" placeholder="Промокод" name="jsPmoHiddenFormField">
+                    <button type="button" class="button-promo-b jsPPRequest">Применить</button>
+                  </div>
+                  <div class="jsPmoError"></div>
+                </div>
+              </div>`;
+  return html
+    .replace(/\{\{FORM_TAG_ATTRS\}\}/g, 'data-target="axFormRequest"')
+    .replace(/\{\{FORM_CLASS_EXTRA\}\}/g, "ajaxForm")
+    .replace(/\{\{FIELD_NAME_NAME\}\}/g, "Name")
+    .replace(/\{\{FIELD_PHONE_NAME\}\}/g, "Phone")
+    .replace(/\{\{FIELD_EMAIL_NAME\}\}/g, "Email")
+    .replace(/\{\{FORM_AGREED_BLOCK\}\}/g, WP_AGREED_HTML)
+    .replace(/\{\{FORM_HIDDENS\}\}/g, "")
+    .replace(/\{\{PROMO_BLOCK\}\}/g, previewPromoBlock)
+    .replace(/\{\{DISCOUNT_UNTIL\}\}/g, "03.04.2026");
+}
+
+/**
+ * Ensure first <section> in block HTML has the provided id.
+ * If section already has id, replace it; if no id, append it.
+ */
+function applySectionIdToRootSection(html: string, sectionId?: string): string {
+  const id = (sectionId || "").trim();
+  if (!id) return html;
+
+  const sectionOpenTagRe = /<section\b[^>]*>/i;
+  const match = html.match(sectionOpenTagRe);
+  if (!match) return html;
+  const originalTag = match[0];
+
+  let updatedTag: string;
+  if (/\bid\s*=\s*["'][^"']*["']/i.test(originalTag)) {
+    updatedTag = originalTag.replace(/\bid\s*=\s*["'][^"']*["']/i, `id="${id}"`);
+  } else {
+    updatedTag = originalTag.replace(/^<section\b/i, `<section id="${id}"`);
+  }
+
+  return html.replace(originalTag, updatedTag);
 }
 
 /**
@@ -734,7 +789,7 @@ export function buildPreviewHtml(
   wpOptions?: { breadcrumbSlug?: string; breadcrumbTitle?: string },
   accentColor?: string | null,
 ): { fullHtml: string; rawBlockHtmls: string[] } {
-  const baseUrl = window.location.origin + BASE_PATH;
+  const baseUrl = ASSET_BASE_URL.endsWith("/") ? ASSET_BASE_URL : `${ASSET_BASE_URL}/`;
   const visibleBlocks = blocks.filter((b) => b.is_visible);
   const rawHtmls: string[] = [];
 
@@ -755,6 +810,7 @@ export function buildPreviewHtml(
     const editableFields = def.editable_fields || [];
 
     html = applyContentOverrides(html, overrides, defaults, editableFields, b.id, markEditable);
+    html = applySectionIdToRootSection(html, (b.settings || {}).section_id);
 
     // Replace purple hex values directly in block HTML (catches inline styles, <style> blocks, etc.)
     if (accentColor) {
@@ -781,6 +837,7 @@ export function buildPreviewHtml(
     }
 
     rawHtmls.push(html);
+    html = applyPreviewFormPlaceholders(html);
     html = absolutifyPaths(html, baseUrl);
 
     const blockName = def.name || joinedDef?.name || def.block_type || "Блок";

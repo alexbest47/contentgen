@@ -9,6 +9,7 @@ import { ArrowLeft, Download, Save, Loader2, Columns2, LayoutList, Settings, Pal
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import LandingBlockCanvas from "@/components/landing-builder/LandingBlockCanvas";
 import LandingBlockSettingsPanel from "@/components/landing-builder/LandingBlockSettingsPanel";
@@ -340,7 +341,17 @@ export default function LandingEditor() {
   }, [blocks, landingId, triggerSave]);
 
   const updateLandingMeta = useMutation({
-    mutationFn: async (fields: { breadcrumb_slug?: string; breadcrumb_title?: string }) => {
+    mutationFn: async (fields: {
+      landing_type?: "wordpress" | "s3";
+      wp_template_name?: string | null;
+      site_title?: string | null;
+      form_type?: "getcourse" | "gateway";
+      getcourse_widget_id?: string | null;
+      getcourse_action_id?: string | null;
+      form_deal_name?: string | null;
+      gateway_alias?: string | null;
+      url_path?: string | null;
+    }) => {
       const { error } = await supabase
         .from("landings")
         .update(fields)
@@ -351,8 +362,8 @@ export default function LandingEditor() {
       queryClient.invalidateQueries({ queryKey: ["landing", landingId] });
       toast.success("Настройки сохранены");
     },
-    onError: () => {
-      toast.error("Ошибка сохранения настроек");
+    onError: (e: any) => {
+      toast.error(e?.message || "Ошибка сохранения настроек");
     },
   });
 
@@ -480,36 +491,129 @@ export default function LandingEditor() {
           </Popover>
           <Popover open={showExportSettings} onOpenChange={setShowExportSettings}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" title="Настройки WP-экспорта">
+              <Button variant="outline" size="sm" title="Общие настройки лендинга">
                 <Settings className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80">
               <div className="space-y-3">
-                <h4 className="font-medium text-sm">Настройки WP-экспорта</h4>
-                {landing?.wp_template_name && (
-                  <div className="text-xs text-muted-foreground">
-                    Шаблон: {landing.wp_template_name}
+                <h4 className="font-medium text-sm">Общие настройки лендинга</h4>
+                <div className="space-y-1">
+                  <Label className="text-xs">Тип лендинга</Label>
+                  <Select
+                    value={(landing?.landing_type as "wordpress" | "s3" | undefined) || "wordpress"}
+                    onValueChange={(value: "wordpress" | "s3") => {
+                      updateLandingMeta.mutate({ landing_type: value });
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="wordpress">Основной сайт (WordPress)</SelectItem>
+                      <SelectItem value="s3">Статичный лендинг (s3-страница)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(landing?.landing_type || "wordpress") === "wordpress" && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Уникальное название шаблона</Label>
+                    <Input
+                      defaultValue={landing?.wp_template_name || ""}
+                      onBlur={(e) => updateLandingMeta.mutate({ wp_template_name: e.target.value || null })}
+                      className="h-8 text-sm"
+                      placeholder="Например: Психолог-консультант"
+                    />
                   </div>
                 )}
-                <div className="space-y-1">
-                  <Label className="text-xs">Slug категории (breadcrumbs)</Label>
-                  <Input
-                    defaultValue={landing?.breadcrumb_slug || "psychology"}
-                    onBlur={(e) => updateLandingMeta.mutate({ breadcrumb_slug: e.target.value })}
-                    className="h-8 text-sm"
-                    placeholder="psychology"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Название категории (breadcrumbs)</Label>
-                  <Input
-                    defaultValue={landing?.breadcrumb_title || "Курсы психологии"}
-                    onBlur={(e) => updateLandingMeta.mutate({ breadcrumb_title: e.target.value })}
-                    className="h-8 text-sm"
-                    placeholder="Курсы психологии"
-                  />
-                </div>
+                {(landing?.landing_type || "wordpress") === "s3" && (
+                  <>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Title сайта</Label>
+                      <Input
+                        defaultValue={landing?.site_title || ""}
+                        onBlur={(e) => updateLandingMeta.mutate({ site_title: e.target.value || null })}
+                        className="h-8 text-sm"
+                        placeholder="Например: Онлайн-курс Talentsy"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Тип формы</Label>
+                      <Select
+                        value={(landing?.form_type as "getcourse" | "gateway" | undefined) || "gateway"}
+                        onValueChange={(value: "getcourse" | "gateway") => {
+                          const patch: {
+                            form_type: "getcourse" | "gateway";
+                            getcourse_widget_id?: string | null;
+                            getcourse_action_id?: string | null;
+                          } = { form_type: value };
+                          if (value === "gateway") {
+                            patch.getcourse_widget_id = null;
+                            patch.getcourse_action_id = null;
+                          }
+                          updateLandingMeta.mutate(patch);
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="getcourse">GetCourse</SelectItem>
+                          <SelectItem value="gateway">Шлюз</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {(landing?.form_type || "gateway") === "getcourse" && (
+                      <>
+                        <div className="space-y-1">
+                          <Label className="text-xs">ID виджета GetCourse</Label>
+                          <Input
+                            defaultValue={landing?.getcourse_widget_id || ""}
+                            onBlur={(e) => updateLandingMeta.mutate({ getcourse_widget_id: e.target.value || null })}
+                            className="h-8 text-sm"
+                            placeholder="Например: 123456"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">ActionID виджета GetCourse</Label>
+                          <Input
+                            defaultValue={landing?.getcourse_action_id || ""}
+                            onBlur={(e) => updateLandingMeta.mutate({ getcourse_action_id: e.target.value || null })}
+                            className="h-8 text-sm"
+                            placeholder="Например: abc123"
+                          />
+                        </div>
+                      </>
+                    )}
+                    <div className="space-y-1">
+                      <Label className="text-xs">Название формы/сделки (опционально)</Label>
+                      <Input
+                        defaultValue={landing?.form_deal_name || ""}
+                        onBlur={(e) => updateLandingMeta.mutate({ form_deal_name: e.target.value || null })}
+                        className="h-8 text-sm"
+                        placeholder="Например: Лид-форма курса"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Alias шлюза (опционально)</Label>
+                      <Input
+                        defaultValue={landing?.gateway_alias || ""}
+                        onBlur={(e) => updateLandingMeta.mutate({ gateway_alias: e.target.value || null })}
+                        className="h-8 text-sm"
+                        placeholder="Например: psychology-spring"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">URL (путь после домена)</Label>
+                      <Input
+                        defaultValue={landing?.url_path || ""}
+                        onBlur={(e) => updateLandingMeta.mutate({ url_path: e.target.value || null })}
+                        className="h-8 text-sm"
+                        placeholder="/courses/psychology-pro"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </PopoverContent>
           </Popover>
@@ -540,7 +644,19 @@ export default function LandingEditor() {
                   toast.error("Нет блоков для экспорта");
                   return;
                 }
-                await exportLandingAsZip(rawBlockHtmls, landing?.name || "landing");
+                await exportLandingAsZip(
+                  rawBlockHtmls,
+                  landing?.name || "landing",
+                  (landing?.landing_type as "wordpress" | "s3" | undefined) || "s3",
+                  {
+                    wpTemplateName: landing?.wp_template_name || null,
+                    siteTitle: landing?.site_title || null,
+                    formType: (landing?.form_type as "getcourse" | "gateway" | undefined) || "gateway",
+                    getcourseActionId: landing?.getcourse_action_id || null,
+                    formDealName: landing?.form_deal_name || null,
+                    gatewayAlias: landing?.gateway_alias || null,
+                  },
+                );
                 toast.success("ZIP-архив скачан");
               } catch (err) {
                 console.error("Export error:", err);

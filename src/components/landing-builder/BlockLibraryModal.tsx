@@ -19,10 +19,12 @@ interface Props {
 }
 
 const BASE_PATH = "/talentsy-template/";
+const ASSET_BASE_URL = (import.meta.env.VITE_LANDING_ASSET_BASE_URL as string | undefined)?.trim()
+  || `${window.location.origin}${BASE_PATH}`;
 
 /** Build a full HTML document for a single block thumbnail preview */
 function buildThumbnailHtml(html: string, inlinedCSS: string): string {
-  const baseUrl = window.location.origin + BASE_PATH;
+  const baseUrl = ASSET_BASE_URL.endsWith("/") ? ASSET_BASE_URL : `${ASSET_BASE_URL}/`;
   // Absolutify paths
   const absHtml = html
     .replace(/(src|srcset|href)=["'](?!https?:\/\/|\/\/|#|data:|mailto:|tel:)([^"']+)["']/g, (_m, attr, path) => {
