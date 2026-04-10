@@ -6,7 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ExternalLink, Copy, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, ExternalLink, Copy, Trash2, Loader2, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import AddToContentPlanDialog from "@/components/AddToContentPlanDialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -19,6 +20,8 @@ export default function EmailBuilderList() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 20;
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [planLetter, setPlanLetter] = useState<{ id: string; title: string; program_id?: string | null } | null>(null);
 
   const { data: letters, isLoading } = useQuery({
     queryKey: ["email_letters"],
@@ -157,6 +160,17 @@ export default function EmailBuilderList() {
                     <Button variant="ghost" size="sm" onClick={() => duplicateMutation.mutate(letter.id)}>
                       <Copy className="h-4 w-4" />
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title="В контент-план"
+                      onClick={() => {
+                        setPlanLetter({ id: letter.id, title: letter.title || "Без названия", program_id: (letter as any).program_id });
+                        setPlanDialogOpen(true);
+                      }}
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(letter.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -198,6 +212,17 @@ export default function EmailBuilderList() {
       )}
 
       <CreateLetterWizard open={wizardOpen} onOpenChange={setWizardOpen} />
+
+      {planLetter && (
+        <AddToContentPlanDialog
+          open={planDialogOpen}
+          onOpenChange={(v) => { setPlanDialogOpen(v); if (!v) setPlanLetter(null); }}
+          type="email"
+          title={planLetter.title}
+          linkedId={planLetter.id}
+          programId={planLetter.program_id}
+        />
+      )}
     </div>
   );
 }

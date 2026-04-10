@@ -9,10 +9,12 @@ import {
   GraduationCap, Tag, TableProperties,
   MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion, MailPlus, TreePine, FileText, FilePlus2,
   BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown, ListOrdered, ImageIcon, Link2, Layers, Layout, FileImage, GalleryHorizontal,
+  CalendarDays, Globe,
 } from "lucide-react";
 
 const topNav = [
   { title: "Очередь задач", url: "/queue", icon: ListOrdered },
+  { title: "Контент-план", url: "/content-plan", icon: CalendarDays },
 ];
 
 const contentCreationNav = [
@@ -49,6 +51,7 @@ const emailSettingsNav = [
 
 const adminNav = [
   { title: "Платные программы", url: "/manage-programs", icon: GraduationCap },
+  { title: "Аккаунты соцсетей", url: "/social-accounts", icon: Globe },
   { title: "Теги", url: "/tags", icon: Tag },
   { title: "Таблица описаний", url: "/descriptions", icon: TableProperties },
   { title: "Архив", url: "/archive", icon: Archive },
