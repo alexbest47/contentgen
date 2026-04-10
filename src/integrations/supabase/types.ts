@@ -137,6 +137,155 @@ export type Database = {
         }
         Relationships: []
       }
+      competitors: {
+        Row: {
+          id: string
+          name: string
+          website: string | null
+          description: string
+          sender_emails: string[]
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          website?: string | null
+          description?: string
+          sender_emails?: string[]
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          website?: string | null
+          description?: string
+          sender_emails?: string[]
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      competitor_emails: {
+        Row: {
+          id: string
+          competitor_id: string | null
+          resend_email_id: string | null
+          from_address: string
+          to_address: string | null
+          subject: string
+          html_body: string | null
+          text_body: string | null
+          headers: Record<string, any>
+          received_at: string
+          status: string
+          error_message: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          competitor_id?: string | null
+          resend_email_id?: string | null
+          from_address: string
+          to_address?: string | null
+          subject?: string
+          html_body?: string | null
+          text_body?: string | null
+          headers?: Record<string, any>
+          received_at?: string
+          status?: string
+          error_message?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          competitor_id?: string | null
+          resend_email_id?: string | null
+          from_address?: string
+          to_address?: string | null
+          subject?: string
+          html_body?: string | null
+          text_body?: string | null
+          headers?: Record<string, any>
+          received_at?: string
+          status?: string
+          error_message?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_emails_competitor_id_fkey"
+            columns: ["competitor_id"]
+            referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      competitor_email_analyses: {
+        Row: {
+          id: string
+          email_id: string
+          email_type: string | null
+          summary: string | null
+          offers: any[]
+          products: any[]
+          promotions: any[]
+          cta_list: any[]
+          urgency_triggers: any[]
+          target_audience: string | null
+          tone: string | null
+          key_messages: any[]
+          raw_analysis: Record<string, any>
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          email_id: string
+          email_type?: string | null
+          summary?: string | null
+          offers?: any[]
+          products?: any[]
+          promotions?: any[]
+          cta_list?: any[]
+          urgency_triggers?: any[]
+          target_audience?: string | null
+          tone?: string | null
+          key_messages?: any[]
+          raw_analysis?: Record<string, any>
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          email_id?: string
+          email_type?: string | null
+          summary?: string | null
+          offers?: any[]
+          products?: any[]
+          promotions?: any[]
+          cta_list?: any[]
+          urgency_triggers?: any[]
+          target_audience?: string | null
+          tone?: string | null
+          key_messages?: any[]
+          raw_analysis?: Record<string, any>
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_email_analyses_email_id_fkey"
+            columns: ["email_id"]
+            referencedRelation: "competitor_emails"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       video_projects: {
         Row: {
           id: string
@@ -2206,6 +2355,7 @@ export type Database = {
         | "landing_block_teachers"
         | "landing_block_curriculum"
         | "landing_block_faq"
+        | "competitor_analysis"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2379,6 +2529,7 @@ export const Constants = {
         "landing_block_teachers",
         "landing_block_curriculum",
         "landing_block_faq",
+        "competitor_analysis",
       ],
     },
   },

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, ChevronRight, Trash2, Loader2, Clapperboard } from "lucide-react";
+import { Plus, ChevronRight, Trash2, Loader2, Clapperboard, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -38,6 +38,8 @@ export default function VideoProjectList() {
   const { user } = useAuth();
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
 
   // Create form
   const [newTitle, setNewTitle] = useState("");
@@ -107,6 +109,23 @@ export default function VideoProjectList() {
     onError: (e: Error) => { toast.error(e.message); setDeleteId(null); },
   });
 
+  const renameMutation = useMutation({
+    mutationFn: async ({ id, title }: { id: string; title: string }) => {
+      if (!title.trim()) throw new Error("Название не может быть пустым");
+      const { error } = await supabase
+        .from("video_projects")
+        .update({ title: title.trim() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["video_projects"] });
+      setEditingId(null);
+      toast.success("Название обновлено");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -140,7 +159,44 @@ export default function VideoProjectList() {
               onClick={() => navigate(`/vertical-content/${p.id}`)}
             >
               <div className="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
-                <div className="font-medium">{p.title}</div>
+                {editingId === p.id ? (
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="h-8 w-[250px] text-sm"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") renameMutation.mutate({ id: p.id, title: editTitle });
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                    />
+                    <Button
+                      size="icon" variant="ghost" className="h-7 w-7 text-green-600"
+                      onClick={() => renameMutation.mutate({ id: p.id, title: editTitle })}
+                      disabled={renameMutation.isPending}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon" variant="ghost" className="h-7 w-7"
+                      onClick={() => setEditingId(null)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    className="font-medium cursor-text"
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setEditingId(p.id);
+                      setEditTitle(p.title);
+                    }}
+                  >
+                    {p.title}
+                  </div>
+                )}
                 <Badge className={`text-xs ${STATUS_COLORS[p.status] || ""}`}>
                   {STATUS_LABELS[p.status] || p.status}
                 </Badge>
@@ -150,6 +206,16 @@ export default function VideoProjectList() {
               </div>
               <div className="flex items-center gap-3 ml-4 shrink-0 text-sm text-muted-foreground">
                 <span>{new Date(p.created_at).toLocaleDateString("ru-RU")}</span>
+                <Button
+                  variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-muted-foreground/70"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingId(p.id);
+                    setEditTitle(p.title);
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
                 <Button
                   variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive"
                   onClick={(e) => { e.stopPropagation(); setDeleteId(p.id); }}

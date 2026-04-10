@@ -9,7 +9,7 @@ import {
   GraduationCap, Tag, TableProperties,
   MessageSquareText, Users, LogOut, Sparkles, Braces, Archive, Mail, Stethoscope, FileVideo, ShieldQuestion, MailPlus, TreePine, FileText, FilePlus2,
   BookOpen, Video, ListChecks, Rocket, UserCheck, Percent, FileDown, ListOrdered, ImageIcon, Link2, Layers, Layout, FileImage, GalleryHorizontal,
-  CalendarDays, Globe, Clapperboard,
+  CalendarDays, Globe, Clapperboard, MailSearch,
 } from "lucide-react";
 
 const topNav = [
@@ -42,6 +42,7 @@ const contentPrepNav = [
   { title: "Управление кейсами", url: "/cases", icon: FileVideo },
   { title: "Дерево тем", url: "/topics", icon: TreePine },
   { title: "Работа с возражениями", url: "/objections", icon: ShieldQuestion },
+  { title: "Письма конкурентов", url: "/competitor-emails", icon: MailSearch },
 ];
 
 const emailSettingsNav = [
