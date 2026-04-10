@@ -49,6 +49,8 @@ import LandingEditor from "@/pages/LandingEditor";
 // LandingPreview removed — ZIP export moved to LandingEditor
 import ContentPlan from "@/pages/ContentPlan";
 import SocialAccounts from "@/pages/SocialAccounts";
+import VideoProjectList from "@/pages/VideoProjectList";
+import VideoProjectEditor from "@/pages/VideoProjectEditor";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -100,6 +102,8 @@ const App = () => (
               <Route path="/email-chains/:chainId" element={<EmailChainDetail />} />
               <Route path="/bot-chains/:chainId" element={<BotChainDetail />} />
               <Route path="/bot-chains/:chainId/messages/:messageId" element={<BotMessageDetail />} />
+              <Route path="/vertical-content" element={<VideoProjectList />} />
+              <Route path="/vertical-content/:id" element={<VideoProjectEditor />} />
               <Route path="/landings" element={<LandingList />} />
               <Route path="/landings/:landingId" element={<LandingEditor />} />
               <Route path="/chain-templates" element={<ProtectedRoute adminOnly><ChainTemplates /></ProtectedRoute>} />
