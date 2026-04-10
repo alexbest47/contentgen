@@ -1365,6 +1365,18 @@ export default function LandingBlockSettingsPanel({
           <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Оформление</h4>
           <div className="space-y-2">
             <div className="space-y-1">
+              <Label className="text-xs">ID секции (якорь)</Label>
+              <Input
+                value={settings.section_id || ""}
+                onChange={(e) => updateSetting("section_id", e.target.value)}
+                placeholder="Например: tariff"
+                className="flex-1 h-8 text-sm"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Используйте в ссылках формат <span className="font-mono">#id</span> для скролла к секции.
+              </p>
+            </div>
+            <div className="space-y-1">
               <Label className="text-xs">Фон секции</Label>
               <div className="flex items-center gap-2">
                 <input

@@ -451,7 +451,16 @@ export default function LandingPreview() {
               try {
                 await exportLandingAsZip(
                   rawBlockHtmlsRef.current,
-                  landing?.name || "landing"
+                  landing?.name || "landing",
+                  (landing?.landing_type as "wordpress" | "s3" | undefined) || "s3",
+                  {
+                    wpTemplateName: landing?.wp_template_name || null,
+                    siteTitle: landing?.site_title || null,
+                    formType: (landing?.form_type as "getcourse" | "gateway" | undefined) || "gateway",
+                    getcourseActionId: landing?.getcourse_action_id || null,
+                    formDealName: landing?.form_deal_name || null,
+                    gatewayAlias: landing?.gateway_alias || null,
+                  },
                 );
                 toast.success("ZIP-архив скачан");
               } catch (err: any) {
