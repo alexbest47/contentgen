@@ -137,6 +137,99 @@ export type Database = {
         }
         Relationships: []
       }
+      video_projects: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          status: string
+          program_id: string | null
+          offer_id: string | null
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          status?: string
+          program_id?: string | null
+          offer_id?: string | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          status?: string
+          program_id?: string | null
+          offer_id?: string | null
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      video_stages: {
+        Row: {
+          id: string
+          video_project_id: string
+          sort_order: number
+          stage_type: string
+          model: string | null
+          prompt: string | null
+          config: Record<string, any>
+          reference_image_url: string | null
+          start_frame_url: string | null
+          result_url: string | null
+          result_metadata: Record<string, any> | null
+          task_id: string | null
+          status: string
+          error_message: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          video_project_id: string
+          sort_order?: number
+          stage_type?: string
+          model?: string | null
+          prompt?: string | null
+          config?: Record<string, any>
+          reference_image_url?: string | null
+          start_frame_url?: string | null
+          result_url?: string | null
+          result_metadata?: Record<string, any> | null
+          task_id?: string | null
+          status?: string
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          video_project_id?: string
+          sort_order?: number
+          stage_type?: string
+          model?: string | null
+          prompt?: string | null
+          config?: Record<string, any>
+          reference_image_url?: string | null
+          start_frame_url?: string | null
+          result_url?: string | null
+          result_metadata?: Record<string, any> | null
+          task_id?: string | null
+          status?: string
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           banner_type: string
